@@ -1,0 +1,3873 @@
+/**
+ * TUH Quality Fair Conference Management
+ * Combined production Google Apps Script backend.
+ * Generated from the audited legacy backend plus the Vercel API gateway.
+ */
+
+
+/** ===== Combined from gas/Code.gs ===== **/
+/** ===== 00_Config.gs ===== **/
+/**
+ * TUH Quality Fair & HACC Conference Management
+ * Clean Core v1.0
+ * Google Apps Script + Google Sheets + Google Drive
+ */
+const APP = Object.freeze({
+  NAME_TH: 'ระบบบริหารจัดการงานมหกรรมคุณภาพโรงพยาบาลธรรมศาสตร์',
+  NAME_EN: 'TUH Quality Fair Conference Management',
+  VERSION: '2.1.0-EXTERNAL-BROWSER-DIRECT-ACCESS',
+  TIMEZONE: 'Asia/Bangkok',
+  LOCALE: 'th_TH',
+  DEFAULT_CONFERENCE_ID: 'CONF-TUH-QF-2569',
+  PRESENTATION_DEADLINE: '2027-02-28T23:59:59',
+  SPREADSHEET_ID: '1S-ycr1Gyam5Sgbbg0TG1eHJ1oAZ3y2Qwy7WoPxnPPcg', // เว้นว่างเมื่อเป็นสคริปต์ผูกกับ Google Sheet
+  ROOT_FOLDER_ID: '10Ri9qA4__I5k76RBZqxwSUj_huD7Gp0C',
+  DEFAULT_LOGO_URL: 'https://img2.pic.in.th/logo-020c27d3e8c360c016.png',
+  MAX_UPLOAD_MB: 25,
+  SESSION_HOURS: 12,
+  CACHE_SECONDS: 300,
+  SESSION_CACHE_SECONDS: 300,
+  THEME: Object.freeze({
+    DEEP_BLUE: '#0C385B',
+    TEAL: '#006D70',
+    GREEN: '#649E77',
+    GOLD: '#C8B278',
+    SOFT: '#F4F7F8'
+  }),
+  ROLES: Object.freeze([
+    'SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF',
+    'ACADEMIC_STAFF','REVIEWER','FOOD_STAFF','VIEWER'
+  ]),
+  PROPERTY_KEYS: Object.freeze({
+    SPREADSHEET_ID: 'TUH_CMP_SPREADSHEET_ID',
+    ROOT_FOLDER_ID: 'TUH_CMP_ROOT_FOLDER_ID',
+    AUTH_SECRET: 'TUH_CMP_AUTH_SECRET',
+    PUBLIC_WEB_APP_URL: 'TUH_PUBLIC_WEB_APP_URL'
+  }),
+  INITIAL_ADMIN: Object.freeze({
+    username: 'admin',
+    password: 'ChangeMe@2569!',
+    email: 'admin@tuh-conference.local',
+    firstName: 'System',
+    lastName: 'Administrator'
+  })
+});
+
+const STATUS = Object.freeze({
+  REGISTRATION: Object.freeze([
+    'IMPORTED_INCOMPLETE','DRAFT','SUBMITTED','WAIT_REGISTRATION_CHECK',
+    'REGISTRATION_RETURNED','REGISTRATION_VERIFIED','COMPLETED','CANCELLED'
+  ]),
+  PAYMENT: Object.freeze(['NOT_REQUIRED','UNPAID','SLIP_UPLOADED','PENDING_VERIFY','APPROVED','RETURNED','REJECTED']),
+  WORK: Object.freeze([
+    'DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT',
+    'WAITING_REVIEWER_ASSIGN','UNDER_REVIEW','REVIEW_COMPLETED',
+    'REVISION_REQUIRED','REVISION_SUBMITTED','ACCEPTED_ORAL','ACCEPTED_POSTER',
+    'REJECTED','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED',
+    'PRESENTATION_FILE_APPROVED','SCHEDULED','PUBLISHED','CANCELLED'
+  ]),
+  ASSIGNMENT: Object.freeze(['ASSIGNED','OPENED','DRAFT_SAVED','COMPLETE','DECLINED','LOCKED','CANCELLED'])
+});
+
+const FOLDERS = Object.freeze([
+  '00_Assets','01_Import_Temp','02_Payment_Slips','03_Receipts',
+  '04_Work_Original','05_Work_Blind','06_Work_Ethics','07_Work_Revisions',
+  '08_Presenter_Bio','09_Final_Presentation','10_Reviewer_Annotated',
+  '11_Certificates','12_Reports','99_Archive'
+]);
+
+const TUH_IMPORT_MAPPING_VERSION = 'TUH_GOOGLE_FORM_2569_V1_2';
+
+
+/** ===== 01_Database.gs ===== **/
+const DB_SCHEMA = Object.freeze({
+  Conferences: ['ConferenceID','ConferenceCode','ConferenceNameTH','ConferenceNameEN','ShortName','Year','Organizer','DescriptionTH','DescriptionEN','PrimaryColor','SecondaryColor','GreenColor','GoldColor','LogoFileId','LogoUrl','Venue','Address','EventStartAt','EventEndAt','RegistrationOpenAt','RegistrationCloseAt','PaymentCloseAt','SubmissionOpenAt','SubmissionCloseAt','ResultAnnouncementAt','PresentationUploadOpenAt','PresentationUploadCloseAt','PublicStatus','Status','CreatedAt','UpdatedAt'],
+  Settings: ['SettingID','ConferenceID','SettingKey','SettingValue','ValueType','GroupName','DescriptionTH','DescriptionEN','IsEditable','UpdatedAt','UpdatedBy'],
+  Users: ['UserID','Username','Email','PasswordHash','Salt','Prefix','FirstName','LastName','FullName','Phone','Organization','Role','Status','LastLogin','CreatedAt','UpdatedAt'],
+  UserConferenceRoles: ['UserConferenceRoleID','ConferenceID','UserID','Role','PermissionsJson','Status','AssignedAt','AssignedBy'],
+  Sessions: ['SessionID','ConferenceID','UserID','Role','TokenHash','ExpiresAt','LastSeenAt','ClientInfo','Status'],
+  RegistrationTypes: ['RegistrationTypeID','ConferenceID','TypeCode','TypeNameTH','TypeNameEN','IsInternal','FeeAmount','Quota','UsedQuota','PaymentRequired','WorkRequiresPayment','Active','SortOrder'],
+  OrganizationUnits: ['UnitID','ConferenceID','ParticipantGroup','ParentUnitID','UnitLevel','UnitNameTH','UnitNameEN','Active','SortOrder'],
+  Registrations: ['RegID','ConferenceID','SourceType','SourceBatchID','SourceRowNo','SourceTimestamp','SourceRespondentEmail','ConsentAccepted','ConsentVersion','ParticipantType','Region4Status','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Passport','Phone','LineID','Email','ReceiptName','ReceiptTaxID','ReceiptAddress','ReceiptPostalCode','ReceiptPhone','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','EditAccessCodeHash','Note','CreatedAt','UpdatedAt','LastModifiedBy'],
+  Consents: ['ConsentID','ConferenceID','RegID','ConsentVersion','ConsentAccepted','AcceptedAt','ClientInfo'],
+  Payments: ['PaymentID','ConferenceID','RegID','Amount','Currency','PaymentChannelID','SlipFileId','SlipFileUrl','SlipFileName','Status','SubmittedAt','VerifiedBy','VerifiedAt','FinanceNote','ReceiptNo','ReceiptDate','ReceiptFileId','ReceiptFileUrl','CreatedAt','UpdatedAt'],
+  PaymentChannels: ['PaymentChannelID','ConferenceID','BankName','AccountName','AccountNumber','PromptPay','QRFileId','QRFileUrl','InstructionTH','InstructionEN','Active','SortOrder'],
+  ImportBatches: ['ImportBatchID','ConferenceID','SourceFileName','SourceFileId','SourceSheetName','UploadedBy','UploadedAt','TotalRows','ReadyRows','IncompleteRows','WarningRows','DuplicateRows','ImportedRows','Status','MappingVersion','Note'],
+  ImportRows: ['ImportRowID','ImportBatchID','ConferenceID','SourceRowNo','SourceTimestamp','SourceFingerprint','SourceDataJson','MappedDataJson','ValidationStatus','IssueCount','ImportStatus','ImportedRegID','CreatedAt'],
+  ImportIssues: ['ImportIssueID','ImportBatchID','ImportRowID','ConferenceID','IssueType','FieldName','MessageTH','MessageEN','Severity','Resolved','ResolvedBy','ResolvedAt'],
+  WorkCategories: ['CategoryID','ConferenceID','CategoryCode','CategoryNameTH','CategoryNameEN','DescriptionTH','Active','SortOrder'],
+  PresentationTypes: ['PresentationTypeID','ConferenceID','TypeCode','TypeNameTH','TypeNameEN','PresentationMinutes','QAMinutes','NeedsRoom','NeedsPoster','Active','SortOrder'],
+  Works: ['WorkID','ConferenceID','RegID','WorkCode','CategoryID','CategoryName','PresentationTypeRequested','PresentationTypeName','PresentationTypeFinal','TitleTH','TitleEN','SummaryTH','Keywords','EthicsRequired','EthicsApprovalNo','Region4Affiliation','Region4AwardIntent','ScreeningStatus','ScreeningNote','Status','FinalDecision','RevisionDeadline','PresentationUploadStatus','CreatedAt','UpdatedAt','LastModifiedBy'],
+  WorkAuthors: ['AuthorID','ConferenceID','WorkID','AuthorOrder','Prefix','FirstName','LastName','FullName','Position','Organization','Email','Phone','IsPresenter','IsCorrespondingAuthor'],
+  WorkFiles: ['WorkFileID','ConferenceID','WorkID','RegID','AssignmentID','FileCategory','VersionNo','FileName','FileId','FileUrl','MimeType','FileSize','UploadedBy','UploadedAt','Active','ReplacedFileID','Note'],
+  Templates: ['TemplateID','ConferenceID','TemplateKey','TemplateNameTH','TemplateNameEN','DescriptionTH','FileId','FileUrl','Active','SortOrder','UpdatedAt'],
+  ReviewRounds: ['ReviewRoundID','ConferenceID','RoundNo','RoundNameTH','RoundNameEN','StartAt','EndAt','MinReviewers','MaxReviewers','BlindReview','AllowEditAfterSubmit','AllowDecline','CalculationMethod','PassingScore','Status','SortOrder'],
+  Reviewers: ['ReviewerID','Prefix','FirstName','LastName','FullName','Position','Institution','Department','Province','HealthRegion','Phone','Email','ExpertiseCategories','ExpertiseTypes','MaxWorkload','Status','NotificationPreference','LineToken','TelegramID','Note','CreatedAt','UpdatedAt'],
+  ReviewerPool: ['PoolID','ConferenceID','ReviewerID','ExpertiseCategories','ExpertiseTypes','MaxWorkload','CurrentAssignedCount','ConflictOrganizations','Status','AssignedAt','AssignedBy'],
+  ReviewerConflicts: ['ConflictID','ConferenceID','ReviewerID','WorkID','Organization','ConflictType','Note','Status','CreatedAt'],
+  ReviewAssignments: ['AssignmentID','ConferenceID','ReviewRoundID','WorkID','WorkCode','ReviewerID','ReviewerName','ReviewerEmail','AssignedAt','AssignedBy','Status','OpenedAt','CompletedAt','TotalScore','Decision','RecommendationToAuthor','InternalComment','DeclineReason','AnnotatedFileId','AnnotatedFileUrl','Locked','UpdatedAt'],
+  ScoringCriteria: ['CriteriaID','ConferenceID','ReviewRoundID','CategoryID','PresentationTypeID','ItemNo','CriteriaNameTH','CriteriaNameEN','DescriptionTH','MaxScore','WeightPercent','RequiredComment','Active','SortOrder'],
+  ReviewScores: ['ScoreID','ConferenceID','AssignmentID','ReviewRoundID','WorkID','ReviewerID','CriteriaID','Score','WeightedScore','Comment','CreatedAt','UpdatedAt'],
+  ReviewSummary: ['SummaryID','ConferenceID','AssignmentID','ReviewRoundID','WorkID','ReviewerID','TotalScore','Decision','RecommendationToAuthor','InternalComment','CreatedAt','UpdatedAt'],
+  FinalDecisions: ['DecisionID','ConferenceID','WorkID','ReviewRoundID','DecisionType','DecisionBy','DecisionAt','AverageScore','MedianScore','ScoreSD','Reason','AuthorVisibleComment','InternalComment','IsFinal','CreatedAt'],
+  MealEntitlements: ['EntitlementID','ConferenceID','RegID','EventDate','MealCode','MealNameTH','Eligible','RedeemedAt','RedeemedBy','ScannerPoint','TokenHash','Status','CreatedAt'],
+  MealScans: ['ScanID','ConferenceID','RegID','EntitlementID','EventDate','MealCode','ScanAt','ScannerUserID','ScannerPoint','Result','Note'],
+  AttendanceCheckIns: ['CheckInID','ConferenceID','RegID','EventDate','CheckInSession','CheckInSessionName','CheckInAt','CheckInPoint','CheckedBy','Status','Note'],
+  Venues: ['VenueID','ConferenceID','VenueNameTH','VenueNameEN','Address','MapUrl','Status'],
+  Rooms: ['RoomID','ConferenceID','VenueID','RoomCode','RoomNameTH','RoomNameEN','Capacity','RoomType','Status'],
+  PresentationSessions: ['SessionID','ConferenceID','SessionCode','SessionNameTH','SessionNameEN','PresentationTypeID','CategoryID','VenueID','RoomID','SessionDate','StartTime','EndTime','MaxWorks','PublishStatus','Note'],
+  PresentationSlots: ['SlotID','ConferenceID','SessionID','WorkID','WorkCode','SlotNo','PresentationDate','StartTime','EndTime','PresenterCheckInStatus','PresentationStatus','PublishStatus','Note'],
+  PosterAssignments: ['PosterAssignmentID','ConferenceID','WorkID','WorkCode','PosterNo','DisplayDate','DisplayStartTime','DisplayEndTime','Location','PublishStatus','Note'],
+  EmailTemplates: ['EmailTemplateID','ConferenceID','TemplateKey','TemplateNameTH','SubjectTH','SubjectEN','HtmlBodyTH','HtmlBodyEN','Variables','Status','UpdatedAt','UpdatedBy'],
+  EmailLogs: ['EmailLogID','ConferenceID','SentAt','SentBy','To','Subject','RelatedType','RelatedID','Status','ErrorMessage'],
+  AuditLogs: ['AuditLogID','ConferenceID','Timestamp','UserID','UserEmail','Role','Action','TargetType','TargetID','DetailsJson','ClientInfo'],
+  SystemLogs: ['SystemLogID','Timestamp','Level','FunctionName','Message','StackTrace','ConferenceID','UserEmail','ClientInfo'],
+  DashboardSnapshots: ['SnapshotID','ConferenceID','Timestamp','TotalRegistrations','InternalCount','ExternalCount','PaidCount','PendingPaymentCount','TotalRevenue','TotalWorks','UnderReviewCount','AcceptedOralCount','AcceptedPosterCount','MealRedeemedCount','JsonDetail']
+});
+
+const PLAIN_TEXT_FIELDS = Object.freeze(['CID','Passport','Phone','LicenseNo','AccountNumber','PromptPay','ReceiptNo','RegID','WorkCode','Postcode','ReceiptTaxID','ReceiptPostalCode','ReceiptPhone']);
+
+function getSpreadsheet_() {
+  if (globalThis.__TUH_SS) return globalThis.__TUH_SS;
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty(APP.PROPERTY_KEYS.SPREADSHEET_ID) || APP.SPREADSHEET_ID;
+  globalThis.__TUH_SS = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  if (!globalThis.__TUH_SS) throw new Error('ไม่พบ Google Sheet กรุณากำหนด SPREADSHEET_ID หรือผูกสคริปต์กับ Google Sheet');
+  return globalThis.__TUH_SS;
+}
+
+function setRuntimeConfig(spreadsheetId, rootFolderId) {
+  const p = PropertiesService.getScriptProperties();
+  if (spreadsheetId) p.setProperty(APP.PROPERTY_KEYS.SPREADSHEET_ID, String(spreadsheetId).trim());
+  if (rootFolderId) p.setProperty(APP.PROPERTY_KEYS.ROOT_FOLDER_ID, String(rootFolderId).trim());
+  globalThis.__TUH_SS = null;
+  return {success:true, spreadsheetId:spreadsheetId||'', rootFolderId:rootFolderId||''};
+}
+
+function setupDatabase() {
+  return runSafely_('setupDatabase', function() {
+    const ss = getSpreadsheet_();
+    const created = [], checked = [];
+    Object.keys(DB_SCHEMA).forEach(function(name) {
+      let sh = ss.getSheetByName(name);
+      if (!sh) { sh = ss.insertSheet(name); created.push(name); }
+      ensureHeaders_(sh, DB_SCHEMA[name]);
+      styleSheet_(sh, DB_SCHEMA[name]);
+      checked.push(name);
+    });
+    auditAndHideUnrelatedSheets_();
+    PropertiesService.getScriptProperties().setProperty('TUH_CMP_SCHEMA_VERSION', APP.VERSION);
+    return {created:created, checked:checked, total:checked.length};
+  });
+}
+
+function auditAndHideUnrelatedSheets_() {
+  const ss = getSpreadsheet_();
+  const allSheets = ss.getSheets();
+  const validSchemaNames = Object.keys(DB_SCHEMA);
+  const hidden = [];
+  allSheets.forEach(function(sh) {
+    const name = sh.getName();
+    if (validSchemaNames.indexOf(name) < 0) {
+      hidden.push(name);
+      try {
+        if (allSheets.length > 1) {
+          sh.hideSheet();
+        }
+      } catch(e) {}
+    }
+  });
+  return hidden;
+}
+
+function clearSheetData_(name) {
+  try {
+    const sh = getSpreadsheet_().getSheetByName(name);
+    if (!sh) return;
+    const lastRow = sh.getLastRow();
+    const lastCol = Math.max(sh.getLastColumn(), 1);
+    if (lastRow > 1) {
+      sh.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+    }
+  } catch(e) {}
+  clearRequestCache_();
+  clearTableCache_(name);
+}
+
+function ensureHeaders_(sheet, headers) {
+  const lastCol = Math.max(sheet.getLastColumn(), headers.length);
+  const existing = lastCol ? sheet.getRange(1,1,1,lastCol).getDisplayValues()[0] : [];
+  const missing = headers.filter(function(h){ return existing.indexOf(h) < 0; });
+  if (sheet.getLastRow() === 0 || existing.filter(String).length === 0) {
+    sheet.getRange(1,1,1,headers.length).setValues([headers]);
+  } else if (missing.length) {
+    sheet.getRange(1,existing.filter(String).length+1,1,missing.length).setValues([missing]);
+  }
+  sheet.setFrozenRows(1);
+}
+
+function styleSheet_(sheet, headers) {
+  const h = sheet.getRange(1,1,1,headers.length);
+  h.setBackground(APP.THEME.TEAL).setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+  h.setWrap(true);
+  sheet.setRowHeight(1,34);
+  headers.forEach(function(name, i) {
+    const width = /Json|Description|Note|Comment|Address|Body/.test(name) ? 260 : (/Date|At|Timestamp/.test(name) ? 150 : 120);
+    sheet.setColumnWidth(i+1, width);
+    if (PLAIN_TEXT_FIELDS.indexOf(name) >= 0) sheet.getRange(2,i+1,Math.max(1,sheet.getMaxRows()-1),1).setNumberFormat('@');
+  });
+}
+
+function seedInitialData() {
+  return runSafely_('seedInitialData', function() {
+    const now = new Date();
+    const cid = APP.DEFAULT_CONFERENCE_ID;
+    const conf = findOne_('Conferences',{ConferenceID:cid});
+    const confData = {
+      ConferenceID:cid,
+      ConferenceCode:'TUH-QF-2569',
+      ConferenceNameTH:'งานมหกรรมคุณภาพโรงพยาบาล ครั้งที่ 19 และงาน HA-Regional Forum ครั้งที่ 1 ประจำปี 2569',
+      ConferenceNameEN:'The 19th TUH Quality Fair & The 1st HA Regional Forum 2026',
+      ShortName:'TUH Quality 2569',
+      Year:'2569',
+      Organizer:'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      DescriptionTH:'ระบบลงทะเบียน ส่งผลงาน ประเมินผลงาน และบริหารจัดการงานประชุมวิชาการ',
+      DescriptionEN:'Registration, abstract submission, review and conference management system',
+      PrimaryColor:APP.THEME.DEEP_BLUE,
+      SecondaryColor:APP.THEME.TEAL,
+      GreenColor:APP.THEME.GREEN,
+      GoldColor:APP.THEME.GOLD,
+      LogoUrl:APP.DEFAULT_LOGO_URL,
+      Venue:'อาคารเรียนและปฏิบัติการรวม มหาวิทยาลัยธรรมศาสตร์ ศูนย์รังสิต',
+      Address:'95 หมู่ 8 ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120',
+      EventStartAt:'2026-11-25T08:00:00+07:00',
+      EventEndAt:'2026-11-27T17:00:00+07:00',
+      RegistrationOpenAt:'2026-08-01T08:00:00+07:00',
+      RegistrationCloseAt:'2026-11-20T23:59:59+07:00',
+      PaymentCloseAt:'2026-11-22T23:59:59+07:00',
+      SubmissionOpenAt:'2026-08-01T08:00:00+07:00',
+      SubmissionCloseAt:'2026-10-31T23:59:59+07:00',
+      ResultAnnouncementAt:'2026-11-15T09:00:00+07:00',
+      PresentationUploadOpenAt:'2026-11-16T08:00:00+07:00',
+      PresentationUploadCloseAt:'2026-11-24T18:00:00+07:00',
+      PublicStatus:'OPEN',
+      Status:'ACTIVE',
+      UpdatedAt:now
+    };
+    if (!conf) {
+      confData.CreatedAt = now;
+      appendRecord_('Conferences', confData);
+    } else {
+      updateRecord_('Conferences', conf.__row, confData);
+    }
+    const settings = defaultSettings_();
+    Object.keys(settings).forEach(function(k){ upsertSetting_(cid,k,settings[k].value,settings[k].type,settings[k].group,settings[k].th,settings[k].en); });
+    seedRegistrationTypes_(cid);
+    seedOrganizationUnits_(cid);
+    seedWorkCategories_(cid);
+    seedPresentationTypes_(cid);
+    seedReviewRounds_(cid);
+    seedScoringCriteria_(cid);
+    seedPaymentChannels_(cid);
+    seedVenuesAndRooms_(cid);
+    seedEmailTemplates_(cid);
+    seedDefaultRolesUsers_(cid);
+    setupDriveFolders();
+    return {conferenceId:cid, settings:Object.keys(settings).length};
+  });
+}
+
+function defaultSettings_(){ return {
+  REGISTRATION_ENABLED:{value:'TRUE',type:'BOOLEAN',group:'REGISTRATION',th:'เปิดรับลงทะเบียน',en:'Registration enabled'},
+  INTERNAL_QUOTA:{value:'400',type:'NUMBER',group:'REGISTRATION',th:'โควตาบุคลากรภายใน',en:'Internal quota'},
+  EXTERNAL_QUOTA:{value:'200',type:'NUMBER',group:'REGISTRATION',th:'โควตาบุคคลทั่วไป',en:'External quota'},
+  REQUIRE_CID_ALL:{value:'TRUE',type:'BOOLEAN',group:'REGISTRATION',th:'บังคับเลขบัตรประชาชนทุกคน',en:'Require CID for all'},
+  EMAIL_DUPLICATE_POLICY:{value:'WARNING',type:'TEXT',group:'REGISTRATION',th:'อีเมลซ้ำให้เตือน',en:'Email duplicates warning'},
+  PHONE_DUPLICATE_POLICY:{value:'ALLOW',type:'TEXT',group:'REGISTRATION',th:'อนุญาตโทรศัพท์ซ้ำ',en:'Allow duplicate phone'},
+  PREFIX_OPTIONS_JSON:{value:'["นาย","นาง","นางสาว","นายแพทย์","แพทย์หญิง","ทันตแพทย์","ทันตแพทย์หญิง","เภสัชกร","เภสัชกรหญิง","ดร."]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกคำนำหน้า',en:'Prefix options'},
+  POSITION_OPTIONS_JSON:{value:'["แพทย์","ทันตแพทย์","เภสัชกร","พยาบาลวิชาชีพ","นักวิชาการสาธารณสุข","เจ้าพนักงานสาธารณสุข","เจ้าหน้าที่"]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกตำแหน่ง',en:'Position options'},
+  PROFESSION_OPTIONS_JSON:{value:'["แพทย์","ทันตแพทย์","เภสัชกร","พยาบาล","นักวิชาการสาธารณสุข","สหวิชาชีพ","อื่น ๆ"]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกวิชาชีพ',en:'Profession options'},
+  ORGANIZATION_GROUP_OPTIONS_JSON:{value:'[]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกฝ่ายหรือกลุ่มงาน',en:'Division options'},
+  ORGANIZATION_OPTIONS_JSON:{value:'[]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกหน่วยงานหรือสถาบัน',en:'Organization options'},
+  FOOD_TYPE_OPTIONS_JSON:{value:'["ปกติ","อิสลาม","มังสวิรัติ","แพ้อาหาร"]',type:'JSON',group:'REGISTRATION_OPTIONS',th:'ตัวเลือกประเภทอาหาร',en:'Food type options'},
+  PUBLIC_WORK_REQUIRES_PAYMENT:{value:'TRUE',type:'BOOLEAN',group:'WORK',th:'บุคคลทั่วไปต้องชำระก่อนส่งผลงาน',en:'External participants require payment before submission'},
+  INTERNAL_MEAL_PASS_ON_COMPLETE:{value:'TRUE',type:'BOOLEAN',group:'FOOD',th:'บุคลากรภายในได้คูปองหลังข้อมูลครบ',en:'Internal meal pass after completion'},
+  EXTERNAL_MEAL_PASS_ON_PAYMENT:{value:'TRUE',type:'BOOLEAN',group:'FOOD',th:'บุคคลทั่วไปได้คูปองหลังชำระผ่าน',en:'External meal pass after payment approval'},
+  MEAL_PASS_AUTO_SEND_INTERNAL:{value:'TRUE',type:'BOOLEAN',group:'FOOD',th:'ส่งคูปองบุคลากรภายในอัตโนมัติ',en:'Auto-send internal meal pass'},
+  MEAL_PASS_AUTO_SEND_EXTERNAL:{value:'TRUE',type:'BOOLEAN',group:'FOOD',th:'ส่งคูปองบุคคลภายนอกหลังชำระผ่านอัตโนมัติ',en:'Auto-send external meal pass after payment approval'},
+  EVENT_DATES_JSON:{value:'["2026-11-25","2026-11-26","2026-11-27"]',type:'JSON',group:'SCHEDULE',th:'วันจัดงาน',en:'Event dates'},
+  MEALS_JSON:{value:'[{"code":"BREAKFAST","th":"อาหารว่างเช้า"},{"code":"LUNCH","th":"อาหารกลางวัน"},{"code":"AFTERNOON","th":"อาหารว่างบ่าย"}]',type:'JSON',group:'FOOD',th:'รายการอาหาร',en:'Meals'},
+  MAX_WORKS_PER_REGISTRATION:{value:'0',type:'NUMBER',group:'WORK',th:'จำนวนผลงานสูงสุด 0=ไม่จำกัด',en:'Maximum works, 0=unlimited'},
+  MAX_REVIEWERS_PER_WORK:{value:'3',type:'NUMBER',group:'REVIEW',th:'Reviewer สูงสุดต่อผลงาน',en:'Maximum reviewers per work'},
+  MIN_REVIEWERS_PER_WORK:{value:'2',type:'NUMBER',group:'REVIEW',th:'Reviewer ขั้นต่ำต่อผลงาน',en:'Minimum reviewers per work'},
+  REVIEWER_CAN_EDIT_AFTER_SUBMIT:{value:'FALSE',type:'BOOLEAN',group:'REVIEW',th:'Reviewer แก้คะแนนหลังส่งได้',en:'Reviewer may edit after submit'},
+  DEFAULT_LANGUAGE:{value:'TH',type:'TEXT',group:'GENERAL',th:'ภาษาเริ่มต้น',en:'Default language'},
+  IMPORT_MAPPING_VERSION:{value:'TUH_GOOGLE_FORM_2569_V1_2',type:'TEXT',group:'IMPORT',th:'เวอร์ชัน mapping',en:'Import mapping version'}
+}; }
+
+function seedRegistrationTypes_(cid){
+  const rows = [
+    ['INTERNAL','บุคลากรโรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ','TUH Staff',true,0,400,false,false,1],
+    ['EXTERNAL_2500','สาธารณสุขจังหวัด / โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป','Provincial public health / Regional or General hospital',false,2500,200,true,true,2],
+    ['EXTERNAL_1500','โรงพยาบาลชุมชน / สาธารณสุขอำเภอ / รพ.สต.','Community hospital / District public health / Health promoting hospital',false,1500,100,true,true,3],
+    ['EXTERNAL_GENERAL','บุคคลภายนอกทั่วไป / สถาบันการศึกษา / เอกชน','General Public / Academic Institute / Private Sector',false,3000,50,true,true,4]
+  ];
+  rows.forEach(function(r){
+    if(!findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:r[0]})) appendRecord_('RegistrationTypes',{
+      RegistrationTypeID:nextId_('RT'),ConferenceID:cid,TypeCode:r[0],TypeNameTH:r[1],TypeNameEN:r[2],IsInternal:r[3],FeeAmount:r[4],Quota:r[5],UsedQuota:0,PaymentRequired:r[6],WorkRequiresPayment:r[7],Active:true,SortOrder:r[8]
+    });
+  });
+}
+
+function seedPaymentChannels_(cid){
+  if(!findOne_('PaymentChannels',{ConferenceID:cid})){
+    appendRecord_('PaymentChannels',{
+      PaymentChannelID: nextId_('PAYCH'),
+      ConferenceID: cid,
+      BankName: 'ธนาคารกรุงไทย',
+      AccountName: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ (งานประชุมวิชาการ)',
+      AccountNumber: '475-0-84512-3',
+      PromptPay: '0994000158371',
+      InstructionTH: 'กรุณาโอนเงินตามยอดที่ระบุและแนบสลิปหลักฐานการโอนเงินเพื่อรอการตรวจสอบจากเจ้าหน้าที่การเงิน',
+      InstructionEN: 'Please transfer the exact amount and upload your payment slip for verification.',
+      Active: true,
+      SortOrder: 1
+    });
+  }
+}
+
+function seedVenuesAndRooms_(cid){
+  let v = findOne_('Venues',{ConferenceID:cid});
+  if(!v){
+    const vid = nextId_('VEN');
+    appendRecord_('Venues',{
+      VenueID: vid,
+      ConferenceID: cid,
+      VenueNameTH: 'อาคารเรียนและปฏิบัติการรวม มหาวิทยาลัยธรรมศาสตร์ ศูนย์รังสิต',
+      VenueNameEN: 'Lecture and Laboratory Building, Thammasat University (Rangsit Campus)',
+      Address: '95 หมู่ 8 ต.คลองหนึ่ง อ.คลองหลวง จ.ปทุมธานี 12120',
+      Status: 'ACTIVE'
+    });
+    v = findOne_('Venues',{VenueID: vid});
+  }
+  if(v && !findOne_('Rooms',{ConferenceID:cid})){
+    appendRecord_('Rooms',{
+      RoomID: nextId_('RM'),
+      ConferenceID: cid,
+      VenueID: v.VenueID,
+      RoomCode: 'ROOM-101',
+      RoomNameTH: 'ห้องประชุมใหญ่ 1 (Oral Presentation Room A)',
+      RoomNameEN: 'Main Auditorium 1',
+      Capacity: 250,
+      RoomType: 'ORAL',
+      Status: 'ACTIVE'
+    });
+  }
+}
+function seedDefaultRolesUsers_(cid) {
+  cid = cid || APP.DEFAULT_CONFERENCE_ID;
+  const defaultPassword = 'Password@2569';
+  const roleUsers = [
+    {
+      Username: 'admin',
+      Email: 'admin@tuh-conference.local',
+      Prefix: 'นาย',
+      FirstName: 'ผู้ดูแลระบบ',
+      LastName: 'สูงสุด',
+      FullName: 'ผู้ดูแลระบบ สูงสุด',
+      Phone: '0800000001',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'SUPERADMIN',
+      PermissionsJson: '{"all":true}'
+    },
+    {
+      Username: 'confadmin',
+      Email: 'confadmin@tuh-conference.local',
+      Prefix: 'นาง',
+      FirstName: 'สุภาพร',
+      LastName: 'บริหารงาน',
+      FullName: 'นาง สุภาพร บริหารงาน',
+      Phone: '0800000002',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'CONFERENCE_ADMIN',
+      PermissionsJson: '{"conference":true}'
+    },
+    {
+      Username: 'academic',
+      Email: 'academic@tuh-conference.local',
+      Prefix: 'ผศ.ดร.',
+      FirstName: 'กิตติศักดิ์',
+      LastName: 'วิชาการ',
+      FullName: 'ผศ.ดร. กิตติศักดิ์ วิชาการ',
+      Phone: '0800000003',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'ACADEMIC_STAFF',
+      PermissionsJson: '{"academic":true}'
+    },
+    {
+      Username: 'registrar',
+      Email: 'registrar@tuh-conference.local',
+      Prefix: 'น.ส.',
+      FirstName: 'พรทิพย์',
+      LastName: 'ลงทะเบียน',
+      FullName: 'น.ส. พรทิพย์ ลงทะเบียน',
+      Phone: '0800000004',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'REGISTRATION_STAFF',
+      PermissionsJson: '{"registration":true}'
+    },
+    {
+      Username: 'finance',
+      Email: 'finance@tuh-conference.local',
+      Prefix: 'นาง',
+      FirstName: 'รุ่งนภา',
+      LastName: 'การเงินดี',
+      FullName: 'นาง รุ่งนภา การเงินดี',
+      Phone: '0800000005',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'FINANCE_STAFF',
+      PermissionsJson: '{"finance":true}'
+    },
+    {
+      Username: 'food',
+      Email: 'food@tuh-conference.local',
+      Prefix: 'นาย',
+      FirstName: 'สิทธิชัย',
+      LastName: 'บริการอาหาร',
+      FullName: 'นาย สิทธิชัย บริการอาหาร',
+      Phone: '0800000006',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'FOOD_STAFF',
+      PermissionsJson: '{"food":true,"scanner":true}'
+    },
+    {
+      Username: 'chaiyos.rev@tu.ac.th',
+      Email: 'chaiyos.rev@tu.ac.th',
+      Prefix: 'ศ.ดร.นพ.',
+      FirstName: 'ชัยยศ',
+      LastName: 'เมธาพิทักษ์',
+      FullName: 'ศ.ดร.นพ. ชัยยศ เมธาพิทักษ์',
+      Phone: '0891112233',
+      Organization: 'คณะแพทยศาสตร์ มหาวิทยาลัยธรรมศาสตร์',
+      Role: 'REVIEWER',
+      PermissionsJson: '{"ReviewerID":"REV-2026-000001"}'
+    },
+    {
+      Username: 'viewer',
+      Email: 'viewer@tuh-conference.local',
+      Prefix: 'นาย',
+      FirstName: 'พัฒนา',
+      LastName: 'สถิติข้อมูล',
+      FullName: 'นาย พัฒนา สถิติข้อมูล',
+      Phone: '0800000007',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'VIEWER',
+      PermissionsJson: '{"viewer":true}'
+    },
+    {
+      Username: 'somsri.nurse@tuh.local',
+      Email: 'somsri.nurse@tuh.local',
+      Prefix: 'พว.',
+      FirstName: 'สมศรี',
+      LastName: 'รักการพยาบาล',
+      FullName: 'พว. สมศรี รักการพยาบาล',
+      Phone: '0812345601',
+      Organization: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Role: 'USER',
+      PermissionsJson: '{"RegID":"REG-2026-000001"}'
+    }
+  ];
+
+  const now = new Date();
+  roleUsers.forEach(function(u) {
+    let existing = findOne_('Users', { Username: u.Username }) || findOne_('Users', { Email: u.Email });
+    const salt = uuid_();
+    const hash = hashPassword_(defaultPassword, salt);
+    let uid;
+    if (existing) {
+      uid = existing.UserID;
+      updateRecord_('Users', existing.__row, {
+        PasswordHash: hash,
+        Salt: salt,
+        Prefix: u.Prefix,
+        FirstName: u.FirstName,
+        LastName: u.LastName,
+        FullName: u.FullName,
+        Phone: u.Phone,
+        Organization: u.Organization,
+        Role: u.Role,
+        Status: 'ACTIVE',
+        UpdatedAt: now
+      });
+    } else {
+      uid = nextId_('USR');
+      appendRecord_('Users', {
+        UserID: uid,
+        Username: u.Username,
+        Email: u.Email,
+        PasswordHash: hash,
+        Salt: salt,
+        Prefix: u.Prefix,
+        FirstName: u.FirstName,
+        LastName: u.LastName,
+        FullName: u.FullName,
+        Phone: u.Phone,
+        Organization: u.Organization,
+        Role: u.Role,
+        Status: 'ACTIVE',
+        CreatedAt: now,
+        UpdatedAt: now
+      });
+    }
+
+    let role = findOne_('UserConferenceRoles', { ConferenceID: cid, UserID: uid, Role: u.Role });
+    if (!role) {
+      appendRecord_('UserConferenceRoles', {
+        UserConferenceRoleID: nextId_('UCR'),
+        ConferenceID: cid,
+        UserID: uid,
+        Role: u.Role,
+        PermissionsJson: u.PermissionsJson,
+        Status: 'ACTIVE',
+        AssignedAt: now,
+        AssignedBy: 'SYSTEM'
+      });
+    } else {
+      updateRecord_('UserConferenceRoles', role.__row, {
+        PermissionsJson: u.PermissionsJson,
+        Status: 'ACTIVE'
+      });
+    }
+  });
+}
+
+function cleanDatabaseAndSetupReady(cid) {
+  return runSafely_('cleanDatabaseAndSetupReady', function() {
+    cid = cid || APP.DEFAULT_CONFERENCE_ID;
+    const tablesToClear = [
+      'Registrations', 'Consents', 'Works', 'WorkAuthors', 'WorkFiles',
+      'Payments', 'Reviewers', 'ReviewerPool', 'ReviewAssignments',
+      'ReviewScores', 'ReviewSummary', 'FinalDecisions', 'ReviewerConflicts',
+      'MealEntitlements', 'MealScans', 'AttendanceCheckIns', 'Sessions',
+      'Users', 'UserConferenceRoles', 'ImportBatches', 'ImportRows', 'ImportIssues',
+      'AuditLogs', 'SystemLogs', 'EmailLogs', 'DashboardSnapshots'
+    ];
+    tablesToClear.forEach(clearSheetData_);
+    setupDatabase();
+    const hiddenSheets = auditAndHideUnrelatedSheets_();
+    seedInitialData();
+    seedDefaultRolesUsers_(cid);
+    const sampleRes = seedSampleData(cid);
+    invalidateCache_(cid);
+
+    return {
+      success: true,
+      conferenceId: cid,
+      hiddenSheets: hiddenSheets,
+      usersSeeded: 9,
+      registrationsAdded: sampleRes.registrationsAdded || 1,
+      worksAdded: sampleRes.worksAdded || 1,
+      reviewersAdded: sampleRes.reviewersAdded || 1,
+      message: 'ล้างข้อมูลตัวอย่างเดิมและตั้งค่าการประชุมพร้อมชุดข้อมูลตัวอย่าง 1 ชุดเรียบร้อยแล้ว'
+    };
+  });
+}
+
+function runFullSetupAndSeedSampleData() {
+  return cleanDatabaseAndSetupReady();
+}
+
+function seedSampleData(cid) {
+  return runSafely_('seedSampleData', function() {
+    cid = cid || APP.DEFAULT_CONFERENCE_ID;
+    const now = new Date();
+
+    // 1. ดึง Categories & PresentationTypes
+    const categories = findMany_('WorkCategories', { ConferenceID: cid });
+    let cqiCat = categories.find(function(c) { return c.CategoryCode === 'CQI'; }) || categories[0];
+    const pTypes = findMany_('PresentationTypes', { ConferenceID: cid });
+    let oralPt = pTypes.find(function(p) { return p.TypeCode === 'ORAL'; }) || pTypes[0];
+
+    const catId = cqiCat ? cqiCat.CategoryID : 'CAT-CQI';
+    const catName = cqiCat ? cqiCat.CategoryNameTH : 'CQI/ Best Practice';
+    const ptId = oralPt ? oralPt.PresentationTypeID : 'PT-ORAL';
+    const ptName = oralPt ? oralPt.TypeNameTH : 'แบบบรรยาย (Oral)';
+
+    // 2. ข้อมูลผู้ลงทะเบียนตัวอย่าง 1 คน (REG-2026-000001 - พว. สมศรี รักการพยาบาล)
+    const sampleReg = {
+      RegID: 'REG-2026-000001',
+      ConferenceID: cid,
+      SourceType: 'MANUAL',
+      ParticipantType: 'บุคลากรโรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Region4Status: 'REGION_4',
+      Prefix: 'พว.',
+      FirstName: 'สมศรี',
+      LastName: 'รักการพยาบาล',
+      FullName: 'พว. สมศรี รักการพยาบาล',
+      Position: 'พยาบาลวิชาชีพชำนาญการ',
+      OrganizationGroup: 'ฝ่ายการพยาบาล',
+      OrganizationUnit: 'งานการพยาบาลผู้ป่วยผ่าตัด',
+      Institution: 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+      Profession: 'พยาบาล',
+      CID: '1100400123451',
+      Phone: '0812345601',
+      Email: 'somsri.nurse@tuh.local',
+      FoodType: 'ปกติ',
+      AttendanceDay1: true,
+      AttendanceDay2: true,
+      AttendanceDay3: true,
+      WantsSubmitWork: true,
+      DataCompletenessStatus: 'COMPLETE',
+      RegistrationStatus: 'REGISTRATION_VERIFIED',
+      PaymentStatus: 'NOT_REQUIRED',
+      MealPassStatus: 'ACTIVE',
+      CreatedAt: now,
+      UpdatedAt: now
+    };
+
+    if (!findOne_('Registrations', { ConferenceID: cid, RegID: sampleReg.RegID })) {
+      appendRecord_('Registrations', sampleReg);
+    }
+
+    // Consent PDPA สำหรับผู้ลงทะเบียน
+    if (!findOne_('Consents', { ConferenceID: cid, RegID: sampleReg.RegID })) {
+      appendRecord_('Consents', {
+        ConsentID: nextId_('CST'),
+        ConferenceID: cid,
+        RegID: sampleReg.RegID,
+        ConsentType: 'PDPA',
+        Agreed: true,
+        ConsentText: 'ข้าพเจ้ายินยอมให้ประมวลผลข้อมูลส่วนบุคคลสำหรับการประชุมวิชาการ',
+        AgreedAt: now,
+        IpAddress: '127.0.0.1'
+      });
+    }
+
+    // MealEntitlements 9 สิทธิ์ (3 วัน x 3 มื้อ)
+    const eventDates = ['2026-11-25', '2026-11-26', '2026-11-27'];
+    const mealCodes = [
+      { code: 'BREAKFAST', name: 'อาหารว่างเช้า' },
+      { code: 'LUNCH', name: 'อาหารกลางวัน' },
+      { code: 'AFTERNOON', name: 'อาหารว่างบ่าย' }
+    ];
+    eventDates.forEach(function(d) {
+      mealCodes.forEach(function(m) {
+        if (!findOne_('MealEntitlements', { ConferenceID: cid, RegID: sampleReg.RegID, EventDate: d, MealType: m.code })) {
+          appendRecord_('MealEntitlements', {
+            EntitlementID: nextId_('ME'),
+            ConferenceID: cid,
+            RegID: sampleReg.RegID,
+            EventDate: d,
+            MealType: m.code,
+            MealNameTH: m.name,
+            QuotaCount: 1,
+            UsedCount: 0,
+            Status: 'AVAILABLE',
+            CreatedAt: now,
+            UpdatedAt: now
+          });
+        }
+      });
+    });
+
+    // 3. ข้อมูลผลงานวิชาการตัวอย่าง 1 ผลงาน (WRK-2026-000001)
+    const sampleWork = {
+      WorkID: 'WRK-2026-000001',
+      ConferenceID: cid,
+      RegID: sampleReg.RegID,
+      WorkCode: 'CQI-001',
+      CategoryID: catId,
+      CategoryName: catName,
+      PresentationTypeRequested: ptId,
+      PresentationTypeName: ptName,
+      PresentationTypeFinal: ptId,
+      TitleTH: 'การพัฒนากระบวนการเตรียมผู้ป่วยก่อนผ่าตัดเพื่อลดอัตราการเลื่อนผ่าตัด',
+      TitleEN: 'Preoperative Preparation Process Improvement to Reduce Surgery Cancellation Rate',
+      SummaryTH: 'การพัฒนาแนวทาง Fast-Track Pre-op screening เพื่อลดระยะเวลารอคอยและป้องกันการเลื่อนนัดผ่าตัดที่ไม่จำเป็น',
+      Keywords: 'CQI, Preoperative, Surgery Cancellation, Patient Safety',
+      EthicsRequired: false,
+      Region4Affiliation: 'REGION_4',
+      Region4AwardIntent: true,
+      ScreeningStatus: 'APPROVED',
+      Status: 'UNDER_REVIEW',
+      FinalDecision: 'PENDING',
+      CreatedAt: now,
+      UpdatedAt: now
+    };
+
+    if (!findOne_('Works', { ConferenceID: cid, WorkID: sampleWork.WorkID })) {
+      appendRecord_('Works', sampleWork);
+    }
+
+    // WorkAuthor 1 คน
+    if (!findOne_('WorkAuthors', { WorkID: sampleWork.WorkID, AuthorFullName: sampleReg.FullName })) {
+      appendRecord_('WorkAuthors', {
+        WorkAuthorID: nextId_('WA'),
+        WorkID: sampleWork.WorkID,
+        AuthorOrder: 1,
+        AuthorFullName: sampleReg.FullName,
+        AuthorEmail: sampleReg.Email,
+        AuthorPhone: sampleReg.Phone,
+        AuthorAffiliation: sampleReg.Institution,
+        IsPresenter: true,
+        IsCorrespondingAuthor: true,
+        IsMainAuthor: true
+      });
+    }
+
+    // 4. ข้อมูลผู้ประเมินตัวอย่าง 1 คน (REV-2026-000001 - ศ.ดร.นพ. ชัยยศ เมธาพิทักษ์)
+    const sampleReviewer = {
+      ReviewerID: 'REV-2026-000001',
+      Prefix: 'ศ.ดร.นพ.',
+      FirstName: 'ชัยยศ',
+      LastName: 'เมธาพิทักษ์',
+      FullName: 'ศ.ดร.นพ. ชัยยศ เมธาพิทักษ์',
+      Position: 'ผู้ทรงคุณวุฒิ',
+      Institution: 'คณะแพทยศาสตร์ มหาวิทยาลัยธรรมศาสตร์',
+      Department: 'ภาควิชาเวชศาสตร์ชุมชน',
+      Province: 'ปทุมธานี',
+      HealthRegion: 'เขตสุขภาพที่ 4',
+      Phone: '0891112233',
+      Email: 'chaiyos.rev@tu.ac.th',
+      ExpertiseCategories: 'CQI/ Best Practice, ผลงานวิจัยด้านคุณภาพและความปลอดภัย',
+      ExpertiseTypes: 'แบบบรรยาย (Oral), แบบโปสเตอร์ (e-Poster)',
+      MaxWorkload: 10,
+      Status: 'ACTIVE',
+      CreatedAt: now,
+      UpdatedAt: now
+    };
+
+    if (!findOne_('Reviewers', { ReviewerID: sampleReviewer.ReviewerID })) {
+      appendRecord_('Reviewers', sampleReviewer);
+    }
+
+    // ReviewerPool สำหรับงานประชุมนี้
+    if (!findOne_('ReviewerPool', { ConferenceID: cid, ReviewerID: sampleReviewer.ReviewerID })) {
+      appendRecord_('ReviewerPool', {
+        PoolID: nextId_('POOL'),
+        ConferenceID: cid,
+        ReviewerID: sampleReviewer.ReviewerID,
+        MaxWorkload: 10,
+        AssignedCount: 1,
+        CompletedCount: 0,
+        Status: 'ACTIVE'
+      });
+    }
+
+    // ReviewAssignments มอบหมายผลงานให้ Reviewer
+    const round = findOne_('ReviewRounds', { ConferenceID: cid, RoundNo: 1 });
+    const roundId = round ? round.ReviewRoundID : 'RR-1';
+    if (!findOne_('ReviewAssignments', { ConferenceID: cid, WorkID: sampleWork.WorkID, ReviewerID: sampleReviewer.ReviewerID })) {
+      appendRecord_('ReviewAssignments', {
+        AssignmentID: nextId_('ASG'),
+        ConferenceID: cid,
+        WorkID: sampleWork.WorkID,
+        ReviewerID: sampleReviewer.ReviewerID,
+        ReviewRoundID: roundId,
+        Status: 'ASSIGNED',
+        AssignedAt: now,
+        ScoreLocked: false
+      });
+    }
+
+    invalidateCache_(cid);
+
+    return {
+      success: true,
+      conferenceId: cid,
+      registrationsAdded: 1,
+      worksAdded: 1,
+      reviewersAdded: 1
+    };
+  });
+}
+
+function adminSeedSampleData(token, conferenceId) {
+  return runSafely_('adminSeedSampleData', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN'], conferenceId);
+    return seedSampleData(conferenceId);
+  });
+}
+
+function adminResetAndInitDatabase(token, conferenceId) {
+  return runSafely_('adminResetAndInitDatabase', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN'], conferenceId);
+    return cleanDatabaseAndSetupReady(conferenceId);
+  });
+}
+
+/** ===== 02_CoreAuth & Utils ===== **/
+function runSafely_(name, fn){
+  try { return {success:true,data:fn(),message:'',error:''}; }
+  catch(e){ logSystem_(name,e); return {success:false,data:null,message:e.message||String(e),error:e.message||String(e)}; }
+}
+function now_(){ return new Date(); }
+function clean_(v){ return v===null||v===undefined?'':String(v).trim(); }
+function updateScoreSummaries_(cid){return true;}
+
+function migrateReadableWorksColumns() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Works');
+  if (!sh) return;
+  let headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  let catNameIdx = headers.indexOf('CategoryName');
+  let ptNameIdx = headers.indexOf('PresentationTypeName');
+  
+  if (catNameIdx === -1) {
+    const catIdIdx = headers.indexOf('CategoryID');
+    if (catIdIdx >= 0) {
+      sh.insertColumnAfter(catIdIdx + 1);
+      sh.getRange(1, catIdIdx + 2).setValue('CategoryName');
+      headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+      catNameIdx = headers.indexOf('CategoryName');
+    }
+  }
+  if (ptNameIdx === -1) {
+    const ptReqIdx = headers.indexOf('PresentationTypeRequested');
+    if (ptReqIdx >= 0) {
+      sh.insertColumnAfter(ptReqIdx + 1);
+      sh.getRange(1, ptReqIdx + 2).setValue('PresentationTypeName');
+      headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+      ptNameIdx = headers.indexOf('PresentationTypeName');
+    }
+  }
+  const data = sh.getDataRange().getValues();
+  const catMap = {}, ptMap = {};
+  getSheet_('WorkCategories').getDataRange().getValues().forEach(function(r, i) { if(i>0) catMap[r[0]] = r[4]; });
+  getSheet_('PresentationTypes').getDataRange().getValues().forEach(function(r, i) { if(i>0) ptMap[r[0]] = r[3]; });
+  for (let i = 1; i < data.length; i++) {
+    const catId = data[i][headers.indexOf('CategoryID')];
+    const ptId = data[i][headers.indexOf('PresentationTypeRequested')];
+    if (catNameIdx >= 0 && catId) sh.getRange(i+1, catNameIdx+1).setValue(catMap[catId] || catId);
+    if (ptNameIdx >= 0 && ptId) sh.getRange(i+1, ptNameIdx+1).setValue(ptMap[ptId] || ptId);
+  }
+  return 'Migrated successfully.';
+}
+function upper_(v){ return clean_(v).toUpperCase(); }
+function bool_(v){ return v===true||['TRUE','1','YES','Y','ใช่','จริง'].indexOf(upper_(v))>=0; }
+function num_(v,d){ const n=Number(v); return isFinite(n)?n:(d||0); }
+function jsonParse_(v,d){ try{return v?JSON.parse(v):d;}catch(e){return d;} }
+function safeJson_(v){ try{return JSON.stringify(v);}catch(e){return '{}';} }
+function pad2_(n){ return (n<10?'0':'')+n; }
+function uuid_(){ return Utilities.getUuid(); }
+function normalizeCid_(v){ return clean_(v).replace(/[^\d]/g, ''); }
+function normalizePhone_(v){ return clean_(v).replace(/[^\d+]/g, ''); }
+function normalizeEmail_(v){ return clean_(v).toLowerCase(); }
+function formatDateTime_(v){ 
+  if(!v) return ''; 
+  const d=new Date(v); 
+  if(isNaN(d.getTime())) return '';
+  return Utilities.formatDate(d, APP.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss") + '+07:00'; 
+}
+
+function normalizeConferenceDateTime_(value){
+  if(value===null||value===undefined||value==='')return '';
+  if(Object.prototype.toString.call(value)==='[object Date]'){
+    if(isNaN(value.getTime()))throw new Error('รูปแบบวันที่ไม่ถูกต้อง');
+    return Utilities.formatDate(value,APP.TIMEZONE,"yyyy-MM-dd'T'HH:mm:ss")+'+07:00';
+  }
+  const raw=clean_(value).replace(/\u00a0/g,' ');
+  if(!raw)return '';
+  let y,m,d,hh=0,mm=0,ss=0,match;
+  match=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(match){d=+match[1];m=+match[2];y=+match[3];hh=+(match[4]||0);mm=+(match[5]||0);ss=+(match[6]||0);}
+  if(!match){
+    match=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?)?$/);
+    if(match){y=+match[1];m=+match[2];d=+match[3];hh=+(match[4]||0);mm=+(match[5]||0);ss=+(match[6]||0);}
+  }
+  if(!match){
+    const parsed=new Date(raw);
+    if(isNaN(parsed.getTime()))throw new Error('รูปแบบวันเวลาไม่ถูกต้อง: '+raw);
+    return Utilities.formatDate(parsed,APP.TIMEZONE,"yyyy-MM-dd'T'HH:mm:ss")+'+07:00';
+  }
+  if(y>=2400)y-=543;
+  if(y<1900||y>2200||m<1||m>12||d<1||d>31||hh<0||hh>23||mm<0||mm>59||ss<0||ss>59)throw new Error('วันเวลาไม่ถูกต้อง: '+raw);
+  const test=new Date(y,m-1,d,hh,mm,ss);
+  if(test.getFullYear()!==y||test.getMonth()!==m-1||test.getDate()!==d)throw new Error('วันที่ไม่มีอยู่จริง: '+raw);
+  return y+'-'+pad2_(m)+'-'+pad2_(d)+'T'+pad2_(hh)+':'+pad2_(mm)+':'+pad2_(ss)+'+07:00';
+}
+/** คืนวันที่ ค.ศ. yyyy-MM-dd จากวันที่ พ.ศ. หรือ ค.ศ. */
+function normalizeEventDate_(value){
+  const raw=clean_(value);
+  if(!raw)return '';
+  let y,m,d,match=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(match){d=+match[1];m=+match[2];y=+match[3];}
+  else {
+    match=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(!match)throw new Error('วันที่จัดงานไม่ถูกต้อง: '+raw);
+    y=+match[1];m=+match[2];d=+match[3];
+  }
+  if(y>=2400)y-=543;
+  if(y<1900||y>2200||m<1||m>12||d<1||d>31)throw new Error('วันที่จัดงานไม่ถูกต้อง: '+raw);
+  const test=new Date(y,m-1,d);
+  if(test.getFullYear()!==y||test.getMonth()!==m-1||test.getDate()!==d)throw new Error('วันที่จัดงานไม่มีอยู่จริง: '+raw);
+  return y+'-'+pad2_(m)+'-'+pad2_(d);
+}
+function normalizeEventDatesJson_(value){
+  let arr=value;
+  if(typeof arr==='string'){
+    try{arr=JSON.parse(arr);}catch(e){throw new Error('วันจัดงาน JSON ไม่ถูกต้อง กรุณาใช้รูปแบบ ["2569-11-18","2569-11-19"]');}
+  }
+  if(!Array.isArray(arr))throw new Error('วันจัดงานต้องเป็น JSON Array');
+  const result=arr.map(normalizeEventDate_).filter(Boolean);
+  if(result.length>3)throw new Error('ระบบนี้รองรับวันเข้าร่วมงานสูงสุด 3 วัน');
+  if(new Set(result).size!==result.length)throw new Error('พบวันจัดงานซ้ำกัน');
+  return JSON.stringify(result);
+}
+function withLock_(fn){ const l=LockService.getScriptLock(); l.waitLock(30000); try{return fn();}finally{l.releaseLock();} }
+function getSheet_(name){ const sh=getSpreadsheet_().getSheetByName(name); if(!sh) throw new Error('ไม่พบแผ่นงาน '+name); return sh; }
+const MASTER_TABLES_ = ['Conferences', 'Settings', 'RegistrationTypes', 'WorkCategories', 'PresentationTypes', 'OrganizationUnits', 'ScoringCriteria', 'ReviewRounds'];
+
+function headerMap_(name){
+  globalThis.__TUH_HEADERS=globalThis.__TUH_HEADERS||{};
+  if(globalThis.__TUH_HEADERS[name]) return globalThis.__TUH_HEADERS[name];
+  const sh=getSheet_(name), h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0], m={}; h.forEach(function(x,i){if(x)m[x]=i;});
+  return globalThis.__TUH_HEADERS[name]={headers:h,map:m};
+}
+function getRecords_(name){
+  globalThis.__TUH_RECORDS=globalThis.__TUH_RECORDS||{};
+  if(globalThis.__TUH_RECORDS[name]) return globalThis.__TUH_RECORDS[name];
+  
+  const isMaster = MASTER_TABLES_.indexOf(name) >= 0;
+  if (isMaster) {
+    try {
+      const cached = CacheService.getScriptCache().get('TBL_' + name);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          globalThis.__TUH_RECORDS[name] = parsed;
+          return parsed;
+        }
+      }
+    } catch(e) {}
+  }
+
+  const sh=getSheet_(name), hm=headerMap_(name), last=sh.getLastRow(); if(last<2)return globalThis.__TUH_RECORDS[name]=[];
+  const values=sh.getRange(2,1,last-1,hm.headers.length).getValues();
+  const records = values.map(function(r,idx){ const o={__row:idx+2}; hm.headers.forEach(function(h,i){o[h]=r[i];}); return o; });
+  globalThis.__TUH_RECORDS[name] = records;
+
+  if (isMaster) {
+    try {
+      CacheService.getScriptCache().put('TBL_' + name, JSON.stringify(records), 600);
+    } catch(e) {}
+  }
+  return records;
+}
+function clearTableCache_(name){
+  try {
+    CacheService.getScriptCache().remove('TBL_' + name);
+  } catch(e){}
+}
+function clearRequestCache_(){ globalThis.__TUH_RECORDS={}; globalThis.__TUH_HEADERS={}; }
+function findOne_(name,criteria){ return getRecords_(name).find(function(r){ return Object.keys(criteria).every(function(k){return String(r[k])===String(criteria[k]);}); })||null; }
+function findMany_(name,criteria){ return getRecords_(name).filter(function(r){ return Object.keys(criteria).every(function(k){return String(r[k])===String(criteria[k]);}); }); }
+function appendRecord_(name,obj){
+  const sh=getSheet_(name), hm=headerMap_(name), row=hm.headers.map(function(h){return obj[h]!==undefined?obj[h]:'';});
+  const next=sh.getLastRow()+1; sh.getRange(next,1,1,row.length).setValues([row]); applyPlainTextToRow_(sh,hm,next,obj); 
+  clearRequestCache_(); 
+  clearTableCache_(name);
+  return next;
+}
+function updateRecord_(name,rowNumber,patch){
+  const sh=getSheet_(name), hm=headerMap_(name); 
+  Object.keys(patch).forEach(function(k){ 
+    if(hm.map[k]!==undefined){ 
+      const cell=sh.getRange(rowNumber,hm.map[k]+1); 
+      if(PLAIN_TEXT_FIELDS.indexOf(k)>=0)cell.setNumberFormat('@'); 
+      cell.setValue(patch[k]); 
+    }
+  }); 
+  clearRequestCache_(); 
+  clearTableCache_(name);
+  return true;
+}
+function applyPlainTextToRow_(sh,hm,row,obj){ PLAIN_TEXT_FIELDS.forEach(function(k){ if(hm.map[k]!==undefined && obj[k]!==undefined){ const c=sh.getRange(row,hm.map[k]+1); c.setNumberFormat('@'); c.setValue(String(obj[k])); }}); }
+const _seqCache = {};
+function nextId_(prefix){
+  const p=PropertiesService.getScriptProperties(), key='TUH_SEQ_'+prefix;
+  let n;
+  if(_seqCache[key]){
+    _seqCache[key]++; n = _seqCache[key]; p.setProperty(key,String(n));
+  } else {
+    const lock = LockService.getScriptLock();
+    try { lock.waitLock(10000); } catch(e) {}
+    try { n = Number(p.getProperty(key)||0)+1; _seqCache[key] = n; p.setProperty(key,String(n)); }
+    finally { try{lock.releaseLock();}catch(e){} }
+  }
+  return prefix+'-'+Utilities.formatDate(new Date(),APP.TIMEZONE,'yyyy')+'-'+String(n).padStart(6,'0');
+}
+function upsertSetting_(conferenceId,key,value,type,group,th,en){
+  const old=findOne_('Settings',{ConferenceID:conferenceId,SettingKey:key}), patch={SettingValue:String(value),ValueType:type||'TEXT',GroupName:group||'GENERAL',DescriptionTH:th||'',DescriptionEN:en||'',IsEditable:true,UpdatedAt:new Date(),UpdatedBy:'SYSTEM'};
+  if(old) updateRecord_('Settings',old.__row,patch); else appendRecord_('Settings',Object.assign({SettingID:nextId_('SET'),ConferenceID:conferenceId,SettingKey:key},patch));
+}
+function getSetting_(conferenceId,key,def){ const r=findOne_('Settings',{ConferenceID:conferenceId,SettingKey:key}); return r?String(r.SettingValue):def; }
+function settingsMap_(conferenceId){ const out={}; findMany_('Settings',{ConferenceID:conferenceId}).forEach(function(r){out[r.SettingKey]=r.SettingValue;}); return out; }
+function invalidateCache_(conferenceId){ 
+  try {
+    const keys = ['PUBLIC_'+conferenceId, 'DASH_'+conferenceId];
+    MASTER_TABLES_.forEach(function(t){ keys.push('TBL_' + t); });
+    CacheService.getScriptCache().removeAll(keys);
+  } catch(e) {}
+}
+
+function getAuthSecret_(){ const p=PropertiesService.getScriptProperties(); let s=p.getProperty(APP.PROPERTY_KEYS.AUTH_SECRET); if(!s){s=uuid_()+uuid_();p.setProperty(APP.PROPERTY_KEYS.AUTH_SECRET,s);} return s; }
+function bytesHex_(bytes){return bytes.map(function(b){const x=(b<0?b+256:b).toString(16);return x.length===1?'0'+x:x;}).join('');}
+function hashText_(text){return bytesHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(text),Utilities.Charset.UTF_8));}
+function hashPassword_(password,salt){ let x=String(password)+String(salt)+getAuthSecret_(); for(let i=0;i<1200;i++)x=hashText_(x); return x; }
+function createDefaultAdmin_(){
+  const existing=findOne_('Users',{Username:APP.INITIAL_ADMIN.username}); if(existing)return existing.UserID;
+  const salt=uuid_(), id=nextId_('USR'); appendRecord_('Users',{UserID:id,Username:APP.INITIAL_ADMIN.username,Email:APP.INITIAL_ADMIN.email,PasswordHash:hashPassword_(APP.INITIAL_ADMIN.password,salt),Salt:salt,FirstName:APP.INITIAL_ADMIN.firstName,LastName:APP.INITIAL_ADMIN.lastName,FullName:APP.INITIAL_ADMIN.firstName+' '+APP.INITIAL_ADMIN.lastName,Role:'SUPERADMIN',Status:'ACTIVE',CreatedAt:new Date(),UpdatedAt:new Date()});
+  appendRecord_('UserConferenceRoles',{UserConferenceRoleID:nextId_('UCR'),ConferenceID:APP.DEFAULT_CONFERENCE_ID,UserID:id,Role:'SUPERADMIN',PermissionsJson:'{"all":true}',Status:'ACTIVE',AssignedAt:new Date(),AssignedBy:'SYSTEM'}); return id;
+}
+function canonicalRole_(role){
+  const r=upper_(role).replace(/[\s-]+/g,'_');
+  const aliases={
+    REGISTRATION:'REGISTRATION_STAFF',REGISTRAR:'REGISTRATION_STAFF',REGISTRATION_OFFICER:'REGISTRATION_STAFF',
+    FINANCE:'FINANCE_STAFF',FINANCE_OFFICER:'FINANCE_STAFF',
+    ACADEMIC:'ACADEMIC_STAFF',ACADEMIC_OFFICER:'ACADEMIC_STAFF',
+    FOOD:'FOOD_STAFF',MEAL:'FOOD_STAFF'
+  };
+  return aliases[r]||r;
+}
+function sessionCacheKey_(tokenHash){return 'AUTH_'+String(tokenHash||'').slice(0,48);}
+function cacheSessionContext_(tokenHash,ctx){
+  try{CacheService.getScriptCache().put(sessionCacheKey_(tokenHash),safeJson_({session:serialize_(ctx.session),user:serialize_(ctx.user),role:ctx.role,conferenceId:ctx.conferenceId}),Math.min(num_(APP.SESSION_CACHE_SECONDS,300),21600));}catch(ignore){}
+}
+function clearSessionCache_(tokenHash){try{CacheService.getScriptCache().remove(sessionCacheKey_(tokenHash));}catch(ignore){}}
+function loginUser(username,password,conferenceId,clientInfo){
+  return runSafely_('loginUser',function(){
+    const u=normalizeEmail_(username), users=getRecords_('Users'), user=users.find(function(x){return normalizeEmail_(x.Username)===u||normalizeEmail_(x.Email)===u;});
+    if(!user||hashPassword_(password,user.Salt)!==String(user.PasswordHash))throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    if(upper_(user.Status)==='PENDING')throw new Error('บัญชีของท่านอยู่ระหว่างรอการอนุมัติจากผู้ดูแลระบบ');
+    if(upper_(user.Status)!=='ACTIVE')throw new Error('บัญชีของท่านไม่สามารถใช้งานได้');
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID, assigned=findOne_('UserConferenceRoles',{ConferenceID:cid,UserID:user.UserID,Status:'ACTIVE'})||{Role:user.Role};
+    const resolvedRole=canonicalRole_(assigned.Role||user.Role);
+    const token=uuid_()+uuid_(), tokenHash=hashText_(token+getAuthSecret_()), exp=new Date(Date.now()+APP.SESSION_HOURS*3600000);
+    const sessionRec={SessionID:nextId_('SES'),ConferenceID:cid,UserID:user.UserID,Role:resolvedRole,TokenHash:tokenHash,ExpiresAt:exp,LastSeenAt:new Date(),ClientInfo:clean_(clientInfo),Status:'ACTIVE'};
+    appendRecord_('Sessions',sessionRec);
+    updateRecord_('Users',user.__row,{LastLogin:new Date(),UpdatedAt:new Date()});
+    cacheSessionContext_(tokenHash,{session:sessionRec,user:user,role:resolvedRole,conferenceId:cid});
+    return {token:token,conferenceId:cid,role:resolvedRole,user:{UserID:user.UserID,FullName:user.FullName,Email:user.Email,Role:resolvedRole}};
+  });
+}
+function requireSession_(token,roles,conferenceId){
+  const th=hashText_(String(token)+getAuthSecret_()), allowed=(roles||[]).map(canonicalRole_), cache=CacheService.getScriptCache();
+  let cached=jsonParse_(cache.get(sessionCacheKey_(th)),null);
+  if(cached&&cached.session){
+    const cr=canonicalRole_(cached.role||cached.session.Role);
+    if(new Date(cached.session.ExpiresAt).getTime()>=Date.now()&&(!conferenceId||String(cached.conferenceId||cached.session.ConferenceID)===String(conferenceId))&&(!allowed.length||allowed.indexOf(cr)>=0)){
+      return {session:cached.session,user:cached.user,role:cr,conferenceId:cached.conferenceId||cached.session.ConferenceID};
+    }
+    clearSessionCache_(th);
+  }
+  const s=getRecords_('Sessions').find(function(x){return x.TokenHash===th&&upper_(x.Status)==='ACTIVE';});
+  if(!s||new Date(s.ExpiresAt).getTime()<Date.now())throw new Error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+  if(conferenceId&&String(s.ConferenceID)!==String(conferenceId))throw new Error('ไม่มีสิทธิ์ในงานประชุมนี้');
+  const sessionRole=canonicalRole_(s.Role);
+  if(allowed.length&&allowed.indexOf(sessionRole)<0)throw new Error('ไม่มีสิทธิ์ดำเนินการ');
+  const u=findOne_('Users',{UserID:s.UserID}); if(!u||upper_(u.Status)!=='ACTIVE')throw new Error('บัญชีไม่พร้อมใช้งาน');
+  if(Date.now()-new Date(s.LastSeenAt).getTime()>300000)updateRecord_('Sessions',s.__row,{LastSeenAt:new Date(),Role:sessionRole});
+  const ctx={session:s,user:u,role:sessionRole,conferenceId:s.ConferenceID};cacheSessionContext_(th,ctx);return ctx;
+}
+function logoutUser(token){return runSafely_('logoutUser',function(){const th=hashText_(String(token)+getAuthSecret_()),s=getRecords_('Sessions').find(function(x){return x.TokenHash===th;});if(s)updateRecord_('Sessions',s.__row,{Status:'LOGGED_OUT'});clearSessionCache_(th);return true;});}
+function changePassword(token,currentPassword,newPassword){return runSafely_('changePassword',function(){const c=requireSession_(token,null,null),u=c.user;if(hashPassword_(currentPassword,u.Salt)!==String(u.PasswordHash))throw new Error('รหัสผ่านเดิมไม่ถูกต้อง');if(String(newPassword).length<8)throw new Error('รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร');const salt=uuid_();updateRecord_('Users',u.__row,{Salt:salt,PasswordHash:hashPassword_(newPassword,salt),UpdatedAt:new Date()});return true;});}
+
+function logAudit_(conferenceId,user,role,action,targetType,targetId,details){try{appendRecord_('AuditLogs',{AuditLogID:nextId_('AUD'),ConferenceID:conferenceId,Timestamp:new Date(),UserID:user&&user.UserID||'',UserEmail:user&&user.Email||'',Role:role||'',Action:action,TargetType:targetType,TargetID:targetId,DetailsJson:safeJson_(details||{}),ClientInfo:''});}catch(e){} }
+function logSystem_(name,e){try{appendRecord_('SystemLogs',{SystemLogID:nextId_('SYS'),Timestamp:new Date(),Level:'ERROR',FunctionName:name,Message:e.message||String(e),StackTrace:e.stack||'',ConferenceID:'',UserEmail:'',ClientInfo:''});}catch(ignore){} }
+function sendEmailLogged_(conferenceId,to,subject,html,relatedType,relatedId,user){
+  try{MailApp.sendEmail({to:to,subject:subject,htmlBody:html,name:'TUH Quality Fair'});appendRecord_('EmailLogs',{EmailLogID:nextId_('MAIL'),ConferenceID:conferenceId,SentAt:new Date(),SentBy:user&&user.Email||'SYSTEM',To:to,Subject:subject,RelatedType:relatedType||'',RelatedID:relatedId||'',Status:'SENT'});return true;}catch(e){appendRecord_('EmailLogs',{EmailLogID:nextId_('MAIL'),ConferenceID:conferenceId,SentAt:new Date(),SentBy:user&&user.Email||'SYSTEM',To:to,Subject:subject,RelatedType:relatedType||'',RelatedID:relatedId||'',Status:'ERROR',ErrorMessage:e.message});return false;}
+}
+
+function validateThaiCid_(cid){ cid=normalizeCid_(cid); if(!/^\d{13}$/.test(cid))return false; let sum=0; for(let i=0;i<12;i++)sum+=Number(cid.charAt(i))*(13-i); return (11-(sum%11))%10===Number(cid.charAt(12)); }
+function splitName_(full){ full=clean_(full).replace(/\s+/g,' '); const p=full.split(' '); return p.length>1?{FirstName:p.slice(0,-1).join(' '),LastName:p[p.length-1]}:{FirstName:full,LastName:''}; }
+function fingerprint_(obj){ return hashText_(Object.keys(obj).sort().map(function(k){return k+'='+clean_(obj[k]);}).join('|')); }
+function uploadBase64File_(file,folderName,prefix){
+  if(!file||!file.base64)return null; const bytes=Utilities.base64Decode(file.base64), max=APP.MAX_UPLOAD_MB*1024*1024; if(bytes.length>max)throw new Error('ไฟล์เกิน '+APP.MAX_UPLOAD_MB+' MB');
+  const folders=jsonParse_(getSetting_(APP.DEFAULT_CONFERENCE_ID,'DRIVE_FOLDERS_JSON','{}'),{}), id=folders[folderName]; if(!id)throw new Error('ไม่พบโฟลเดอร์ '+folderName);
+  const blob=Utilities.newBlob(bytes,file.mimeType||MimeType.BINARY,(prefix||'FILE')+'_'+Date.now()+'_'+clean_(file.name)); const f=DriveApp.getFolderById(id).createFile(blob); return {fileId:f.getId(),fileUrl:f.getUrl(),fileName:f.getName(),mimeType:f.getMimeType(),fileSize:f.getSize()};
+}
+
+
+/** ===== 03_ImportRegistration.gs ===== **/
+function getPublicBootstrap(conferenceId){
+  return runSafely_('getPublicBootstrap',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID, key='PUBLIC_'+cid, cache=CacheService.getScriptCache(), cached=cache.get(key); if(cached)return JSON.parse(cached);
+    const conf=findOne_('Conferences',{ConferenceID:cid}); if(!conf)throw new Error('ไม่พบข้อมูลงานประชุม');
+    const types=findMany_('RegistrationTypes',{ConferenceID:cid}).filter(function(x){return bool_(x.Active);}).sort(function(a,b){return num_(a.SortOrder)-num_(b.SortOrder);});
+    const categories=findMany_('WorkCategories',{ConferenceID:cid}).filter(function(x){return bool_(x.Active);});
+    const presentations=findMany_('PresentationTypes',{ConferenceID:cid}).filter(function(x){return bool_(x.Active);});
+    const units=findMany_('OrganizationUnits',{ConferenceID:cid}).filter(function(x){return bool_(x.Active);});
+    const settings=settingsMap_(cid);
+    const publicConference=serialize_(conf);
+    publicConference.LogoUrl=clean_(publicConference.LogoUrl)||APP.DEFAULT_LOGO_URL;
+    let eventDates=[];
+    try{eventDates=JSON.parse(normalizeEventDatesJson_(settings.EVENT_DATES_JSON||'[]'));}catch(e){eventDates=[];}
+    const out={conference:publicConference,settings:settings,eventDates:eventDates,registrationTypes:serialize_(types),organizationUnits:serialize_(units),workCategories:serialize_(categories),presentationTypes:serialize_(presentations)};
+    cache.put(key,JSON.stringify(out),APP.CACHE_SECONDS); return out;
+  });
+}
+function serialize_(v){return JSON.parse(JSON.stringify(v,function(k,x){return x instanceof Date?formatDateTime_(x):x;}));}
+
+
+/** ===== Excel import from legacy Google Form ===== **/
+
+function normalizeImportHeader_(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function buildImportRawRow_(headers, values) {
+  const raw = {};
+  (headers || []).forEach(function(header, index) {
+    const original = String(header === null || header === undefined ? '' : header);
+    const trimmed = clean_(original);
+    const normalized = normalizeImportHeader_(original);
+    const value = (values || [])[index];
+
+    // เก็บทั้งหัวเดิม หัวที่ trim แล้ว และหัวที่ normalize แล้ว
+    // เพื่อรองรับหัว Google Form ที่มีช่องว่างท้าย เช่น "ชื่อ-นามสกุล  " และ "Email "
+    if (original) raw[original] = value;
+    if (trimmed) raw[trimmed] = value;
+    if (normalized) raw[normalized] = value;
+  });
+  return raw;
+}
+
+function importValue_(row, aliases) {
+  row = row || {};
+  const normalized = {};
+
+  Object.keys(row).forEach(function(key) {
+    const normalizedKey = normalizeImportHeader_(key);
+    if (!normalizedKey) return;
+    const value = row[key];
+    if (normalized[normalizedKey] === undefined || clean_(value) !== '') {
+      normalized[normalizedKey] = value;
+    }
+  });
+
+  let firstExisting = '';
+  for (let i = 0; i < aliases.length; i++) {
+    const alias = normalizeImportHeader_(aliases[i]);
+    if (normalized[alias] !== undefined) {
+      if (firstExisting === '') firstExisting = normalized[alias];
+      if (clean_(normalized[alias]) !== '') return normalized[alias];
+    }
+  }
+  return firstExisting;
+}
+
+function isBlankImportRow_(values) {
+  return !(values || []).some(function(value) {
+    return clean_(value) !== '';
+  });
+}
+
+function uniqueImportValues_(values) {
+  const seen = {};
+  return (values || []).filter(function(value) {
+    const cleaned = clean_(value);
+    if (!cleaned || seen[cleaned]) return false;
+    seen[cleaned] = true;
+    return true;
+  });
+}
+
+function isExternalParticipant_(participantText) {
+  const value = clean_(participantText);
+  if (!value) return false;
+  if (value.indexOf('บุคลากรโรงพยาบาลธรรมศาสตร์') >= 0) return false;
+  return value.indexOf('ภายนอก') >= 0 || value.indexOf('บุคคลทั่วไป') >= 0;
+}
+
+function normalizeImportedName_(fullName, prefix) {
+  let full = clean_(fullName).replace(/\s+/g, ' ');
+  const p = clean_(prefix);
+  if (p && full.indexOf(p) === 0) {
+    full = clean_(full.substring(p.length));
+  }
+  return full;
+}
+
+function uploadExcelForImport(token, conferenceId, file) {
+  return runSafely_('uploadExcelForImport', function() {
+    const ctx = requireSession_(
+      token,
+      ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'],
+      conferenceId
+    );
+    const cid = ctx.conferenceId;
+
+    if (!file || !file.base64) throw new Error('กรุณาเลือกไฟล์ Excel');
+
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(file.base64),
+      file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      file.name || 'registration.xlsx'
+    );
+
+    let converted;
+    try {
+      if (typeof Drive === 'undefined' || !Drive.Files) {
+        throw new Error('ADVANCED_DRIVE_REQUIRED');
+      }
+
+      const folderMap = jsonParse_(getSetting_(cid, 'DRIVE_FOLDERS_JSON', '{}'), {});
+      const metadata = {
+        name: 'IMPORT_' + Date.now() + '_' + (file.name || 'registration.xlsx'),
+        mimeType: 'application/vnd.google-apps.spreadsheet'
+      };
+      if (folderMap['01_Import_Temp']) metadata.parents = [folderMap['01_Import_Temp']];
+
+      converted = Drive.Files.create(metadata, blob, { fields: 'id,name' });
+    } catch (error) {
+      if (
+        String(error.message).indexOf('ADVANCED_DRIVE_REQUIRED') >= 0 ||
+        String(error).indexOf('Drive is not defined') >= 0
+      ) {
+        throw new Error('กรุณาเปิด Advanced Google Service: Drive API ก่อนนำเข้าไฟล์ Excel');
+      }
+      throw error;
+    }
+
+    const source = SpreadsheetApp.openById(converted.id);
+    const sheet = source.getSheets()[0];
+    const data = sheet.getDataRange().getDisplayValues();
+
+    if (data.length < 2) throw new Error('ไฟล์ไม่มีข้อมูล');
+
+    const headers = data[0];
+    const sourceRows = data.slice(1)
+      .map(function(values, index) {
+        return { values: values, sourceRowNo: index + 2 };
+      })
+      .filter(function(item) {
+        return !isBlankImportRow_(item.values);
+      });
+
+    if (!sourceRows.length) throw new Error('ไฟล์ไม่มีแถวข้อมูลสำหรับนำเข้า');
+
+    const batchId = nextId_('IMP');
+    const stats = {
+      totalRows: sourceRows.length,
+      readyRows: 0,
+      incompleteRows: 0,
+      warningRows: 0,
+      duplicateRows: 0
+    };
+
+    appendRecord_('ImportBatches', {
+      ImportBatchID: batchId,
+      ConferenceID: cid,
+      SourceFileName: file.name || 'registration.xlsx',
+      SourceFileId: converted.id,
+      SourceSheetName: sheet.getName(),
+      UploadedBy: ctx.user.Email,
+      UploadedAt: new Date(),
+      TotalRows: sourceRows.length,
+      Status: 'PREVIEW',
+      MappingVersion: TUH_IMPORT_MAPPING_VERSION
+    });
+
+    const seenCidInFile = {};
+
+    sourceRows.forEach(function(item) {
+      const raw = buildImportRawRow_(headers, item.values);
+      const mapped = mapTuhGoogleFormRow_(raw, cid);
+
+      mapped.SourceBatchID = batchId;
+      mapped.SourceRowNo = item.sourceRowNo;
+
+      const issues = validateImportedRegistration_(mapped, cid);
+
+      if (mapped.CID) {
+        if (seenCidInFile[mapped.CID]) {
+          issues.push({
+            type: 'DUPLICATE',
+            field: 'CID',
+            th: 'เลขบัตรประชาชนซ้ำกันภายในไฟล์ Excel แถว ' +
+              seenCidInFile[mapped.CID] + ' และแถว ' + item.sourceRowNo,
+            en: 'Duplicate CID inside the uploaded Excel file',
+            severity: 'ERROR'
+          });
+        } else {
+          seenCidInFile[mapped.CID] = item.sourceRowNo;
+        }
+      }
+
+      const hasDuplicate = issues.some(function(issue) {
+        return issue.type === 'DUPLICATE';
+      });
+      const hasError = issues.some(function(issue) {
+        return issue.severity === 'ERROR';
+      });
+      const validationStatus = hasError ? 'INCOMPLETE' : (issues.length ? 'WARNING' : 'READY');
+
+      if (hasDuplicate) stats.duplicateRows++;
+      if (validationStatus === 'READY') stats.readyRows++;
+      else if (validationStatus === 'INCOMPLETE') stats.incompleteRows++;
+      else stats.warningRows++;
+
+      const importRowId = nextId_('IMPR');
+
+      appendRecord_('ImportRows', {
+        ImportRowID: importRowId,
+        ImportBatchID: batchId,
+        ConferenceID: cid,
+        SourceRowNo: item.sourceRowNo,
+        SourceTimestamp: mapped.SourceTimestamp,
+        SourceFingerprint: fingerprint_(raw),
+        SourceDataJson: safeJson_(raw),
+        MappedDataJson: safeJson_(mapped),
+        ValidationStatus: validationStatus,
+        IssueCount: issues.length,
+        ImportStatus: 'PENDING',
+        CreatedAt: new Date()
+      });
+
+      issues.forEach(function(issue) {
+        appendRecord_('ImportIssues', {
+          ImportIssueID: nextId_('ISS'),
+          ImportBatchID: batchId,
+          ImportRowID: importRowId,
+          ConferenceID: cid,
+          IssueType: issue.type,
+          FieldName: issue.field,
+          MessageTH: issue.th,
+          MessageEN: issue.en,
+          Severity: issue.severity,
+          Resolved: false
+        });
+      });
+    });
+
+    const batch = findOne_('ImportBatches', {
+      ImportBatchID: batchId,
+      ConferenceID: cid
+    });
+
+    updateRecord_('ImportBatches', batch.__row, {
+      ReadyRows: stats.readyRows,
+      IncompleteRows: stats.incompleteRows,
+      WarningRows: stats.warningRows,
+      DuplicateRows: stats.duplicateRows,
+      MappingVersion: TUH_IMPORT_MAPPING_VERSION
+    });
+
+    try {
+      DriveApp.getFileById(converted.id).setTrashed(true);
+    } catch (ignore) {}
+
+    logAudit_(cid, ctx.user, ctx.role, 'IMPORT_PREVIEW', 'ImportBatch', batchId, stats);
+
+    return {
+      batchId: batchId,
+      stats: stats,
+      mappingVersion: TUH_IMPORT_MAPPING_VERSION
+    };
+  });
+}
+
+function mapTuhGoogleFormRow_(row, conferenceId) {
+  row = row || {};
+
+  const participantText = importValue_(row, ['ประเภทบุคคล']);
+  const external = isExternalParticipant_(participantText);
+
+  const internalPrefix = importValue_(row, ['คำนำหน้า']);
+  const externalPrefix = importValue_(row, ['คำนำหน้า 2']);
+  const prefix = clean_(external ? (externalPrefix || internalPrefix) : (internalPrefix || externalPrefix));
+
+  const internalFullName = importValue_(row, [
+    'ชื่อ-นามสกุล',
+    'ชื่อ - นามสกุล',
+    'ชื่อ นามสกุล'
+  ]);
+  const externalFullName = importValue_(row, [
+    'ชื่อ-นามสกุล 2',
+    'ชื่อ - นามสกุล 2',
+    'ชื่อ นามสกุล 2'
+  ]);
+  const fullName = normalizeImportedName_(
+    external ? (externalFullName || internalFullName) : (internalFullName || externalFullName),
+    prefix
+  );
+  const splitName = splitName_(fullName);
+
+  const units = [];
+  for (let i = 0; i <= 27; i++) {
+    const header = i === 0 ? 'หน่วยงาน' : 'หน่วยงาน ' + i;
+    const unit = importValue_(row, [header]);
+    if (clean_(unit)) units.push(clean_(unit));
+  }
+  const nursingBranch = importValue_(row, ['สาขาการพยาบาล']);
+  if (clean_(nursingBranch)) units.push(clean_(nursingBranch));
+
+  const affiliation = clean_(importValue_(row, ['ประเภทสังกัด']));
+  const participantType = external
+    ? (
+      affiliation.indexOf('1,500') >= 0 ||
+      affiliation.indexOf('1500') >= 0 ||
+      affiliation.indexOf('1 500') >= 0
+        ? 'EXTERNAL_1500'
+        : 'EXTERNAL_2500'
+    )
+    : 'INTERNAL';
+
+  const internalPosition = importValue_(row, ['ตำเเหน่ง', 'ตำแหน่ง']);
+  const externalPosition = importValue_(row, ['ตำเเหน่ง 2', 'ตำแหน่ง 2']);
+  const position = clean_(external ? (externalPosition || internalPosition) : (internalPosition || externalPosition));
+
+  const internalLicense = importValue_(row, ['เลขใบประกอบวิชาชีพ (พยาบาล)']);
+  const externalLicense = importValue_(row, ['เลขใบประกอบวิชาชีพ (พยาบาล) 2']);
+
+  const internalPhone = importValue_(row, ['โทรศัพท์มือถือ', 'เบอร์โทรศัพท์มือถือ']);
+  const externalPhone = importValue_(row, ['โทรศัพท์มือถือ 2', 'เบอร์โทรศัพท์มือถือ 2']);
+
+  const internalLine = importValue_(row, ['Line ID', 'LINE ID', 'ไลน์ไอดี']);
+  const externalLine = importValue_(row, ['Line ID 2', 'LINE ID 2', 'ไลน์ไอดี 2']);
+
+  const respondentEmail = normalizeEmail_(importValue_(row, ['ที่อยู่อีเมล']));
+  const internalEmail = importValue_(row, ['Email', 'E-mail', 'อีเมล', 'อีเมล์']);
+  const externalEmail = importValue_(row, ['Email 2', 'E-mail 2', 'อีเมล 2', 'อีเมล์ 2']);
+  const email = normalizeEmail_(
+    external
+      ? (externalEmail || internalEmail || respondentEmail)
+      : (internalEmail || externalEmail || respondentEmail)
+  );
+
+  const internalFood = importValue_(row, ['ประเภทอาหารที่รับประทาน']);
+  const externalFood = importValue_(row, ['ประเภทอาหารที่รับประทาน 2']);
+
+  const internalWork = importValue_(row, ['ส่งผลงานเข้าประกวด']);
+  const externalWork = importValue_(row, ['ส่งผลงานเข้าประกวด 2']);
+  const wantsText = clean_(external ? (externalWork || internalWork) : (internalWork || externalWork));
+
+  const attendance = clean_(importValue_(row, ['วันเข้าร่วมงาน']));
+
+  return {
+    ConferenceID: conferenceId,
+    SourceType: 'GOOGLE_FORM_EXCEL',
+    SourceTimestamp: importValue_(row, ['ประทับเวลา']) || '',
+    SourceRespondentEmail: respondentEmail,
+    ConsentAccepted: clean_(importValue_(row, [
+      'ชี้เเจงข้อมูลความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล',
+      'ชี้แจงข้อมูลความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล'
+    ])).indexOf('ยินยอม') >= 0,
+    ParticipantType: participantType,
+    Region4Status: affiliation,
+    Prefix: prefix,
+    FirstName: splitName.FirstName,
+    LastName: splitName.LastName,
+    FullName: fullName,
+    Position: position,
+    OrganizationGroup: clean_(importValue_(row, ['สังกัดฝ่าย'])),
+    OrganizationUnit: uniqueImportValues_(units).join(' > '),
+    Institution: clean_(
+      external
+        ? importValue_(row, ['ชื่อหน่วยงานที่สังกัด', 'หน่วยงานที่สังกัด'])
+        : 'โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ'
+    ),
+    Profession: position,
+    LicenseNo: clean_(external ? (externalLicense || internalLicense) : (internalLicense || externalLicense)),
+    CID: normalizeCid_(importValue_(row, ['เลขบัตรประจำตัวประชาชน', 'เลขบัตรประชาชน'])),
+    Phone: normalizePhone_(external ? (externalPhone || internalPhone) : (internalPhone || externalPhone)),
+    LineID: clean_(external ? (externalLine || internalLine) : (internalLine || externalLine)),
+    Email: email,
+    FoodType: clean_(external ? (externalFood || internalFood) : (internalFood || externalFood)),
+    FoodAllergyDetail: '',
+    AttendanceDay1: attendance.indexOf('วันที่ 1') >= 0 || attendance.indexOf('ทั้ง 3') >= 0,
+    AttendanceDay2: attendance.indexOf('วันที่ 2') >= 0 || attendance.indexOf('ทั้ง 3') >= 0,
+    AttendanceDay3: attendance.indexOf('วันที่ 3') >= 0 || attendance.indexOf('ทั้ง 3') >= 0,
+    WantsSubmitWork: !!wantsText && wantsText.indexOf('ไม่ส่ง') < 0,
+    Note: 'Imported from Google Form response'
+  };
+}
+
+function validateImportedRegistration_(mapped, conferenceId) {
+  const issues = [];
+
+  function add(type, field, th, en, severity) {
+    issues.push({
+      type: type,
+      field: field,
+      th: th,
+      en: en,
+      severity: severity
+    });
+  }
+
+  if (!mapped.ConsentAccepted) {
+    add('CONSENT', 'ConsentAccepted', 'ไม่พบการยินยอม PDPA', 'PDPA consent missing', 'ERROR');
+  }
+
+  if (!mapped.FirstName || !mapped.LastName) {
+    add('REQUIRED', 'FullName', 'ชื่อหรือนามสกุลไม่ครบ', 'Incomplete name', 'ERROR');
+  }
+
+  if (!mapped.CID) {
+    add(
+      'REQUIRED',
+      'CID',
+      'ไม่มีเลขบัตรประชาชน ระบบจะนำเข้าเป็นข้อมูลไม่ครบเพื่อให้ผู้ลงทะเบียนแก้ไขภายหลัง',
+      'CID missing; imported as incomplete for later correction',
+      'ERROR'
+    );
+  } else if (!validateThaiCid_(mapped.CID)) {
+    add(
+      'INVALID',
+      'CID',
+      'เลขบัตรประชาชนไม่ผ่านการตรวจสอบ ระบบจะนำเข้าเป็นข้อมูลไม่ครบ',
+      'Invalid Thai CID; imported as incomplete',
+      'ERROR'
+    );
+  }
+
+  if (!mapped.Email) {
+    add(
+      'REQUIRED',
+      'Email',
+      'ไม่มีอีเมลส่วนบุคคล ระบบจะนำเข้าเป็นข้อมูลไม่ครบ',
+      'Personal email missing; imported as incomplete',
+      'ERROR'
+    );
+  }
+
+  if (!mapped.Phone) {
+    add(
+      'REQUIRED',
+      'Phone',
+      'ไม่มีหมายเลขโทรศัพท์ ระบบจะนำเข้าเป็นข้อมูลไม่ครบ',
+      'Phone missing; imported as incomplete',
+      'ERROR'
+    );
+  }
+
+  if (
+    mapped.CID &&
+    findMany_('Registrations', { ConferenceID: conferenceId, CID: mapped.CID })
+      .some(function(record) {
+        return upper_(record.RegistrationStatus) !== 'CANCELLED';
+      })
+  ) {
+    add(
+      'DUPLICATE',
+      'CID',
+      'เลขบัตรประชาชนมีในระบบแล้ว จึงจะไม่สร้างรายการซ้ำเมื่อยืนยันนำเข้า',
+      'CID already exists and will be skipped during commit',
+      'ERROR'
+    );
+  }
+
+  if (
+    mapped.Email &&
+    findMany_('Registrations', { ConferenceID: conferenceId, Email: mapped.Email }).length
+  ) {
+    add(
+      'DUPLICATE_WARNING',
+      'Email',
+      'อีเมลซ้ำ ระบบอนุญาตให้นำเข้าแต่ควรตรวจสอบ',
+      'Duplicate email warning',
+      'WARNING'
+    );
+  }
+
+  if (
+    mapped.Phone &&
+    findMany_('Registrations', { ConferenceID: conferenceId, Phone: mapped.Phone }).length
+  ) {
+    add(
+      'DUPLICATE_WARNING',
+      'Phone',
+      'โทรศัพท์ซ้ำ ระบบอนุญาตตามนโยบาย',
+      'Duplicate phone allowed',
+      'WARNING'
+    );
+  }
+
+  return issues;
+}
+
+function commitImportBatch(token, conferenceId, batchId) {
+  return runSafely_('commitImportBatch', function() {
+    const ctx = requireSession_(
+      token,
+      ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'],
+      conferenceId
+    );
+
+    const batch = findOne_('ImportBatches', {
+      ImportBatchID: batchId,
+      ConferenceID: conferenceId
+    });
+    if (!batch) throw new Error('ไม่พบ Import Batch');
+
+    let imported = 0;
+    let importedIncomplete = 0;
+    let skipped = 0;
+    let skippedDuplicate = 0;
+    const errors = [];
+
+    withLock_(function() {
+      const rows = findMany_('ImportRows', { ImportBatchID: batchId })
+        .sort(function(a, b) {
+          return num_(a.SourceRowNo) - num_(b.SourceRowNo);
+        });
+
+      rows.forEach(function(row) {
+        if (row.ImportStatus === 'IMPORTED') {
+          skipped++;
+          return;
+        }
+
+        try {
+          const mapped = jsonParse_(row.MappedDataJson, {});
+          mapped.ConferenceID = conferenceId;
+          mapped.SourceBatchID = batchId;
+          mapped.SourceRowNo = row.SourceRowNo;
+
+          if (
+            mapped.CID &&
+            findMany_('Registrations', { ConferenceID: conferenceId, CID: mapped.CID })
+              .some(function(record) {
+                return upper_(record.RegistrationStatus) !== 'CANCELLED';
+              })
+          ) {
+            updateRecord_('ImportRows', row.__row, {
+              ImportStatus: 'SKIPPED_DUPLICATE'
+            });
+            skipped++;
+            skippedDuplicate++;
+            return;
+          }
+
+          // สำคัญ: นำเข้าทั้ง READY, WARNING และ INCOMPLETE
+          // รายการข้อมูลไม่ครบจะมีสถานะ IMPORTED_INCOMPLETE เพื่อให้ผู้สมัครแก้ไขภายหลัง
+          const registration = createRegistrationRecord_(
+            mapped,
+            ctx.user.Email,
+            true,
+            row.ValidationStatus
+          );
+
+          if (mapped.Email) sendRegistrationEmail_(registration);
+          try{ maybeAutoIssueMealPass_(conferenceId,registration.RegID,'IMPORT_COMPLETE'); }catch(mealError){ errors.push({sourceRowNo:row.SourceRowNo,message:'Meal pass: '+(mealError.message||String(mealError))}); }
+
+          updateRecord_('ImportRows', row.__row, {
+            ImportStatus: 'IMPORTED',
+            ImportedRegID: registration.RegID
+          });
+
+          imported++;
+          if (registration.record.DataCompletenessStatus === 'INCOMPLETE') {
+            importedIncomplete++;
+          }
+        } catch (error) {
+          updateRecord_('ImportRows', row.__row, {
+            ImportStatus: 'ERROR'
+          });
+          errors.push({
+            sourceRowNo: row.SourceRowNo,
+            message: error.message || String(error)
+          });
+        }
+      });
+    });
+
+    updateRecord_('ImportBatches', batch.__row, {
+      ImportedRows: imported,
+      Status: errors.length ? 'IMPORTED_WITH_ERRORS' : 'IMPORTED',
+      MappingVersion: TUH_IMPORT_MAPPING_VERSION,
+      Note:
+        'Imported ' + imported +
+        '; incomplete ' + importedIncomplete +
+        '; skipped ' + skipped +
+        '; duplicate ' + skippedDuplicate +
+        '; errors ' + errors.length
+    });
+
+    invalidateCache_(conferenceId);
+    logAudit_(
+      conferenceId,
+      ctx.user,
+      ctx.role,
+      'IMPORT_COMMIT',
+      'ImportBatch',
+      batchId,
+      {
+        imported: imported,
+        importedIncomplete: importedIncomplete,
+        skipped: skipped,
+        skippedDuplicate: skippedDuplicate,
+        errors: errors
+      }
+    );
+
+    return {
+      imported: imported,
+      importedIncomplete: importedIncomplete,
+      skipped: skipped,
+      skippedDuplicate: skippedDuplicate,
+      errors: errors,
+      mappingVersion: TUH_IMPORT_MAPPING_VERSION
+    };
+  });
+}
+
+function listImportBatches(token, conferenceId) {
+  return runSafely_('listImportBatches', function() {
+    requireSession_(
+      token,
+      ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'],
+      conferenceId
+    );
+    return serialize_(
+      findMany_('ImportBatches', { ConferenceID: conferenceId }).reverse()
+    );
+  });
+}
+
+/**
+ * ซ่อมชื่อ-นามสกุลและอีเมลของรายการที่เคยนำเข้าด้วย mapper รุ่นเดิม
+ * ฟังก์ชันนี้เติมเฉพาะช่องที่ยังว่าง จึงไม่ทับข้อมูลที่เจ้าหน้าที่แก้ไขแล้ว
+ *
+ * วิธีใช้:
+ *   repairImportedRegistrationNames()
+ * หรือ
+ *   repairImportedRegistrationNames('CONF-TUH-QF-2569', 'IMP-....')
+ */
+function repairImportedRegistrationNames(conferenceId, batchId) {
+  return runSafely_('repairImportedRegistrationNames', function() {
+    const cid = clean_(conferenceId) || APP.DEFAULT_CONFERENCE_ID;
+    const selectedBatchId = clean_(batchId);
+
+    let scanned = 0;
+    let importRowsRemapped = 0;
+    let registrationsUpdated = 0;
+    let namesStillMissing = 0;
+    const samples = [];
+
+    const rows = findMany_('ImportRows', { ConferenceID: cid })
+      .filter(function(row) {
+        return !selectedBatchId || String(row.ImportBatchID) === selectedBatchId;
+      });
+
+    rows.forEach(function(row) {
+      scanned++;
+
+      const raw = jsonParse_(row.SourceDataJson, {});
+      const mapped = mapTuhGoogleFormRow_(raw, cid);
+      mapped.SourceBatchID = row.ImportBatchID;
+      mapped.SourceRowNo = row.SourceRowNo;
+
+      updateRecord_('ImportRows', row.__row, {
+        SourceTimestamp: mapped.SourceTimestamp || row.SourceTimestamp,
+        MappedDataJson: safeJson_(mapped)
+      });
+      importRowsRemapped++;
+
+      if (!mapped.FirstName || !mapped.LastName) namesStillMissing++;
+
+      const regId = clean_(row.ImportedRegID);
+      if (!regId) return;
+
+      const registration = findOne_('Registrations', {
+        ConferenceID: cid,
+        RegID: regId
+      });
+      if (!registration) return;
+
+      const patch = {};
+
+      function fillIfBlank(field, value) {
+        if (clean_(registration[field]) === '' && clean_(value) !== '') {
+          patch[field] = value;
+        }
+      }
+
+      fillIfBlank('SourceBatchID', row.ImportBatchID);
+      fillIfBlank('SourceRowNo', row.SourceRowNo);
+      fillIfBlank('SourceTimestamp', mapped.SourceTimestamp);
+      fillIfBlank('SourceRespondentEmail', mapped.SourceRespondentEmail);
+      fillIfBlank('Prefix', mapped.Prefix);
+      fillIfBlank('FirstName', mapped.FirstName);
+      fillIfBlank('LastName', mapped.LastName);
+      fillIfBlank('FullName', mapped.FullName);
+      fillIfBlank('Email', mapped.Email);
+
+      if (Object.keys(patch).length) {
+        patch.UpdatedAt = new Date();
+        patch.LastModifiedBy = 'SYSTEM_IMPORT_REPAIR_V1_2';
+        updateRecord_('Registrations', registration.__row, patch);
+        registrationsUpdated++;
+
+        if (samples.length < 10) {
+          samples.push({
+            RegID: regId,
+            Prefix: mapped.Prefix,
+            FirstName: mapped.FirstName,
+            LastName: mapped.LastName,
+            Email: mapped.Email
+          });
+        }
+      }
+    });
+
+    clearRequestCache_();
+    invalidateCache_(cid);
+
+    return {
+      conferenceId: cid,
+      batchId: selectedBatchId || 'ALL',
+      scanned: scanned,
+      importRowsRemapped: importRowsRemapped,
+      registrationsUpdated: registrationsUpdated,
+      namesStillMissing: namesStillMissing,
+      samples: samples,
+      mappingVersion: TUH_IMPORT_MAPPING_VERSION
+    };
+  });
+}
+
+/** ทดสอบ mapping โดยไม่แก้ฐานข้อมูล */
+function testTuhImportMappingV12() {
+  return runSafely_('testTuhImportMappingV12', function() {
+    const cid = APP.DEFAULT_CONFERENCE_ID;
+
+    const internalRaw = buildImportRawRow_(
+      ['ประเภทบุคคล', 'คำนำหน้า', 'ชื่อ-นามสกุล  ', 'Email ', 'โทรศัพท์มือถือ'],
+      [
+        'บุคลากรโรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ',
+        'นางสาว',
+        'ทดสอบ ระบบภายใน',
+        'Internal.Test@example.com',
+        '0812345678'
+      ]
+    );
+
+    const externalRaw = buildImportRawRow_(
+      ['ประเภทบุคคล', 'คำนำหน้า 2', 'ชื่อ-นามสกุล   2', 'Email  2', 'โทรศัพท์มือถือ 2'],
+      [
+        'บุคคลทั่วไป (ภายนอก)',
+        'นาย',
+        'ทดสอบ ระบบภายนอก',
+        'External.Test@example.com',
+        '0899999999'
+      ]
+    );
+
+    const internalMapped = mapTuhGoogleFormRow_(internalRaw, cid);
+    const externalMapped = mapTuhGoogleFormRow_(externalRaw, cid);
+
+    const internalPass =
+      internalMapped.FirstName === 'ทดสอบ' &&
+      internalMapped.LastName === 'ระบบภายใน' &&
+      internalMapped.Email === 'internal.test@example.com';
+
+    const externalPass =
+      externalMapped.FirstName === 'ทดสอบ' &&
+      externalMapped.LastName === 'ระบบภายนอก' &&
+      externalMapped.Email === 'external.test@example.com';
+
+    return {
+      success: internalPass && externalPass,
+      internal: {
+        pass: internalPass,
+        Prefix: internalMapped.Prefix,
+        FirstName: internalMapped.FirstName,
+        LastName: internalMapped.LastName,
+        Email: internalMapped.Email
+      },
+      external: {
+        pass: externalPass,
+        Prefix: externalMapped.Prefix,
+        FirstName: externalMapped.FirstName,
+        LastName: externalMapped.LastName,
+        Email: externalMapped.Email
+      },
+      mappingVersion: TUH_IMPORT_MAPPING_VERSION
+    };
+  });
+}
+
+
+function assertConferenceWindow_(conferenceId,openField,closeField,label){
+  const c=findOne_('Conferences',{ConferenceID:conferenceId}); if(!c)throw new Error('ไม่พบงานประชุม'); const now=Date.now();
+  if(c[openField]&&new Date(c[openField]).getTime()>now)throw new Error(label+'ยังไม่เปิด');
+  if(c[closeField]&&new Date(c[closeField]).getTime()<now)throw new Error(label+'ปิดรับแล้ว');
+}
+function requireRegistrationAccess_(conferenceId,regId,emailOrPhone,editCode){
+  const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:clean_(regId)}); if(!r)throw new Error('ไม่พบเลขลงทะเบียน');
+  const key=normalizeEmail_(emailOrPhone), codeOk=editCode&&hashText_(String(editCode)+getAuthSecret_())===r.EditAccessCodeHash;
+  if(normalizeEmail_(r.Email)!==key&&normalizePhone_(r.Phone)!==normalizePhone_(emailOrPhone)&&!codeOk)throw new Error('ข้อมูลยืนยันไม่ถูกต้อง');
+  return r;
+}
+
+function submitRegistration(conferenceId,payload){
+  return runSafely_('submitRegistration',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID;
+    if(upper_(getSetting_(cid,'REGISTRATION_ENABLED','TRUE'))!=='TRUE')throw new Error('ระบบลงทะเบียนยังไม่เปิด');
+    assertConferenceWindow_(cid,'RegistrationOpenAt','RegistrationCloseAt','การลงทะเบียน');
+    payload=payload||{};
+    const organization=clean_(payload.OrganizationUnit||payload.Institution);
+    const mapped={ConferenceID:cid,SourceType:'WEB_APP',ConsentAccepted:bool_(payload.ConsentAccepted),ParticipantType:clean_(payload.ParticipantType),Region4Status:clean_(payload.Region4Status),Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:organization,Institution:clean_(payload.Institution||organization),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:normalizeCid_(payload.CID),Phone:normalizePhone_(payload.Phone),LineID:clean_(payload.LineID),Email:normalizeEmail_(payload.Email),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),Note:''};
+    validateNewRegistration_(mapped,cid);
+    const typeRow=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:mapped.ParticipantType});
+    if(typeRow&&num_(typeRow.Quota)>0&&num_(typeRow.UsedQuota)>=num_(typeRow.Quota))throw new Error('ผู้สมัครประเภทนี้เต็มโควตาแล้ว');
+    const reg=withLock_(function(){return createRegistrationRecord_(mapped,'PUBLIC',false,'READY');});
+    invalidateCache_(cid);
+    sendRegistrationEmail_(reg);
+    let mealPass={sent:false,reason:''};
+    try{mealPass=maybeAutoIssueMealPass_(cid,reg.RegID,'PUBLIC_REGISTRATION');}catch(ignore){}
+    return {RegID:reg.RegID,EditCode:reg.EditCode,warnings:duplicateWarnings_(mapped,cid,reg.RegID),mealPass:mealPass};
+  });
+}
+function validateNewRegistration_(m,cid,excludeRegId){ if(!m.ConsentAccepted)throw new Error('กรุณายินยอมการเก็บและใช้ข้อมูลส่วนบุคคล'); if(!m.ParticipantType)throw new Error('กรุณาเลือกประเภทผู้สมัคร'); if(!m.FirstName||!m.LastName)throw new Error('กรุณากรอกชื่อและนามสกุล'); if(!validateThaiCid_(m.CID))throw new Error('เลขบัตรประชาชนไม่ถูกต้อง'); const dup=findMany_('Registrations',{ConferenceID:cid,CID:m.CID}).find(function(x){return x.RegID!==excludeRegId&&upper_(x.RegistrationStatus)!=='CANCELLED';}); if(dup)throw new Error('เลขบัตรประชาชนนี้ลงทะเบียนแล้ว'); if(!m.Email)throw new Error('กรุณากรอก Email'); if(!m.Phone)throw new Error('กรุณากรอกโทรศัพท์'); }
+function duplicateWarnings_(m,cid,exclude){ const w=[]; const emails=findMany_('Registrations',{ConferenceID:cid,Email:m.Email}).filter(function(x){return x.RegID!==exclude;}); if(emails.length)w.push('Email นี้ถูกใช้กับผู้ลงทะเบียนอื่น '+emails.length+' ราย'); const phones=findMany_('Registrations',{ConferenceID:cid,Phone:m.Phone}).filter(function(x){return x.RegID!==exclude;}); if(phones.length)w.push('เบอร์โทรนี้ถูกใช้กับผู้ลงทะเบียนอื่น '+phones.length+' ราย'); return w; }
+function createRegistrationRecord_(m,userEmail,isImport,validationStatus){
+  const cid=m.ConferenceID||APP.DEFAULT_CONFERENCE_ID, regId=nextId_('REG'), editCode=String(Math.floor(100000+Math.random()*900000)), type=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:m.ParticipantType})||{};
+  const complete=validateThaiCid_(m.CID)&&m.FirstName&&m.LastName&&m.Email&&m.Phone, status=complete?'WAIT_REGISTRATION_CHECK':'IMPORTED_INCOMPLETE', payment=bool_(type.PaymentRequired)?'UNPAID':'NOT_REQUIRED';
+  const rec=Object.assign({},m,{RegID:regId,DataCompletenessStatus:complete?'COMPLETE':'INCOMPLETE',RegistrationStatus:status,PaymentStatus:payment,MealPassStatus:'NOT_READY',EditAccessCodeHash:hashText_(editCode+getAuthSecret_()),CreatedAt:new Date(),UpdatedAt:new Date(),LastModifiedBy:userEmail||'SYSTEM'});
+  appendRecord_('Registrations',rec); appendRecord_('Consents',{ConsentID:nextId_('CONS'),ConferenceID:cid,RegID:regId,ConsentVersion:'1.0',ConsentAccepted:rec.ConsentAccepted,AcceptedAt:new Date(),ClientInfo:isImport?'IMPORTED':'WEB'});
+  incrementTypeQuota_(cid,m.ParticipantType,1); return {RegID:regId,EditCode:editCode,record:rec};
+}
+function incrementTypeQuota_(cid,typeCode,delta){const t=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:typeCode});if(t)updateRecord_('RegistrationTypes',t.__row,{UsedQuota:num_(t.UsedQuota)+delta});}
+function lookupRegistrationForEdit(conferenceId,regId,emailOrPhone,editCode){
+  return runSafely_('lookupRegistrationForEdit',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID;
+    const r=requireRegistrationAccess_(cid,regId,emailOrPhone,editCode);
+    const p=findOne_('Payments',{ConferenceID:cid,RegID:r.RegID})||{};
+    const reg=publicRegistration_(r);
+    reg.PaymentSlipUrl=p.SlipFileUrl||'';
+    reg.PaymentSlipName=p.SlipFileName||'';
+    return reg;
+  });
+}
+function saveRegistrationEdit(conferenceId,regId,emailOrPhone,editCode,payload){
+  return runSafely_('saveRegistrationEdit',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID,r=requireRegistrationAccess_(cid,regId,emailOrPhone,editCode),incoming=payload||{};
+    if(r.RegistrationStatus==='REGISTRATION_VERIFIED'||r.RegistrationStatus==='COMPLETED')throw new Error('ฝ่ายทะเบียนได้ตรวจสอบข้อมูลของคุณแล้ว ไม่สามารถแก้ไขได้ หากต้องการแก้ไขกรุณาติดต่อเจ้าหน้าที่');
+    const p=Object.assign({},r,incoming);
+    p.CID=normalizeCid_(p.CID);p.Phone=normalizePhone_(p.Phone);p.Email=normalizeEmail_(p.Email);
+    const providedOrg=clean_(incoming.OrganizationUnit||incoming.Institution);if(providedOrg){p.OrganizationUnit=providedOrg;p.Institution=providedOrg;}else{p.OrganizationUnit=clean_(p.OrganizationUnit||p.Institution);p.Institution=clean_(p.Institution||p.OrganizationUnit);}
+    validateNewRegistration_(Object.assign({},p,{ConsentAccepted:true}),cid,r.RegID);
+    const newStatus = (r.RegistrationStatus === 'WAIT_REGISTRATION_CHECK' || r.RegistrationStatus === 'IMPORTED_INCOMPLETE' || r.RegistrationStatus === 'REGISTRATION_RETURNED') ? 'WAIT_REGISTRATION_CHECK' : r.RegistrationStatus;
+    const patch={Prefix:clean_(p.Prefix),FirstName:clean_(p.FirstName),LastName:clean_(p.LastName),FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),Position:clean_(p.Position),OrganizationGroup:clean_(p.OrganizationGroup),OrganizationUnit:p.OrganizationUnit,Institution:p.Institution,Profession:clean_(p.Profession),LicenseNo:clean_(p.LicenseNo),CID:p.CID,Phone:p.Phone,LineID:clean_(p.LineID),Email:p.Email,FoodType:clean_(p.FoodType),FoodAllergyDetail:clean_(p.FoodAllergyDetail),AttendanceDay1:bool_(p.AttendanceDay1),AttendanceDay2:bool_(p.AttendanceDay2),AttendanceDay3:bool_(p.AttendanceDay3),WantsSubmitWork:bool_(p.WantsSubmitWork),DataCompletenessStatus:'COMPLETE',RegistrationStatus:newStatus,UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'};
+    updateRecord_('Registrations',r.__row,patch);invalidateCache_(cid);
+    let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(cid,r.RegID,'PARTICIPANT_EDIT');}catch(ignore){}
+    return {RegID:r.RegID,warnings:duplicateWarnings_(patch,cid,r.RegID),mealPass:mealPass};
+  });
+}
+function getRegistrationStatus(conferenceId,regId,emailOrPhone){return runSafely_('getRegistrationStatus',function(){return publicRegistration_(requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,''));});}
+function publicRegistration_(r){const out={};['RegID','ParticipantType','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','CreatedAt','UpdatedAt'].forEach(function(k){out[k]=r[k];});return serialize_(out);}
+function sendRegistrationEmail_(reg){try{const r=reg.record||reg;sendEmailLogged_(r.ConferenceID,r.Email,'ยืนยันการลงทะเบียน '+reg.RegID,'<div style="font-family:Prompt,sans-serif"><h2>ลงทะเบียนสำเร็จ</h2><p>เลขลงทะเบียน <b>'+reg.RegID+'</b></p><p>กรุณาเก็บเลขลงทะเบียนเพื่อแก้ไขข้อมูลและตรวจสอบสถานะ</p></div>','REGISTRATION',reg.RegID,null);}catch(ignore){} }
+
+
+/** ===== 04_PaymentWork.gs ===== **/
+function uploadPaymentSlip(conferenceId,regId,emailOrPhone,file){
+  return runSafely_('uploadPaymentSlip',function(){const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID,r=requireRegistrationAccess_(cid,regId,emailOrPhone,'');const conf=findOne_('Conferences',{ConferenceID:cid});if(conf&&conf.PaymentCloseAt&&new Date(conf.PaymentCloseAt).getTime()<Date.now())throw new Error('หมดเขตชำระเงินแล้ว');if(upper_(r.PaymentStatus)==='APPROVED')throw new Error('สถานะการเงินได้รับการอนุมัติแล้ว ไม่สามารถอัปโหลดหลักฐานใหม่ได้');const type=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:r.ParticipantType})||{};if(!bool_(type.PaymentRequired))throw new Error('รายการนี้ไม่ต้องชำระค่าลงทะเบียน');const up=uploadBase64File_(file,'02_Payment_Slips',regId);let p=findOne_('Payments',{ConferenceID:cid,RegID:regId});const patch={Amount:num_(type.FeeAmount),Currency:'THB',SlipFileId:up.fileId,SlipFileUrl:up.fileUrl,SlipFileName:up.fileName,Status:'PENDING_VERIFY',SubmittedAt:new Date(),UpdatedAt:new Date()};if(p)updateRecord_('Payments',p.__row,patch);else appendRecord_('Payments',Object.assign({PaymentID:nextId_('PAY'),ConferenceID:cid,RegID:regId,CreatedAt:new Date()},patch));updateRecord_('Registrations',r.__row,{PaymentStatus:'PENDING_VERIFY',UpdatedAt:new Date()});invalidateCache_(cid);return {RegID:regId,PaymentStatus:'PENDING_VERIFY',SlipFileUrl:up.fileUrl,SlipFileName:up.fileName};});
+}
+function adminListPayments(token,conferenceId,filters){
+  return runSafely_('adminListPayments',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','FINANCE_STAFF'],conferenceId);
+    filters=filters||{};
+    const types={};findMany_('RegistrationTypes',{ConferenceID:conferenceId}).forEach(function(t){types[t.TypeCode]=t;});
+    const paymentByReg={};findMany_('Payments',{ConferenceID:conferenceId}).forEach(function(p){paymentByReg[p.RegID]=p;});
+    let rows=findMany_('Registrations',{ConferenceID:conferenceId}).filter(function(r){const t=types[r.ParticipantType]||{};return bool_(t.PaymentRequired);}).map(function(r){
+      const t=types[r.ParticipantType]||{},p=paymentByReg[r.RegID]||{};
+      return Object.assign({PaymentID:'',ConferenceID:conferenceId,RegID:r.RegID,Amount:num_(t.FeeAmount),Currency:'THB',Status:r.PaymentStatus||'UNPAID',SlipFileUrl:'',SlipFileName:''},p,{RequiredAmount:num_(t.FeeAmount),Registration:publicRegistration_(r)});
+    });
+    if(filters.q){const q=clean_(filters.q).toLowerCase();rows=rows.filter(function(x){return [x.RegID,x.Registration.FullName,x.Registration.Email,x.Registration.Phone].join(' ').toLowerCase().indexOf(q)>=0;});}
+    if(filters.status)rows=rows.filter(function(x){return upper_(x.Status)===upper_(filters.status);});
+    rows.sort(function(a,b){return String(b.SubmittedAt||b.CreatedAt||'').localeCompare(String(a.SubmittedAt||a.CreatedAt||''));});
+    return serialize_(rows);
+  });
+}
+function adminVerifyPayment(token,conferenceId,paymentId,decision,note,receipt){
+  return runSafely_('adminVerifyPayment',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','FINANCE_STAFF'],conferenceId),p=findOne_('Payments',{ConferenceID:conferenceId,PaymentID:paymentId});
+    if(!p)throw new Error('ไม่พบรายการชำระเงินหรือผู้สมัครยังไม่ได้ส่งหลักฐาน');
+    const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:p.RegID});if(!r)throw new Error('ไม่พบข้อมูลผู้ลงทะเบียน');
+    decision=upper_(decision);let status,regStatus;
+    if(decision==='APPROVE'){status='APPROVED';regStatus='APPROVED';}
+    else if(decision==='RETURN'){status='RETURNED';regStatus='RETURNED';if(!clean_(note))throw new Error('กรุณาระบุเหตุผลที่ส่งคืนหลักฐาน');}
+    else{status='REJECTED';regStatus='REJECTED';}
+    const patch={Status:status,VerifiedBy:ctx.user.Email,VerifiedAt:new Date(),FinanceNote:clean_(note),UpdatedAt:new Date()};
+    if(receipt&&receipt.ReceiptNo){patch.ReceiptNo=clean_(receipt.ReceiptNo);patch.ReceiptDate=receipt.ReceiptDate||new Date();}
+    updateRecord_('Payments',p.__row,patch);updateRecord_('Registrations',r.__row,{PaymentStatus:regStatus,UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email});
+    let mealPass={sent:false,reason:''};
+    if(status==='APPROVED'){
+      sendEmailLogged_(conferenceId,r.Email,'ยืนยันการชำระเงิน '+r.RegID,'<p>ฝ่ายการเงินตรวจสอบการชำระเงินของท่านเรียบร้อยแล้ว</p>','PAYMENT',paymentId,ctx.user);
+      try{mealPass=maybeAutoIssueMealPass_(conferenceId,r.RegID,'PAYMENT_APPROVED');}catch(e){mealPass={sent:false,reason:e.message||String(e)};}
+    }else if(status==='RETURNED'){
+      sendEmailLogged_(conferenceId,r.Email,'กรุณาแก้ไขหลักฐานการชำระเงิน '+r.RegID,'<p>ฝ่ายการเงินส่งคืนหลักฐานการชำระเงิน</p><p><b>เหตุผล:</b> '+htmlEscape_(note)+'</p>','PAYMENT',paymentId,ctx.user);
+    }
+    invalidateCache_(conferenceId);logAudit_(conferenceId,ctx.user,ctx.role,'VERIFY_PAYMENT','Payment',paymentId,{decision:decision,note:note});
+    return {status:status,regId:r.RegID,mealPass:mealPass};
+  });
+}
+
+function requireWorkAccess_(conferenceId,regId,emailOrPhone){
+  const r=requireRegistrationAccess_(conferenceId,regId,emailOrPhone,''); const c=canSubmitWork_(r); if(!c.ok)throw new Error(c.message); assertConferenceWindow_(conferenceId,'SubmissionOpenAt','SubmissionCloseAt','การส่งผลงาน'); return r;
+}
+
+function canSubmitWork_(reg){
+  if(!reg||reg.DataCompletenessStatus!=='COMPLETE'||['CANCELLED','REGISTRATION_RETURNED'].indexOf(upper_(reg.RegistrationStatus))>=0)return {ok:false,message:'ข้อมูลลงทะเบียนยังไม่สมบูรณ์'};
+  const type=findOne_('RegistrationTypes',{ConferenceID:reg.ConferenceID,TypeCode:reg.ParticipantType})||{};
+  if(bool_(type.WorkRequiresPayment)&&upper_(reg.PaymentStatus)!=='APPROVED')return {ok:false,message:'กรุณาชำระค่าลงทะเบียนและรอฝ่ายการเงินอนุมัติก่อนส่งผลงาน'};
+  return {ok:true};
+}
+function verifyWorkAccess(conferenceId,regId,emailOrPhone){return runSafely_('verifyWorkAccess',function(){const r=requireWorkAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone);const works=findMany_('Works',{ConferenceID:r.ConferenceID,RegID:r.RegID});const files=findMany_('WorkFiles',{ConferenceID:r.ConferenceID,RegID:r.RegID}).filter(function(f){return bool_(f.Active);});const outWorks=works.map(function(w){const cw=Object.assign({},w);cw.files=files.filter(function(f){return f.WorkID===w.WorkID;});return cw;});return {registration:publicRegistration_(r),works:serialize_(outWorks)};});}
+function submitWork(conferenceId,regId,emailOrPhone,payload,files){
+  return runSafely_('submitWork',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID,r=requireWorkAccess_(cid,regId,emailOrPhone);payload=payload||{};files=files||{};
+    if(!payload.CategoryID||!payload.PresentationTypeRequested||!clean_(payload.TitleTH))throw new Error('กรุณากรอกประเภทผลงาน รูปแบบนำเสนอ และชื่อผลงาน');
+    const category=findOne_('WorkCategories',{ConferenceID:cid,CategoryID:payload.CategoryID});if(!category||!bool_(category.Active))throw new Error('ประเภทผลงานไม่ถูกต้อง');
+    const presentation=findOne_('PresentationTypes',{ConferenceID:cid,PresentationTypeID:payload.PresentationTypeRequested});if(!presentation||!bool_(presentation.Active))throw new Error('รูปแบบการนำเสนอไม่ถูกต้อง');
+    if(!files.original)throw new Error('กรุณาแนบไฟล์แบบฟอร์มการนำเสนอผลงาน');
+    if(!files.presenterBio)throw new Error('กรุณาแนบไฟล์ประวัติของผู้นำเสนอผลงานเพื่อรับคะแนน CNEU');
+    const ethicsRequired=bool_(payload.EthicsRequired);if(ethicsRequired&&!files.ethics)throw new Error('ผลงานที่เกี่ยวข้องกับมนุษย์ต้องแนบหลักฐานการรับรองจริยธรรมการวิจัยในคน');
+    const region4Affiliation=upper_(payload.Region4Affiliation);if(['YES','NO'].indexOf(region4Affiliation)<0)throw new Error('กรุณาระบุว่าผู้ส่งผลงานสังกัดหน่วยงานในเขตสุขภาพที่ 4 หรือไม่');
+    let region4AwardIntent=false;if(region4Affiliation==='YES'){const choice=upper_(payload.Region4AwardIntentChoice);if(['YES','NO'].indexOf(choice)<0)throw new Error('กรุณาเลือกว่ามีหรือไม่มีความประสงค์ส่งผลงานเข้าคัดเลือกในนามเขตสุขภาพที่ 4');region4AwardIntent=choice==='YES';}
+    const max=num_(getSetting_(cid,'MAX_WORKS_PER_REGISTRATION','0')),current=findMany_('Works',{ConferenceID:cid,RegID:regId}).filter(function(x){return upper_(x.Status)!=='CANCELLED';}).length;if(max>0&&current>=max)throw new Error('ส่งผลงานได้สูงสุด '+max+' เรื่อง');
+    const workId=nextId_('WORK'),workCode='TUH-'+String(new Date().getFullYear()+543).slice(-2)+'-'+String(current+1).padStart(4,'0')+'-'+regId.slice(-4);
+    appendRecord_('Works',{WorkID:workId,ConferenceID:cid,RegID:regId,WorkCode:workCode,CategoryID:payload.CategoryID,CategoryName:clean_(category.CategoryNameTH),PresentationTypeRequested:payload.PresentationTypeRequested,PresentationTypeName:clean_(presentation.TypeNameTH),TitleTH:clean_(payload.TitleTH),TitleEN:clean_(payload.TitleEN),SummaryTH:clean_(payload.SummaryTH),Keywords:clean_(payload.Keywords),EthicsRequired:ethicsRequired,EthicsApprovalNo:clean_(payload.EthicsApprovalNo),Region4Affiliation:region4Affiliation,Region4AwardIntent:region4AwardIntent,ScreeningStatus:'PENDING',Status:'SUBMITTED',PresentationUploadStatus:'NOT_AVAILABLE',CreatedAt:new Date(),UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'});
+    const authors=Array.isArray(payload.Authors)?payload.Authors:[];if(!authors.length)authors.push({Prefix:r.Prefix,FirstName:r.FirstName,LastName:r.LastName,Position:r.Position,Organization:r.Institution||r.OrganizationUnit,Email:r.Email,Phone:r.Phone,IsPresenter:true,IsCorrespondingAuthor:true});authors.forEach(function(a,i){appendRecord_('WorkAuthors',{AuthorID:nextId_('AUTH'),ConferenceID:cid,WorkID:workId,AuthorOrder:i+1,Prefix:clean_(a.Prefix),FirstName:clean_(a.FirstName),LastName:clean_(a.LastName),FullName:[a.Prefix,a.FirstName,a.LastName].filter(Boolean).join(' '),Position:clean_(a.Position),Organization:clean_(a.Organization),Email:normalizeEmail_(a.Email),Phone:normalizePhone_(a.Phone),IsPresenter:bool_(a.IsPresenter),IsCorrespondingAuthor:bool_(a.IsCorrespondingAuthor)});});
+    saveWorkFile_(cid,workId,regId,'ORIGINAL',files.original,'04_Work_Original');if(files.ethics)saveWorkFile_(cid,workId,regId,'ETHICS',files.ethics,'06_Work_Ethics');saveWorkFile_(cid,workId,regId,'PRESENTER_BIO',files.presenterBio,'08_Presenter_Bio');
+    invalidateCache_(cid);sendEmailLogged_(cid,r.Email,'รับผลงาน '+workCode,'<p>ระบบได้รับผลงาน <b>'+workCode+'</b> เรียบร้อยแล้ว</p><p>รูปแบบการนำเสนอ: '+clean_(presentation.TypeNameTH)+'</p>','WORK',workId,null);return {WorkID:workId,WorkCode:workCode};
+  });
+}
+function saveWorkFile_(cid,workId,regId,category,file,folder){const up=uploadBase64File_(file,folder,workId+'_'+category),old=findMany_('WorkFiles',{ConferenceID:cid,WorkID:workId}).filter(function(x){return x.FileCategory===category&&bool_(x.Active);});old.forEach(function(x){updateRecord_('WorkFiles',x.__row,{Active:false});});const version=old.length+1;appendRecord_('WorkFiles',{WorkFileID:nextId_('WF'),ConferenceID:cid,WorkID:workId,RegID:regId,FileCategory:category,VersionNo:version,FileName:up.fileName,FileId:up.fileId,FileUrl:up.fileUrl,MimeType:up.mimeType,FileSize:up.fileSize,UploadedBy:regId,UploadedAt:new Date(),Active:true,ReplacedFileID:old.length?old[old.length-1].WorkFileID:'',Note:''});return up;}
+function getAuthorPortal(conferenceId,regId,emailOrPhone){return runSafely_('getAuthorPortal',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const works=findMany_('Works',{ConferenceID:r.ConferenceID,RegID:r.RegID}).map(function(w){return Object.assign({},w,{authors:findMany_('WorkAuthors',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}),files:findMany_('WorkFiles',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}).filter(function(f){return bool_(f.Active);})});});return {registration:publicRegistration_(r),works:serialize_(works)};});}
+function replaceWorkFile(conferenceId,regId,emailOrPhone,workId,category,file){return runSafely_('replaceWorkFile',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId,RegID:regId});if(!w)throw new Error('ไม่พบผลงาน');const st=upper_(w.Status);const canOriginal=['DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT'].indexOf(st)>=0;const canRevise=['REVISION_REQUIRED','REVISION_SUBMITTED'].indexOf(st)>=0;const canPresent=['ACCEPTED_ORAL','ACCEPTED_POSTER','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED'].indexOf(st)>=0;if(category==='ORIGINAL'&&!canOriginal)throw new Error('ไม่สามารถอัปโหลดไฟล์ผลงานเดิมในสถานะนี้ได้');if(category==='REVISION'&&!canRevise)throw new Error('ไม่สามารถอัปโหลดไฟล์แก้ไขในสถานะนี้ได้');if(category==='FINAL_PRESENTATION'){if(!canPresent)throw new Error('ไม่สามารถอัปโหลดไฟล์นำเสนอในสถานะนี้ได้');if(APP.PRESENTATION_DEADLINE&&new Date()>new Date(APP.PRESENTATION_DEADLINE))throw new Error('ระบบปิดรับไฟล์นำเสนอแล้ว');}const folder={ORIGINAL:'04_Work_Original',ETHICS:'06_Work_Ethics',PRESENTER_BIO:'08_Presenter_Bio',REVISION:'07_Work_Revisions',FINAL_PRESENTATION:'09_Final_Presentation'}[category];if(!folder)throw new Error('ประเภทไฟล์ไม่ถูกต้อง');const up=saveWorkFile_(conferenceId,workId,regId,category,file,folder);if(category==='REVISION')updateRecord_('Works',w.__row,{Status:'REVISION_SUBMITTED',UpdatedAt:new Date()});if(category==='FINAL_PRESENTATION')updateRecord_('Works',w.__row,{PresentationUploadStatus:'SUBMITTED',Status:'PRESENTATION_FILE_SUBMITTED',UpdatedAt:new Date()});return up;});}
+
+
+/** ===== 05_ReviewerFoodAdmin.gs ===== **/
+function adminAddReviewer(token,conferenceId,payload){
+  return runSafely_('adminAddReviewer',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);payload=payload||{};const email=normalizeEmail_(payload.Email);if(!email)throw new Error('กรุณากรอก Email Reviewer');let reviewer=getRecords_('Reviewers').find(function(x){return normalizeEmail_(x.Email)===email;});let reviewerId;if(reviewer){reviewerId=reviewer.ReviewerID;updateRecord_('Reviewers',reviewer.__row,{Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),Institution:clean_(payload.Institution),Department:clean_(payload.Department),Province:clean_(payload.Province),HealthRegion:clean_(payload.HealthRegion),Phone:normalizePhone_(payload.Phone),ExpertiseCategories:clean_(payload.ExpertiseCategories),ExpertiseTypes:clean_(payload.ExpertiseTypes),MaxWorkload:num_(payload.MaxWorkload,10),Status:'ACTIVE',NotificationPreference:clean_(payload.NotificationPreference||reviewer.NotificationPreference||'EMAIL'),LineToken:clean_(payload.LineToken||reviewer.LineToken),TelegramID:clean_(payload.TelegramID||reviewer.TelegramID),Note:clean_(payload.Note||reviewer.Note),UpdatedAt:new Date()});}else{reviewerId=nextId_('REV');appendRecord_('Reviewers',{ReviewerID:reviewerId,Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),Institution:clean_(payload.Institution),Department:clean_(payload.Department),Province:clean_(payload.Province),HealthRegion:clean_(payload.HealthRegion),Phone:normalizePhone_(payload.Phone),Email:email,ExpertiseCategories:clean_(payload.ExpertiseCategories),ExpertiseTypes:clean_(payload.ExpertiseTypes),MaxWorkload:num_(payload.MaxWorkload,10),Status:'ACTIVE',NotificationPreference:clean_(payload.NotificationPreference||'EMAIL'),LineToken:clean_(payload.LineToken),TelegramID:clean_(payload.TelegramID),Note:clean_(payload.Note),CreatedAt:new Date(),UpdatedAt:new Date()});}
+    let user=getRecords_('Users').find(function(x){return normalizeEmail_(x.Email)===email;});const temporaryPassword=clean_(payload.Password)||('Rev@'+String(Math.floor(100000+Math.random()*900000)));if(!user){const salt=uuid_(),uid=nextId_('USR');appendRecord_('Users',{UserID:uid,Username:email,Email:email,PasswordHash:hashPassword_(temporaryPassword,salt),Salt:salt,Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Phone:normalizePhone_(payload.Phone),Organization:clean_(payload.Institution),Role:'REVIEWER',Status:'ACTIVE',CreatedAt:new Date(),UpdatedAt:new Date()});user=findOne_('Users',{UserID:uid});}else if(payload.Password){const salt=uuid_();updateRecord_('Users',user.__row,{Salt:salt,PasswordHash:hashPassword_(temporaryPassword,salt),Status:'ACTIVE',UpdatedAt:new Date()});}
+    if(!findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:user.UserID,Role:'REVIEWER'}))appendRecord_('UserConferenceRoles',{UserConferenceRoleID:nextId_('UCR'),ConferenceID:conferenceId,UserID:user.UserID,Role:'REVIEWER',PermissionsJson:safeJson_({ReviewerID:reviewerId}),Status:'ACTIVE',AssignedAt:new Date(),AssignedBy:ctx.user.Email});
+    let pool=findOne_('ReviewerPool',{ConferenceID:conferenceId,ReviewerID:reviewerId});if(pool)updateRecord_('ReviewerPool',pool.__row,{ExpertiseCategories:clean_(payload.ExpertiseCategories),ExpertiseTypes:clean_(payload.ExpertiseTypes),MaxWorkload:num_(payload.MaxWorkload,10),Status:'ACTIVE'});else appendRecord_('ReviewerPool',{PoolID:nextId_('POOL'),ConferenceID:conferenceId,ReviewerID:reviewerId,ExpertiseCategories:clean_(payload.ExpertiseCategories),ExpertiseTypes:clean_(payload.ExpertiseTypes),MaxWorkload:num_(payload.MaxWorkload,10),CurrentAssignedCount:0,ConflictOrganizations:clean_(payload.ConflictOrganizations),Status:'ACTIVE',AssignedAt:new Date(),AssignedBy:ctx.user.Email});
+    if(bool_(payload.SendCredentials))sendReviewerCredentials_(conferenceId,email,temporaryPassword,reviewerId);return {ReviewerID:reviewerId,TemporaryPassword:payload.SendCredentials?temporaryPassword:''};});
+}
+function sendReviewerCredentials_(cid,email,password,reviewerId){const url=buildWebAppRouteUrl_('reviewer',cid);sendEmailLogged_(cid,email,'ข้อมูลเข้าสู่ระบบ Reviewer','<p>Username: <b>'+email+'</b></p><p>Temporary password: <b>'+password+'</b></p><p><a href="'+url+'">เข้าสู่ระบบ Reviewer</a></p>','REVIEWER',reviewerId,null);}
+function adminListReviewers(token,conferenceId){return runSafely_('adminListReviewers',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);const map={};getRecords_('Reviewers').forEach(function(r){map[r.ReviewerID]=r;});const asns=findMany_('ReviewAssignments',{ConferenceID:conferenceId});const counts={};asns.forEach(function(a){if(String(a.Status).toUpperCase()!=='CANCELLED'&&String(a.Status).toUpperCase()!=='DECLINED'){counts[a.ReviewerID]=(counts[a.ReviewerID]||0)+1;}});return serialize_(findMany_('ReviewerPool',{ConferenceID:conferenceId}).map(function(p){p.CurrentAssignedCount=counts[p.ReviewerID]||0;return Object.assign({},p,{reviewer:map[p.ReviewerID]||{}});}));});}
+function adminAssignReviewers(token,conferenceId,workId,reviewRoundId,reviewerIds){
+  return runSafely_('adminAssignReviewers',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId),w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId}),round=findOne_('ReviewRounds',{ConferenceID:conferenceId,ReviewRoundID:reviewRoundId});if(!w||!round)throw new Error('ไม่พบผลงานหรือรอบประเมิน');if(['CLOSED','LOCKED','CANCELLED'].indexOf(upper_(round.Status))>=0)throw new Error('รอบประเมินปิดแล้ว');let created=0,skipped=[];(reviewerIds||[]).forEach(function(rid){const rev=findOne_('Reviewers',{ReviewerID:rid}),pool=findOne_('ReviewerPool',{ConferenceID:conferenceId,ReviewerID:rid});if(!rev||!pool||upper_(pool.Status)!=='ACTIVE'){skipped.push({ReviewerID:rid,reason:'Reviewer inactive'});return;}if(findOne_('ReviewAssignments',{ConferenceID:conferenceId,ReviewRoundID:reviewRoundId,WorkID:workId,ReviewerID:rid})){skipped.push({ReviewerID:rid,reason:'Already assigned'});return;}if(num_(pool.CurrentAssignedCount)>=num_(pool.MaxWorkload,10)){skipped.push({ReviewerID:rid,reason:'Workload full'});return;}const aid=nextId_('ASN');appendRecord_('ReviewAssignments',{AssignmentID:aid,ConferenceID:conferenceId,ReviewRoundID:reviewRoundId,WorkID:workId,WorkCode:w.WorkCode,ReviewerID:rid,ReviewerName:rev.FullName,ReviewerEmail:rev.Email,AssignedAt:new Date(),AssignedBy:ctx.user.Email,Status:'ASSIGNED',Locked:false,UpdatedAt:new Date()});updateRecord_('ReviewerPool',pool.__row,{CurrentAssignedCount:num_(pool.CurrentAssignedCount)+1});sendReviewAssignmentEmail_(conferenceId,w,rev,aid);created++;});if(created)updateRecord_('Works',w.__row,{Status:'UNDER_REVIEW',UpdatedAt:new Date()});return {created:created,skipped:skipped};});
+}
+function sendReviewAssignmentEmail_(cid,w,rev,assignmentId){const portal=buildWebAppRouteUrl_('reviewer',cid);sendEmailLogged_(cid,rev.Email,'แจ้งมอบหมายประเมินผลงาน '+w.WorkCode,'<p>เรียน '+rev.FullName+'</p><p>ท่านได้รับมอบหมายให้ประเมินผลงาน <b>'+w.WorkCode+'</b></p><p><a href="'+portal+'">เข้าสู่ระบบ Reviewer</a></p>','ASSIGNMENT',assignmentId,null);}
+function reviewerBootstrap(token,conferenceId){return runSafely_('reviewerBootstrap',function(){const ctx=requireSession_(token,['REVIEWER'],conferenceId),role=findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:ctx.user.UserID,Role:'REVIEWER'}),perm=jsonParse_(role&&role.PermissionsJson,'{}'),reviewerId=perm.ReviewerID;const reviewer=findOne_('Reviewers',{ReviewerID:reviewerId});if(!reviewer)throw new Error('ไม่พบข้อมูล Reviewer');const assignments=findMany_('ReviewAssignments',{ConferenceID:conferenceId,ReviewerID:reviewerId}).filter(function(x){return upper_(x.Status)!=='CANCELLED';});const works=findMany_('Works',{ConferenceID:conferenceId});const workMap={};works.forEach(function(w){workMap[w.WorkID]=w;});assignments.forEach(function(a){const w=workMap[a.WorkID];if(w){a.TitleTH=w.TitleTH||w.TitleEN||w.ThaiTitle||w.EnglishTitle;a.WorkStatus=w.Status;a.WorkCode=a.WorkCode||w.WorkCode||w.WorkID;}a.AssignedAt=a.AssignedAt||a.CreatedAt||'';});return {reviewer:serialize_(reviewer),assignments:serialize_(assignments),conference:serialize_(findOne_('Conferences',{ConferenceID:conferenceId}))};});}
+function reviewerGetAssignment(token,conferenceId,assignmentId){return runSafely_('reviewerGetAssignment',function(){const ctx=requireSession_(token,['REVIEWER'],conferenceId),role=findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:ctx.user.UserID,Role:'REVIEWER'}),rid=jsonParse_(role.PermissionsJson,{}).ReviewerID,a=findOne_('ReviewAssignments',{ConferenceID:conferenceId,AssignmentID:assignmentId,ReviewerID:rid});if(!a)throw new Error('ไม่มีสิทธิ์เปิดงานนี้');const work=findOne_('Works',{ConferenceID:conferenceId,WorkID:a.WorkID}),round=findOne_('ReviewRounds',{ConferenceID:conferenceId,ReviewRoundID:a.ReviewRoundID});if(!round)throw new Error('ไม่พบรอบประเมิน');if(round.StartAt&&new Date(round.StartAt).getTime()>Date.now())throw new Error('ยังไม่ถึงวันเปิดรอบประเมิน');if(round.EndAt&&new Date(round.EndAt).getTime()<Date.now())throw new Error('หมดเวลาประเมินแล้ว');const allWorkFiles=findMany_('WorkFiles',{ConferenceID:conferenceId,WorkID:a.WorkID}).filter(function(f){return bool_(f.Active);});const blindFiles=allWorkFiles.filter(function(f){return f.FileCategory==='BLIND';});let files=[];if(bool_(round.BlindReview)||blindFiles.length>0){files=blindFiles.length>0?blindFiles:allWorkFiles.filter(function(f){return ['ORIGINAL','WORD','FINAL_PRESENTATION','REVISION'].indexOf(f.FileCategory)>=0;});}else{files=allWorkFiles.filter(function(f){return ['BLIND','ORIGINAL','WORD','FINAL_PRESENTATION','REVISION'].indexOf(f.FileCategory)>=0;});}const criteria=findMany_('ScoringCriteria',{ConferenceID:conferenceId,ReviewRoundID:a.ReviewRoundID}).filter(function(c){return bool_(c.Active);}),scores=findMany_('ReviewScores',{ConferenceID:conferenceId,AssignmentID:assignmentId});if(!a.OpenedAt)updateRecord_('ReviewAssignments',a.__row,{OpenedAt:new Date(),Status:'OPENED'});return {assignment:serialize_(a),work:serialize_(work),files:serialize_(files),criteria:serialize_(criteria),scores:serialize_(scores)};});}
+function reviewerSaveReview(token,conferenceId,assignmentId,payload,submit){return runSafely_('reviewerSaveReview',function(){const ctx=requireSession_(token,['REVIEWER'],conferenceId),role=findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:ctx.user.UserID,Role:'REVIEWER'}),rid=jsonParse_(role.PermissionsJson,{}).ReviewerID,a=findOne_('ReviewAssignments',{ConferenceID:conferenceId,AssignmentID:assignmentId,ReviewerID:rid});if(!a)throw new Error('ไม่มีสิทธิ์');const round=findOne_('ReviewRounds',{ConferenceID:conferenceId,ReviewRoundID:a.ReviewRoundID});if(!round||['CLOSED','LOCKED','CANCELLED'].indexOf(upper_(round.Status))>=0)throw new Error('รอบประเมินปิดแล้ว');if(round.StartAt&&new Date(round.StartAt).getTime()>Date.now())throw new Error('ยังไม่ถึงวันเปิดรอบประเมิน');if(round.EndAt&&new Date(round.EndAt).getTime()<Date.now())throw new Error('หมดเวลาประเมินแล้ว');if(bool_(a.Locked))throw new Error('แบบประเมินถูกล็อก');const scores=payload.Scores||[],criteria={};findMany_('ScoringCriteria',{ConferenceID:conferenceId,ReviewRoundID:a.ReviewRoundID}).forEach(function(c){criteria[c.CriteriaID]=c;});let total=0;scores.forEach(function(s){const c=criteria[s.CriteriaID];if(!c)throw new Error('เกณฑ์คะแนนไม่ถูกต้อง');const score=num_(s.Score);if(score<0||score>num_(c.MaxScore))throw new Error('คะแนนเกินเกณฑ์ '+c.CriteriaNameTH);let old=findOne_('ReviewScores',{ConferenceID:conferenceId,AssignmentID:assignmentId,CriteriaID:s.CriteriaID});const patch={Score:score,WeightedScore:score*(num_(c.WeightPercent,100)/100),Comment:clean_(s.Comment),UpdatedAt:new Date()};if(old)updateRecord_('ReviewScores',old.__row,patch);else appendRecord_('ReviewScores',Object.assign({ScoreID:nextId_('SCORE'),ConferenceID:conferenceId,AssignmentID:assignmentId,ReviewRoundID:a.ReviewRoundID,WorkID:a.WorkID,ReviewerID:rid,CriteriaID:s.CriteriaID,CreatedAt:new Date()},patch));total+=score;});const status=submit?'COMPLETE':'DRAFT_SAVED';updateRecord_('ReviewAssignments',a.__row,{Status:status,CompletedAt:submit?new Date():'',TotalScore:total,Decision:clean_(payload.Decision),RecommendationToAuthor:clean_(payload.RecommendationToAuthor),InternalComment:clean_(payload.InternalComment),Locked:submit&&!bool_(getSetting_(conferenceId,'REVIEWER_CAN_EDIT_AFTER_SUBMIT','FALSE')),UpdatedAt:new Date()});if(submit)appendRecord_('ReviewSummary',{SummaryID:nextId_('SUM'),ConferenceID:conferenceId,AssignmentID:assignmentId,ReviewRoundID:a.ReviewRoundID,WorkID:a.WorkID,ReviewerID:rid,TotalScore:total,Decision:clean_(payload.Decision),RecommendationToAuthor:clean_(payload.RecommendationToAuthor),InternalComment:clean_(payload.InternalComment),CreatedAt:new Date(),UpdatedAt:new Date()});return {status:status,totalScore:total};});}
+
+function ensureMealEntitlements_(conferenceId,regId){
+  const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');
+  const dates=jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[]).slice(0,3),meals=jsonParse_(getSetting_(conferenceId,'MEALS_JSON','[]'),[]),selected=[bool_(r.AttendanceDay1),bool_(r.AttendanceDay2),bool_(r.AttendanceDay3)];
+  if(!dates.length)throw new Error('ผู้ดูแลระบบยังไม่ได้กำหนดวันจัดงาน');
+  if(!meals.length)throw new Error('ผู้ดูแลระบบยังไม่ได้กำหนดรายการอาหาร');
+  if(!selected.some(Boolean))throw new Error('ผู้ลงทะเบียนยังไม่ได้เลือกวันเข้าร่วมงาน');
+  const activeDates={};dates.forEach(function(d,i){if(selected[i])activeDates[scannerDateKey_(d)]=true;});
+  const existing=findMany_('MealEntitlements',{ConferenceID:conferenceId,RegID:regId});
+  existing.forEach(function(e){
+    const shouldBeActive=!!activeDates[scannerDateKey_(e.EventDate)];
+    if(!shouldBeActive&&upper_(e.Status)!=='REDEEMED'&&upper_(e.Status)!=='CANCELLED')updateRecord_('MealEntitlements',e.__row,{Eligible:false,Status:'CANCELLED'});
+    if(shouldBeActive&&upper_(e.Status)==='CANCELLED')updateRecord_('MealEntitlements',e.__row,{Eligible:true,Status:'AVAILABLE'});
+  });
+  let created=0;
+  dates.forEach(function(date,i){
+    if(!selected[i])return;
+    meals.forEach(function(m){
+      const old=existing.find(function(x){return scannerDateKey_(x.EventDate)===scannerDateKey_(date)&&upper_(x.MealCode)===upper_(m.code);});
+      if(!old){
+        const token=signMealToken_(conferenceId,regId,date,m.code);
+        appendRecord_('MealEntitlements',{EntitlementID:nextId_('MEAL'),ConferenceID:conferenceId,RegID:regId,EventDate:date,MealCode:m.code,MealNameTH:m.th,Eligible:true,TokenHash:hashText_(token),Status:'AVAILABLE',CreatedAt:new Date()});created++;
+      }
+    });
+  });
+  const current=findMany_('MealEntitlements',{ConferenceID:conferenceId,RegID:regId}),total=current.filter(function(e){return upper_(e.Status)!=='CANCELLED';}).length;
+  updateRecord_('Registrations',r.__row,{MealPassStatus:upper_(r.MealPassStatus)==='SENT'?'SENT':'READY',UpdatedAt:new Date()});
+  return {created:created,total:total,cancelled:current.filter(function(e){return upper_(e.Status)==='CANCELLED';}).length};
+}
+function signMealToken_(cid,regId,date,meal){const payload=[cid,regId,date,meal].join('|'),sig=Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload,getAuthSecret_())).replace(/=+$/,'');return Utilities.base64EncodeWebSafe(payload).replace(/=+$/,'')+'.'+sig;}
+function parseMealToken_(token){const p=String(token).split('.');if(p.length!==2)throw new Error('QR ไม่ถูกต้อง');const payload=Utilities.newBlob(Utilities.base64DecodeWebSafe(p[0])).getDataAsString(),sig=Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload,getAuthSecret_())).replace(/=+$/,'');if(sig!==p[1])throw new Error('QR ไม่ถูกต้อง');const a=payload.split('|');return {conferenceId:a[0],regId:a[1],date:a[2],meal:a[3]};}
+function getMealPass(conferenceId,regId,emailOrPhone){
+  return runSafely_('getMealPass',function(){
+    const r=findOne_('Registrations',{ConferenceID:conferenceId||APP.DEFAULT_CONFERENCE_ID,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');
+    const key=normalizeEmail_(emailOrPhone);if(normalizeEmail_(r.Email)!==key&&normalizePhone_(r.Phone)!==normalizePhone_(emailOrPhone))throw new Error('ข้อมูลยืนยันไม่ถูกต้อง');
+    if(['READY','SENT'].indexOf(upper_(r.MealPassStatus))<0)throw new Error('คูปองอาหารยังไม่พร้อม');
+    const ents=findMany_('MealEntitlements',{ConferenceID:r.ConferenceID,RegID:r.RegID});
+    return {registration:publicRegistration_(r),PassToken:signMealPassToken_(r.ConferenceID,r.RegID),entitlements:serialize_(ents)};
+  });
+}
+function scanMealToken(token,scannerToken,conferenceId,scannerPoint,eventDate,mealCode){
+  return runSafely_('scanMealToken',function(){
+    const ctx=requireSession_(scannerToken,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId);
+    const parsed=parseAnyMealToken_(token);if(parsed.conferenceId!==conferenceId)throw new Error('QR ไม่ใช่ของงานนี้');
+    const date=parsed.type==='ENTITLEMENT'?parsed.date:clean_(eventDate),meal=parsed.type==='ENTITLEMENT'?parsed.meal:clean_(mealCode);
+    if(!date||!meal)throw new Error('กรุณาเลือกวันที่และมื้ออาหารก่อนสแกน');
+    const e=findOne_('MealEntitlements',{ConferenceID:conferenceId,RegID:parsed.regId,EventDate:date,MealCode:meal});if(!e||!bool_(e.Eligible)||upper_(e.Status)==='CANCELLED')throw new Error('ผู้ลงทะเบียนไม่มีสิทธิ์สำหรับวันที่หรือมื้อนี้');
+    if(e.Status==='REDEEMED')throw new Error('ใช้สิทธิ์มื้อนี้แล้วเมื่อ '+formatDateTime_(e.RedeemedAt));
+    updateRecord_('MealEntitlements',e.__row,{RedeemedAt:new Date(),RedeemedBy:ctx.user.Email,ScannerPoint:clean_(scannerPoint),Status:'REDEEMED'});
+    appendRecord_('MealScans',{ScanID:nextId_('SCAN'),ConferenceID:conferenceId,RegID:parsed.regId,EntitlementID:e.EntitlementID,EventDate:date,MealCode:meal,ScanAt:new Date(),ScannerUserID:ctx.user.UserID,ScannerPoint:clean_(scannerPoint),Result:'SUCCESS'});
+    const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:parsed.regId})||{};
+    invalidateCache_(conferenceId);
+    return {RegID:parsed.regId,FullName:r.FullName||'',MealCode:meal,MealNameTH:e.MealNameTH,EventDate:date};
+  });
+}
+
+function adminBootstrap(token,conferenceId){return runSafely_('adminBootstrap',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF','ACADEMIC_STAFF','FOOD_STAFF','VIEWER'],conferenceId);return {user:serialize_(ctx.user),role:ctx.role,conference:serialize_(findOne_('Conferences',{ConferenceID:conferenceId})),settings:settingsMap_(conferenceId),appUrl:getCanonicalWebAppUrl_()};});}
+function adminDashboard(token,conferenceId,force){return runSafely_('adminDashboard',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF','ACADEMIC_STAFF','FOOD_STAFF','VIEWER'],conferenceId);const key='DASH_'+conferenceId,cache=CacheService.getScriptCache();if(!force){const c=cache.get(key);if(c)return JSON.parse(c);}const regs=findMany_('Registrations',{ConferenceID:conferenceId}),payments=findMany_('Payments',{ConferenceID:conferenceId}),works=findMany_('Works',{ConferenceID:conferenceId}),assign=findMany_('ReviewAssignments',{ConferenceID:conferenceId}),meals=findMany_('MealEntitlements',{ConferenceID:conferenceId});const out={totalRegistrations:regs.length,internalCount:regs.filter(function(x){return x.ParticipantType==='INTERNAL';}).length,externalCount:regs.filter(function(x){return x.ParticipantType!=='INTERNAL';}).length,incompleteCount:regs.filter(function(x){return x.DataCompletenessStatus==='INCOMPLETE';}).length,paidCount:payments.filter(function(x){return x.Status==='APPROVED';}).length,pendingPaymentCount:payments.filter(function(x){return x.Status==='PENDING_VERIFY';}).length,totalRevenue:payments.filter(function(x){return x.Status==='APPROVED';}).reduce(function(s,x){return s+num_(x.Amount);},0),totalWorks:works.length,underReviewCount:works.filter(function(x){return x.Status==='UNDER_REVIEW';}).length,completedReviews:assign.filter(function(x){return x.Status==='COMPLETE';}).length,mealRedeemedCount:meals.filter(function(x){return x.Status==='REDEEMED';}).length};cache.put(key,JSON.stringify(out),30);return out;});}
+function adminListRegistrations(token,conferenceId,filters){return runSafely_('adminListRegistrations',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId);filters=filters||{};let rows=findMany_('Registrations',{ConferenceID:conferenceId});if(filters.q){const q=clean_(filters.q).toLowerCase();rows=rows.filter(function(r){return [r.RegID,r.FullName,r.Email,r.Phone,r.CID].join(' ').toLowerCase().indexOf(q)>=0;});}if(filters.status)rows=rows.filter(function(r){if(filters.status==='COMPLETED')return r.RegistrationStatus==='COMPLETED'||r.PaymentStatus==='APPROVED';return r.RegistrationStatus===filters.status;});return serialize_(rows.reverse());});}
+
+function adminGetRegistrationSignSheet(token,conferenceId,filters){
+  return runSafely_('adminGetRegistrationSignSheet',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId);filters=filters||{};
+    let rows=findMany_('Registrations',{ConferenceID:conferenceId}).filter(function(r){return upper_(r.RegistrationStatus)!=='CANCELLED';});
+    if(!bool_(filters.includeIncomplete))rows=rows.filter(function(r){return upper_(r.DataCompletenessStatus)==='COMPLETE'&&upper_(r.RegistrationStatus)!=='REGISTRATION_RETURNED';});
+    if(filters.q){const q=clean_(filters.q).toLowerCase();rows=rows.filter(function(r){return [r.RegID,r.FullName,r.Email,r.Phone,r.OrganizationGroup,r.OrganizationUnit,r.Institution].join(' ').toLowerCase().indexOf(q)>=0;});}
+    if(filters.status)rows=rows.filter(function(r){return upper_(r.RegistrationStatus)===upper_(filters.status);});
+    if(filters.participantType==='INTERNAL')rows=rows.filter(function(r){return upper_(r.ParticipantType)==='INTERNAL';});
+    if(filters.participantType==='EXTERNAL')rows=rows.filter(function(r){return upper_(r.ParticipantType)!=='INTERNAL';});
+    if(filters.organization){const oq=clean_(filters.organization).toLowerCase();rows=rows.filter(function(r){return [r.OrganizationGroup,r.OrganizationUnit,r.Institution].join(' ').toLowerCase().indexOf(oq)>=0;});}
+    const day=num_(filters.dayIndex,0);if(day>=1&&day<=3)rows=rows.filter(function(r){return bool_(r['AttendanceDay'+day]);});
+    rows.sort(function(a,b){const ga=[a.OrganizationGroup,a.Institution||a.OrganizationUnit,a.FullName].join('|'),gb=[b.OrganizationGroup,b.Institution||b.OrganizationUnit,b.FullName].join('|');return ga.localeCompare(gb,'th');});
+    const conf=findOne_('Conferences',{ConferenceID:conferenceId})||{},eventDates=jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[]).slice(0,3);
+    return {conference:serialize_(conf),eventDates:eventDates,generatedAt:formatDateTime_(new Date()),rows:serialize_(rows.map(function(r){return {RegID:r.RegID,FullName:r.FullName,Position:r.Position,Profession:r.Profession,OrganizationGroup:r.OrganizationGroup,OrganizationUnit:r.OrganizationUnit,Institution:r.Institution,ParticipantType:r.ParticipantType,AttendanceDay1:bool_(r.AttendanceDay1),AttendanceDay2:bool_(r.AttendanceDay2),AttendanceDay3:bool_(r.AttendanceDay3)};}))};
+  });
+}
+
+function adminUpdateRegistrationStatus(token,conferenceId,regId,status,note){
+  return runSafely_('adminUpdateRegistrationStatus',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId),r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});
+    if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');status=upper_(status);if(STATUS.REGISTRATION.indexOf(status)<0)throw new Error('สถานะไม่ถูกต้อง');
+    if(status==='REGISTRATION_RETURNED'&&!clean_(note))throw new Error('กรุณาระบุเหตุผลที่ส่งคืนให้ผู้สมัคร');
+    if((status==='REGISTRATION_VERIFIED'||status==='COMPLETED')&&r.DataCompletenessStatus!=='COMPLETE')throw new Error('ข้อมูลผู้สมัครยังไม่ครบ กรุณาแก้ไขข้อมูลก่อนตรวจผ่าน');
+    const oldStatus=r.RegistrationStatus;
+    updateRecord_('Registrations',r.__row,{RegistrationStatus:status,Note:clean_(note),UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email});
+    let mealPass={sent:false,reason:''};
+    if(status==='REGISTRATION_VERIFIED'||status==='COMPLETED'){try{mealPass=maybeAutoIssueMealPass_(conferenceId,regId,'REGISTRATION_APPROVED');}catch(e){mealPass={sent:false,reason:e.message||String(e)};}}
+    sendRegistrationStatusEmail_(conferenceId,r,status,note,ctx.user);
+    invalidateCache_(conferenceId);logAudit_(conferenceId,ctx.user,ctx.role,'UPDATE_REGISTRATION_STATUS','Registration',regId,{oldStatus:oldStatus,newStatus:status,note:note});
+    return {RegID:regId,oldStatus:oldStatus,newStatus:status,mealPass:mealPass};
+  });
+}
+function adminListWorks(token,conferenceId,filters){return runSafely_('adminListWorks',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);filters=filters||{};let rows=findMany_('Works',{ConferenceID:conferenceId});if(filters.status)rows=rows.filter(function(x){return x.Status===filters.status;});const authorsByWork={},filesByWork={};findMany_('WorkAuthors',{ConferenceID:conferenceId}).forEach(function(a){(authorsByWork[a.WorkID]||(authorsByWork[a.WorkID]=[])).push(a);});findMany_('WorkFiles',{ConferenceID:conferenceId}).forEach(function(f){if(bool_(f.Active))(filesByWork[f.WorkID]||(filesByWork[f.WorkID]=[])).push(f);});const assigns=findMany_('ReviewAssignments',{ConferenceID:conferenceId});const asc=assigns.reduce(function(a,c){if(upper_(c.Status)!=='CANCELLED'&&upper_(c.Status)!=='DECLINED'){if(!a[c.WorkID])a[c.WorkID]={a:0,c:0,t:0};a[c.WorkID].a++;if(['COMPLETE','LOCKED'].indexOf(upper_(c.Status))>=0){a[c.WorkID].c++;a[c.WorkID].t+=num_(c.TotalScore);}}return a;},{});return serialize_(rows.map(function(w){const ac=asc[w.WorkID]||{a:0,c:0,t:0};return Object.assign({},w,{authors:authorsByWork[w.WorkID]||[],files:filesByWork[w.WorkID]||[],ReviewerAssignedCount:ac.a,ReviewerCompletedCount:ac.c,AverageScore:ac.c?ac.t/ac.c:0});}));});}
+function adminScreenWork(token,conferenceId,workId,decision,note,deadline){return runSafely_('adminScreenWork',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId),w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId});if(!w)throw new Error('ไม่พบผลงาน');decision=upper_(decision);let status;if(decision==='PASS')status='WAITING_REVIEWER_ASSIGN';else if(decision==='RETURN')status='RETURNED_FOR_EDIT';else status='REJECTED';updateRecord_('Works',w.__row,{ScreeningStatus:decision,ScreeningNote:clean_(note),Status:status,RevisionDeadline:deadline||'',UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email});return {status:status};});}
+function getAdminSettings(token,conferenceId){
+  return runSafely_('getAdminSettings',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN'],conferenceId);
+    return {conference:serialize_(findOne_('Conferences',{ConferenceID:conferenceId})),settings:serialize_(findMany_('Settings',{ConferenceID:conferenceId})),optionConfig:getRegistrationOptionMap_(conferenceId),registrationTypes:serialize_(findMany_('RegistrationTypes',{ConferenceID:conferenceId})),reviewRounds:serialize_(findMany_('ReviewRounds',{ConferenceID:conferenceId})),categories:serialize_(findMany_('WorkCategories',{ConferenceID:conferenceId})),presentationTypes:serialize_(findMany_('PresentationTypes',{ConferenceID:conferenceId}))};
+  });
+}
+function saveAdminSettings(token,conferenceId,payload){
+  return runSafely_('saveAdminSettings',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN'],conferenceId),conf=findOne_('Conferences',{ConferenceID:conferenceId});
+    if(!conf)throw new Error('ไม่พบงานประชุม');payload=payload||{};const c=payload.conference||{};
+    const dateFields=['EventStartAt','EventEndAt','RegistrationOpenAt','RegistrationCloseAt','PaymentCloseAt','SubmissionOpenAt','SubmissionCloseAt','ResultAnnouncementAt','PresentationUploadOpenAt','PresentationUploadCloseAt'];
+    const patch={ConferenceNameTH:clean_(c.ConferenceNameTH||conf.ConferenceNameTH),ConferenceNameEN:clean_(c.ConferenceNameEN||conf.ConferenceNameEN),ShortName:clean_(c.ShortName||conf.ShortName),Venue:clean_(c.Venue),Address:clean_(c.Address),LogoUrl:clean_(c.LogoUrl||conf.LogoUrl||APP.DEFAULT_LOGO_URL),PublicStatus:clean_(c.PublicStatus||conf.PublicStatus),UpdatedAt:new Date()};
+    dateFields.forEach(function(k){patch[k]=Object.prototype.hasOwnProperty.call(c,k)?normalizeConferenceDateTime_(c[k]||''):(conf[k]||'');});updateRecord_('Conferences',conf.__row,patch);
+    Object.keys(payload.settings||{}).forEach(function(k){
+      const old=findOne_('Settings',{ConferenceID:conferenceId,SettingKey:k});let value=payload.settings[k];
+      if(k==='EVENT_DATES_JSON')value=normalizeEventDatesJson_(value||'[]');
+      if(/_OPTIONS_JSON$/.test(k))value=normalizeOptionJson_(value);
+      upsertSetting_(conferenceId,k,value,old&&old.ValueType||(/JSON$/.test(k)?'JSON':'TEXT'),old&&old.GroupName||'GENERAL',old&&old.DescriptionTH||k,old&&old.DescriptionEN||k);
+    });
+    invalidateCache_(conferenceId);logAudit_(conferenceId,ctx.user,ctx.role,'SAVE_SETTINGS','Conference',conferenceId,payload);
+    return {saved:true,logoUrl:patch.LogoUrl,eventDates:jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[]),optionConfig:getRegistrationOptionMap_(conferenceId)};
+  });
+}
+
+
+
+/** อัปเดตโลโก้และซ่อมชื่อย่อที่เคยถูกแปลงเป็นวันที่โดยโค้ด UI รุ่นเดิม */
+function applyTuhDateLogoSettingsV13(){
+  return runSafely_('applyTuhDateLogoSettingsV13',function(){
+    const cid=APP.DEFAULT_CONFERENCE_ID,conf=findOne_('Conferences',{ConferenceID:cid});
+    if(!conf)throw new Error('ไม่พบข้อมูลงานประชุม '+cid);
+    const shortName=clean_(conf.ShortName);
+    const looksLikeDate=/^(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(shortName)||/^\d{4}-\d{2}-\d{2}/.test(shortName)||/^\d{4}-\d{2}-\d{2}T/.test(shortName);
+    const patch={LogoUrl:APP.DEFAULT_LOGO_URL,UpdatedAt:new Date()};
+    if(looksLikeDate||!shortName)patch.ShortName='TUH Quality Fair 2569';
+    updateRecord_('Conferences',conf.__row,patch);
+    const current=getSetting_(cid,'EVENT_DATES_JSON','[]');
+    if(current&&current!=='[]')upsertSetting_(cid,'EVENT_DATES_JSON',normalizeEventDatesJson_(current),'JSON','SCHEDULE','วันจัดงาน','Event dates');
+    invalidateCache_(cid);
+    return {conferenceId:cid,logoUrl:APP.DEFAULT_LOGO_URL,shortName:patch.ShortName||shortName,eventDates:jsonParse_(getSetting_(cid,'EVENT_DATES_JSON','[]'),[])};
+  });
+}
+
+/** ===== 06_RouterAndConfig.gs ===== **/
+function adminSaveRegistrationType(token,conferenceId,p){return runSafely_('adminSaveRegistrationType',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN'],conferenceId);p=p||{};let r=p.RegistrationTypeID?findOne_('RegistrationTypes',{ConferenceID:conferenceId,RegistrationTypeID:p.RegistrationTypeID}):null;const patch={TypeCode:upper_(p.TypeCode),TypeNameTH:clean_(p.TypeNameTH),TypeNameEN:clean_(p.TypeNameEN),IsInternal:bool_(p.IsInternal),FeeAmount:num_(p.FeeAmount),Quota:num_(p.Quota),PaymentRequired:bool_(p.PaymentRequired),WorkRequiresPayment:bool_(p.WorkRequiresPayment),Active:bool_(p.Active),SortOrder:num_(p.SortOrder,99)};if(r)updateRecord_('RegistrationTypes',r.__row,patch);else appendRecord_('RegistrationTypes',Object.assign({RegistrationTypeID:nextId_('RT'),ConferenceID:conferenceId,UsedQuota:0},patch));invalidateCache_(conferenceId);return true;});}
+function adminSaveReviewRound(token,conferenceId,p){return runSafely_('adminSaveReviewRound',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);p=p||{};let r=p.ReviewRoundID?findOne_('ReviewRounds',{ConferenceID:conferenceId,ReviewRoundID:p.ReviewRoundID}):null;const patch={RoundNo:num_(p.RoundNo),RoundNameTH:clean_(p.RoundNameTH),RoundNameEN:clean_(p.RoundNameEN),StartAt:p.StartAt||'',EndAt:p.EndAt||'',MinReviewers:num_(p.MinReviewers,2),MaxReviewers:num_(p.MaxReviewers,3),BlindReview:bool_(p.BlindReview),AllowEditAfterSubmit:bool_(p.AllowEditAfterSubmit),AllowDecline:bool_(p.AllowDecline),CalculationMethod:upper_(p.CalculationMethod||'AVERAGE'),PassingScore:num_(p.PassingScore,60),Status:upper_(p.Status||'DRAFT'),SortOrder:num_(p.SortOrder,99)};if(r)updateRecord_('ReviewRounds',r.__row,patch);else appendRecord_('ReviewRounds',Object.assign({ReviewRoundID:nextId_('RR'),ConferenceID:conferenceId},patch));return true;});}
+function adminSaveScoringCriterion(token,conferenceId,p){return runSafely_('adminSaveScoringCriterion',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);p=p||{};let r=p.CriteriaID?findOne_('ScoringCriteria',{ConferenceID:conferenceId,CriteriaID:p.CriteriaID}):null;const patch={ReviewRoundID:clean_(p.ReviewRoundID),CategoryID:clean_(p.CategoryID),PresentationTypeID:clean_(p.PresentationTypeID),ItemNo:num_(p.ItemNo),CriteriaNameTH:clean_(p.CriteriaNameTH),CriteriaNameEN:clean_(p.CriteriaNameEN),DescriptionTH:clean_(p.DescriptionTH),MaxScore:num_(p.MaxScore),WeightPercent:num_(p.WeightPercent,100),RequiredComment:bool_(p.RequiredComment),Active:bool_(p.Active),SortOrder:num_(p.SortOrder,99)};if(r)updateRecord_('ScoringCriteria',r.__row,patch);else appendRecord_('ScoringCriteria',Object.assign({CriteriaID:nextId_('CRIT'),ConferenceID:conferenceId},patch));return true;});}
+function adminGetReviewConfig(token,conferenceId){return runSafely_('adminGetReviewConfig',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);return {rounds:serialize_(findMany_('ReviewRounds',{ConferenceID:conferenceId})),criteria:serialize_(findMany_('ScoringCriteria',{ConferenceID:conferenceId})),categories:serialize_(findMany_('WorkCategories',{ConferenceID:conferenceId})),presentations:serialize_(findMany_('PresentationTypes',{ConferenceID:conferenceId}))};});}
+function adminImportIssues(token,conferenceId,batchId){return runSafely_('adminImportIssues',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId);return serialize_(findMany_('ImportIssues',{ConferenceID:conferenceId,ImportBatchID:batchId}));});}
+function getOrganizationUnits(conferenceId,participantGroup){return runSafely_('getOrganizationUnits',function(){let rows=findMany_('OrganizationUnits',{ConferenceID:conferenceId||APP.DEFAULT_CONFERENCE_ID});if(participantGroup)rows=rows.filter(function(x){return x.ParticipantGroup===participantGroup;});return serialize_(rows.filter(function(x){return bool_(x.Active);}));});}
+function createFoodStaff(token,conferenceId,payload){return runSafely_('createFoodStaff',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN'],conferenceId);payload=payload||{};const email=normalizeEmail_(payload.Email),username=clean_(payload.Username)||email,password=clean_(payload.Password)||('Food@'+Math.floor(100000+Math.random()*900000));if(!email)throw new Error('กรุณากรอก Email');const salt=uuid_(),uid=nextId_('USR');appendRecord_('Users',{UserID:uid,Username:username,Email:email,PasswordHash:hashPassword_(password,salt),Salt:salt,FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.FirstName,payload.LastName].filter(Boolean).join(' '),Role:'FOOD_STAFF',Status:'ACTIVE',CreatedAt:new Date(),UpdatedAt:new Date()});appendRecord_('UserConferenceRoles',{UserConferenceRoleID:nextId_('UCR'),ConferenceID:conferenceId,UserID:uid,Role:'FOOD_STAFF',PermissionsJson:'{}',Status:'ACTIVE',AssignedAt:new Date(),AssignedBy:ctx.user.Email});return {username:username,password:password};});}
+function getScannerBootstrap(token,conferenceId){
+  return runSafely_('getScannerBootstrap',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId);return {user:serialize_(ctx.user),conference:serialize_(findOne_('Conferences',{ConferenceID:conferenceId})),meals:jsonParse_(getSetting_(conferenceId,'MEALS_JSON','[]'),[]),eventDates:jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[])};});
+}
+function participantQrUrl(conferenceId,regId,emailOrPhone){return runSafely_('participantQrUrl',function(){const pass=getMealPass(conferenceId,regId,emailOrPhone);if(!pass.success)throw new Error(pass.message);const token=pass.data.PassToken;return {token:token,qrUrl:'https://quickchart.io/qr?size=280&text='+encodeURIComponent(token)};});}
+
+/** ===== 07_AdminRegistrationOptionsAndMealPass_v1_7.gs ===== **/
+function htmlEscape_(v){return String(v===null||v===undefined?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+function uniqueCleanList_(arr){const seen={},out=[];(arr||[]).forEach(function(v){const x=clean_(v);if(x&&!seen[x]){seen[x]=true;out.push(x);}});return out;}
+function normalizeOptionJson_(value){
+  if(Array.isArray(value))return JSON.stringify(uniqueCleanList_(value));
+  const raw=clean_(value);if(!raw)return '[]';
+  try{const parsed=JSON.parse(raw);if(Array.isArray(parsed))return JSON.stringify(uniqueCleanList_(parsed));}catch(ignore){}
+  return JSON.stringify(uniqueCleanList_(raw.split(/\r?\n|,/)));
+}
+function optionListFromSetting_(conferenceId,key,fallback){
+  const raw=getSetting_(conferenceId,key,'');let arr=[];
+  try{arr=JSON.parse(raw||'[]');}catch(ignore){arr=String(raw||'').split(/\r?\n|,/);}
+  arr=uniqueCleanList_(arr);return arr.length?arr:uniqueCleanList_(fallback||[]);
+}
+function getRegistrationOptionMap_(conferenceId){
+  const units=findMany_('OrganizationUnits',{ConferenceID:conferenceId}).filter(function(x){return bool_(x.Active);});
+  const groups=units.filter(function(x){return x.UnitLevel==='GROUP';}).map(function(x){return x.UnitNameTH;});
+  const organizations=units.filter(function(x){return x.UnitLevel==='UNIT';}).map(function(x){return x.UnitNameTH;});
+  return {
+    prefixes:optionListFromSetting_(conferenceId,'PREFIX_OPTIONS_JSON',['นาย','นาง','นางสาว','นายแพทย์','แพทย์หญิง','ดร.']),
+    positions:optionListFromSetting_(conferenceId,'POSITION_OPTIONS_JSON',['แพทย์','ทันตแพทย์','เภสัชกร','พยาบาลวิชาชีพ','นักวิชาการสาธารณสุข','เจ้าหน้าที่']),
+    professions:optionListFromSetting_(conferenceId,'PROFESSION_OPTIONS_JSON',['แพทย์','ทันตแพทย์','เภสัชกร','พยาบาล','นักวิชาการสาธารณสุข','สหวิชาชีพ','อื่น ๆ']),
+    organizationGroups:optionListFromSetting_(conferenceId,'ORGANIZATION_GROUP_OPTIONS_JSON',groups),
+    organizations:optionListFromSetting_(conferenceId,'ORGANIZATION_OPTIONS_JSON',organizations),
+    foodTypes:optionListFromSetting_(conferenceId,'FOOD_TYPE_OPTIONS_JSON',['ปกติ','อิสลาม','มังสวิรัติ','แพ้อาหาร'])
+  };
+}
+function registrationTypeMap_(conferenceId){const out={};findMany_('RegistrationTypes',{ConferenceID:conferenceId}).forEach(function(t){out[t.TypeCode]=t;});return out;}
+function mealPassEligibility_(registration,type){
+  if(!registration)return {ok:false,reason:'ไม่พบผู้ลงทะเบียน'};
+  if(registration.DataCompletenessStatus!=='COMPLETE')return {ok:false,reason:'ข้อมูลลงทะเบียนยังไม่ครบ'};
+  if(['CANCELLED','REGISTRATION_RETURNED'].indexOf(upper_(registration.RegistrationStatus))>=0)return {ok:false,reason:'สถานะลงทะเบียนยังไม่พร้อม'};
+  if(!registration.Email)return {ok:false,reason:'ไม่มี Email สำหรับส่งคูปอง'};
+  if(![bool_(registration.AttendanceDay1),bool_(registration.AttendanceDay2),bool_(registration.AttendanceDay3)].some(Boolean))return {ok:false,reason:'ยังไม่ได้เลือกวันเข้าร่วมงาน'};
+  if(bool_(type&&type.PaymentRequired)&&upper_(registration.PaymentStatus)!=='APPROVED')return {ok:false,reason:'รอการเงินตรวจผ่าน'};
+  return {ok:true,reason:bool_(type&&type.PaymentRequired)?'ชำระเงินผ่านแล้ว':'ไม่ต้องชำระเงิน'};
+}
+function signMealPassToken_(cid,regId){
+  const payload=['PASS',cid,regId].join('|'),sig=Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload,getAuthSecret_())).replace(/=+$/,'');
+  return 'MP1.'+Utilities.base64EncodeWebSafe(payload).replace(/=+$/,'')+'.'+sig;
+}
+function parseMealPassToken_(token){
+  const p=String(token||'').split('.');if(p.length!==3||p[0]!=='MP1')throw new Error('QR คูปองไม่ถูกต้อง');
+  const payload=Utilities.newBlob(Utilities.base64DecodeWebSafe(p[1])).getDataAsString(),sig=Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload,getAuthSecret_())).replace(/=+$/,'');
+  if(sig!==p[2])throw new Error('QR คูปองไม่ถูกต้อง');const a=payload.split('|');if(a[0]!=='PASS')throw new Error('QR คูปองไม่ถูกต้อง');
+  return {type:'PASS',conferenceId:a[1],regId:a[2]};
+}
+function parseAnyMealToken_(token){
+  const t=String(token||'').trim();if(t.indexOf('MP1.')===0)return parseMealPassToken_(t);
+  const p=parseMealToken_(t);return {type:'ENTITLEMENT',conferenceId:p.conferenceId,regId:p.regId,date:p.date,meal:p.meal};
+}
+function mealPassEmailLogs_(conferenceId,regId){return findMany_('EmailLogs',{ConferenceID:conferenceId,RelatedType:'MEAL_PASS',RelatedID:regId});}
+function mealPassDispatchInfo_(conferenceId,regId){
+  const logs=mealPassEmailLogs_(conferenceId,regId).filter(function(x){return upper_(x.Status)==='SENT';});
+  logs.sort(function(a,b){return new Date(a.SentAt).getTime()-new Date(b.SentAt).getTime();});
+  return {count:logs.length,lastSentAt:logs.length?logs[logs.length-1].SentAt:''};
+}
+function buildMealPassEmailHtml_(conferenceId,r,type,passToken){
+  const conf=findOne_('Conferences',{ConferenceID:conferenceId})||{},fee=bool_(type.PaymentRequired)?Number(type.FeeAmount||0).toLocaleString('th-TH')+' บาท':'ไม่เสียค่าลงทะเบียน';
+  const entitlements=findMany_('MealEntitlements',{ConferenceID:conferenceId,RegID:r.RegID});
+  const days=uniqueCleanList_(entitlements.map(function(e){return formatThaiDateServer_(e.EventDate);}));
+  return '<div style="font-family:Arial,\'Noto Sans Thai\',sans-serif;background:#f4f7f8;padding:24px">'+
+    '<div style="max-width:430px;margin:auto;background:linear-gradient(145deg,#0b1730,#12172b 72%,#281232);color:#fff;border-radius:18px;padding:24px;box-shadow:0 18px 48px rgba(11,23,48,.25)">'+
+    '<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:14px"><b style="color:#d7ad2d">'+htmlEscape_(conf.ShortName||'TUH Quality Fair 2026')+'</b><span style="font-size:12px;color:#9ba8bd">TUH STAFF EVENT PASS</span></div>'+ 
+    '<div style="text-align:center;padding:20px 0 12px"><div style="color:#d7ad2d;font-weight:700">ยินดีต้อนรับเข้าสู่งาน</div><h2 style="margin:14px 0 4px">'+htmlEscape_(r.FullName)+'</h2><div style="color:#9ba8bd">ID: '+htmlEscape_(r.RegID)+'</div>'+ 
+    '<div style="background:#fff;border-radius:14px;padding:10px;width:210px;margin:20px auto"><img src="cid:mealQr" width="190" height="190" alt="Meal QR Code" style="display:block"></div></div>'+ 
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:rgba(255,255,255,.06);border-radius:12px;padding:13px"><div><small style="color:#9ba8bd">ประเภทบุคคล</small><br><b style="color:#f0c53b">'+htmlEscape_(type.TypeNameTH||r.ParticipantType)+'</b></div><div><small style="color:#9ba8bd">ค่าลงทะเบียน</small><br><b>'+htmlEscape_(fee)+'</b></div></div>'+ 
+    '<div style="margin-top:14px;color:#c9d0dd;font-size:13px">วันใช้สิทธิ์: '+htmlEscape_(days.join(', '))+'</div>'+ 
+    '<div style="margin-top:16px;color:#d7a7ba;font-size:12px;text-align:center">กรุณาแสดง QR Code นี้ให้จุดสแกนอาหาร และไม่ส่งต่อให้ผู้อื่น</div></div></div>';
+}
+function formatThaiDateServer_(value){
+  if(!value)return '';const d=new Date(value);if(isNaN(d))return clean_(value);
+  const months=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return d.getDate()+' '+months[d.getMonth()]+' '+(d.getFullYear()+543);
+}
+function sendMealPassEmail_(conferenceId,regId,user,reason){
+  const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน '+regId);
+  const type=registrationTypeMap_(conferenceId)[r.ParticipantType]||{};const eligibility=mealPassEligibility_(r,type);if(!eligibility.ok)throw new Error(eligibility.reason);
+  ensureMealEntitlements_(conferenceId,regId);
+  const token=signMealPassToken_(conferenceId,regId),qrUrl='https://quickchart.io/qr?size=500&margin=2&text='+encodeURIComponent(token),subject='คูปองอาหาร QR Code '+regId;
+  const html=buildMealPassEmailHtml_(conferenceId,r,type,token);let options={to:r.Email,subject:subject,body:'คูปองอาหาร QR Code สำหรับ '+r.FullName+' เลขลงทะเบียน '+regId,htmlBody:html,name:'TUH Quality Fair'};
+  try{
+    const response=UrlFetchApp.fetch(qrUrl,{muteHttpExceptions:true,followRedirects:true});
+    if(response.getResponseCode()>=200&&response.getResponseCode()<300)options.inlineImages={mealQr:response.getBlob().setName('meal-pass-'+regId+'.png')};
+    else options.htmlBody=html.replace('cid:mealQr',qrUrl);
+  }catch(ignore){options.htmlBody=html.replace('cid:mealQr',qrUrl);}
+  try{
+    MailApp.sendEmail(options);
+    appendRecord_('EmailLogs',{EmailLogID:nextId_('MAIL'),ConferenceID:conferenceId,SentAt:new Date(),SentBy:user&&user.Email||'SYSTEM',To:r.Email,Subject:subject,RelatedType:'MEAL_PASS',RelatedID:regId,Status:'SENT'});
+    updateRecord_('Registrations',r.__row,{MealPassStatus:'SENT',UpdatedAt:new Date(),LastModifiedBy:user&&user.Email||'SYSTEM'});
+    const dispatch=mealPassDispatchInfo_(conferenceId,regId);logAudit_(conferenceId,user,user&&user.Role||'SYSTEM','SEND_MEAL_PASS','Registration',regId,{reason:reason||'',dispatchCount:dispatch.count});
+    return {sent:true,RegID:regId,email:r.Email,dispatchCount:dispatch.count,lastSentAt:dispatch.lastSentAt,qrUrl:qrUrl};
+  }catch(e){
+    appendRecord_('EmailLogs',{EmailLogID:nextId_('MAIL'),ConferenceID:conferenceId,SentAt:new Date(),SentBy:user&&user.Email||'SYSTEM',To:r.Email,Subject:subject,RelatedType:'MEAL_PASS',RelatedID:regId,Status:'ERROR',ErrorMessage:e.message||String(e)});
+    updateRecord_('Registrations',r.__row,{MealPassStatus:'ERROR',UpdatedAt:new Date()});throw e;
+  }
+}
+function emailMyMealPass(conferenceId, regId, emailOrPhone) {
+  return runSafely_('emailMyMealPass', function() {
+    const cid = conferenceId || APP.DEFAULT_CONFERENCE_ID;
+    const r = requireRegistrationAccess_(cid, regId, emailOrPhone, '');
+    const user = { Email: r.Email, Role: 'USER' };
+    return sendMealPassEmail_(cid, r.RegID, user, 'USER_REQUEST');
+  });
+}
+function maybeAutoIssueMealPass_(conferenceId,regId,trigger){
+  const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)return {sent:false,reason:'ไม่พบผู้ลงทะเบียน'};
+  const type=registrationTypeMap_(conferenceId)[r.ParticipantType]||{},eligibility=mealPassEligibility_(r,type);if(!eligibility.ok)return {sent:false,reason:eligibility.reason};
+  ensureMealEntitlements_(conferenceId,regId);
+  const auto=bool_(getSetting_(conferenceId,bool_(type.PaymentRequired)?'MEAL_PASS_AUTO_SEND_EXTERNAL':'MEAL_PASS_AUTO_SEND_INTERNAL','TRUE'));
+  if(!auto)return {sent:false,reason:'ปิดการส่งอัตโนมัติ'};
+  const dispatch=mealPassDispatchInfo_(conferenceId,regId);if(dispatch.count>0)return {sent:false,alreadySent:true,dispatchCount:dispatch.count,reason:'ส่งแล้ว'};
+  return sendMealPassEmail_(conferenceId,regId,null,trigger||'AUTO');
+}
+function sendRegistrationStatusEmail_(conferenceId,r,status,note,user){
+  if(!r.Email)return false;const url=buildWebAppRouteUrl_('public',conferenceId);
+  let subject='อัปเดตสถานะการลงทะเบียน '+r.RegID,html='<p>สถานะการลงทะเบียนของท่านได้รับการอัปเดตเป็น <b>'+htmlEscape_(status)+'</b></p>';
+  if(status==='REGISTRATION_RETURNED'){subject='กรุณาแก้ไขข้อมูลลงทะเบียน '+r.RegID;html='<p>เจ้าหน้าที่ส่งคืนข้อมูลลงทะเบียนเพื่อให้ท่านแก้ไข</p><p><b>เหตุผล:</b> '+htmlEscape_(note)+'</p><p><a href="'+url+'">เปิดระบบเพื่อแก้ไขข้อมูล</a></p>';}
+  if(status==='REGISTRATION_VERIFIED'||status==='COMPLETED'){subject='ตรวจสอบข้อมูลลงทะเบียนเรียบร้อย '+r.RegID;html='<p>เจ้าหน้าที่ตรวจสอบข้อมูลลงทะเบียนของท่านเรียบร้อยแล้ว</p>';}
+  return sendEmailLogged_(conferenceId,r.Email,subject,html,'REGISTRATION_STATUS',r.RegID,user);
+}
+function adminGetRegistration(token,conferenceId,regId){return runSafely_('adminGetRegistration',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId);const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');return {registration:serialize_(r),optionConfig:getRegistrationOptionMap_(conferenceId),registrationTypes:serialize_(findMany_('RegistrationTypes',{ConferenceID:conferenceId}).filter(function(t){return bool_(t.Active);}))};});}
+function adminSaveRegistration(token,conferenceId,regId,payload){
+  return runSafely_('adminSaveRegistration',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId),r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');payload=payload||{};
+    const cid=normalizeCid_(payload.CID||r.CID);if(!validateThaiCid_(cid))throw new Error('เลขบัตรประชาชนไม่ถูกต้อง');
+    const dup=findMany_('Registrations',{ConferenceID:conferenceId,CID:cid}).find(function(x){return x.RegID!==regId&&upper_(x.RegistrationStatus)!=='CANCELLED';});if(dup)throw new Error('เลขบัตรประชาชนนี้ซ้ำกับ '+dup.RegID);
+    const first=clean_(payload.FirstName||r.FirstName),last=clean_(payload.LastName||r.LastName),email=normalizeEmail_(payload.Email||r.Email),phone=normalizePhone_(payload.Phone||r.Phone);if(!first||!last||!email||!phone)throw new Error('ชื่อ นามสกุล Email และโทรศัพท์ต้องครบ');
+    const participantType=clean_(payload.ParticipantType||r.ParticipantType),type=registrationTypeMap_(conferenceId)[participantType]||{};
+    let paymentStatus=r.PaymentStatus;if(!bool_(type.PaymentRequired))paymentStatus='NOT_REQUIRED';else if(paymentStatus==='NOT_REQUIRED')paymentStatus='UNPAID';
+    const org=clean_(payload.OrganizationUnit||payload.Institution||r.OrganizationUnit||r.Institution),prefix=clean_(payload.Prefix||r.Prefix);
+    const patch={ParticipantType:participantType,Region4Status:clean_(payload.Region4Status||r.Region4Status),Prefix:prefix,FirstName:first,LastName:last,FullName:[prefix,first,last].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:org,Institution:clean_(payload.Institution||org),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:cid,Phone:phone,LineID:clean_(payload.LineID),Email:email,ReceiptName:clean_(payload.ReceiptName||r.ReceiptName),ReceiptTaxID:clean_(payload.ReceiptTaxID||r.ReceiptTaxID),ReceiptAddress:clean_(payload.ReceiptAddress||r.ReceiptAddress),ReceiptPostalCode:clean_(payload.ReceiptPostalCode||r.ReceiptPostalCode),ReceiptPhone:normalizePhone_(payload.ReceiptPhone||r.ReceiptPhone),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),DataCompletenessStatus:'COMPLETE',PaymentStatus:paymentStatus,UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email};
+    if(!patch.AttendanceDay1&&!patch.AttendanceDay2&&!patch.AttendanceDay3)throw new Error('กรุณาเลือกวันเข้าร่วมงานอย่างน้อย 1 วัน');
+    updateRecord_('Registrations',r.__row,patch);invalidateCache_(conferenceId);let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(conferenceId,regId,'ADMIN_EDIT');}catch(e){mealPass={sent:false,reason:e.message||String(e)};}
+    logAudit_(conferenceId,ctx.user,ctx.role,'EDIT_REGISTRATION','Registration',regId,patch);return {registration:publicRegistration_(Object.assign({},r,patch)),warnings:duplicateWarnings_(patch,conferenceId,regId),mealPass:mealPass};
+  });
+}
+function adminListMealPasses(token,conferenceId,filters){
+  return runSafely_('adminListMealPasses',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF','FOOD_STAFF'],conferenceId);filters=filters||{};const typeMap=registrationTypeMap_(conferenceId),entCount={},dispatchMap={};
+    findMany_('MealEntitlements',{ConferenceID:conferenceId}).forEach(function(e){if(upper_(e.Status)!=='CANCELLED')entCount[e.RegID]=(entCount[e.RegID]||0)+1;});
+    findMany_('EmailLogs',{ConferenceID:conferenceId,RelatedType:'MEAL_PASS'}).forEach(function(x){if(upper_(x.Status)!=='SENT')return;const d=dispatchMap[x.RelatedID]||(dispatchMap[x.RelatedID]={count:0,lastSentAt:''});d.count++;if(!d.lastSentAt||new Date(x.SentAt).getTime()>new Date(d.lastSentAt).getTime())d.lastSentAt=x.SentAt;});
+    let rows=findMany_('Registrations',{ConferenceID:conferenceId}).map(function(r){const type=typeMap[r.ParticipantType]||{},elig=mealPassEligibility_(r,type),dispatch=dispatchMap[r.RegID]||{count:0,lastSentAt:''};return {RegID:r.RegID,FullName:r.FullName,Email:r.Email,Phone:r.Phone,ParticipantType:r.ParticipantType,ParticipantTypeName:type.TypeNameTH||r.ParticipantType,PaymentRequired:bool_(type.PaymentRequired),FeeAmount:num_(type.FeeAmount),RegistrationStatus:r.RegistrationStatus,DataCompletenessStatus:r.DataCompletenessStatus,PaymentStatus:r.PaymentStatus,MealPassStatus:r.MealPassStatus,Eligible:elig.ok,EligibilityReason:elig.reason,DispatchCount:dispatch.count,LastSentAt:dispatch.lastSentAt,EntitlementCount:entCount[r.RegID]||0};});
+    if(filters.q){const q=clean_(filters.q).toLowerCase();rows=rows.filter(function(x){return [x.RegID,x.FullName,x.Email,x.Phone].join(' ').toLowerCase().indexOf(q)>=0;});}
+    if(filters.eligibility==='ELIGIBLE')rows=rows.filter(function(x){return x.Eligible;});if(filters.eligibility==='NOT_ELIGIBLE')rows=rows.filter(function(x){return !x.Eligible;});
+    if(filters.paymentStatus)rows=rows.filter(function(x){return upper_(x.PaymentStatus)===upper_(filters.paymentStatus);});
+    if(filters.sentStatus==='SENT')rows=rows.filter(function(x){return x.DispatchCount>0;});if(filters.sentStatus==='NOT_SENT')rows=rows.filter(function(x){return x.DispatchCount===0;});
+    rows.sort(function(a,b){return String(a.FullName).localeCompare(String(b.FullName),'th');});return serialize_(rows);
+  });
+}
+function adminPreviewMealPass(token,conferenceId,regId){return runSafely_('adminPreviewMealPass',function(){requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF','FOOD_STAFF'],conferenceId);const r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบผู้ลงทะเบียน');const type=registrationTypeMap_(conferenceId)[r.ParticipantType]||{},elig=mealPassEligibility_(r,type);if(!elig.ok)throw new Error(elig.reason);ensureMealEntitlements_(conferenceId,regId);const tokenValue=signMealPassToken_(conferenceId,regId);return {registration:publicRegistration_(r),type:serialize_(type),token:tokenValue,qrUrl:'https://quickchart.io/qr?size=360&margin=2&text='+encodeURIComponent(tokenValue),dispatch:serialize_(mealPassDispatchInfo_(conferenceId,regId)),entitlements:serialize_(findMany_('MealEntitlements',{ConferenceID:conferenceId,RegID:regId}))};});}
+function adminSendMealPasses(token,conferenceId,regIds){
+  return runSafely_('adminSendMealPasses',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF'],conferenceId),ids=uniqueCleanList_(regIds||[]);if(!ids.length)throw new Error('กรุณาเลือกผู้ลงทะเบียนอย่างน้อย 1 คน');if(ids.length>100)throw new Error('ส่งได้ครั้งละไม่เกิน 100 คน');const result={requested:ids.length,sent:0,failed:0,items:[]};ids.forEach(function(id){try{const x=sendMealPassEmail_(conferenceId,id,ctx.user,'ADMIN_BULK');result.sent++;result.items.push({RegID:id,success:true,dispatchCount:x.dispatchCount});}catch(e){result.failed++;result.items.push({RegID:id,success:false,message:e.message||String(e)});}});invalidateCache_(conferenceId);return result;});
+}
+
+function adminGetUserScanHistory(token,conferenceId,regId){
+  return runSafely_('adminGetUserScanHistory',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF','FOOD_STAFF'],conferenceId);
+    const logs=[];
+    findMany_('AttendanceCheckIns',{ConferenceID:conferenceId,RegID:regId}).forEach(function(x){
+      logs.push({type:'CHECKIN',timestamp:x.CheckInAt,status:x.Status,point:x.CheckInPoint,service:x.CheckInSession||x.Note,by:x.CheckedBy,date:x.EventDate});
+    });
+    findMany_('MealScans',{ConferenceID:conferenceId,RegID:regId}).forEach(function(x){
+      logs.push({type:'MEAL',timestamp:x.ScanAt,status:x.Result,point:x.ScannerPoint,service:x.MealCode,by:x.ScannerUserID,date:x.EventDate});
+    });
+    logs.sort(function(a,b){return new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime();});
+    
+    // Resolve service names
+    const services = scannerServiceDefinitions_(conferenceId);
+    logs.forEach(function(log){
+      const def = services.find(function(s){return s.code===log.service});
+      if(def) log.serviceName = def.nameTH;
+      else log.serviceName = log.service;
+    });
+    
+    return serialize_({logs:logs});
+  });
+}
+function upgradeTuhAdminMealOptionsV17(){
+  return runSafely_('upgradeTuhAdminMealOptionsV17',function(){const cid=APP.DEFAULT_CONFERENCE_ID,defs=defaultSettings_(),added=[];['PREFIX_OPTIONS_JSON','POSITION_OPTIONS_JSON','PROFESSION_OPTIONS_JSON','ORGANIZATION_GROUP_OPTIONS_JSON','ORGANIZATION_OPTIONS_JSON','FOOD_TYPE_OPTIONS_JSON','MEAL_PASS_AUTO_SEND_INTERNAL','MEAL_PASS_AUTO_SEND_EXTERNAL'].forEach(function(k){if(!findOne_('Settings',{ConferenceID:cid,SettingKey:k})){const d=defs[k];upsertSetting_(cid,k,d.value,d.type,d.group,d.th,d.en);added.push(k);}});const conf=findOne_('Conferences',{ConferenceID:cid});if(conf){const short=clean_(conf.ShortName),looks=/^(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(short)||/^\d{4}-\d{2}-\d{2}/.test(short);if(looks||!short)updateRecord_('Conferences',conf.__row,{ShortName:'TUH Quality Fair 2569',UpdatedAt:new Date()});}invalidateCache_(cid);const typeMap=registrationTypeMap_(cid),eligible=findMany_('Registrations',{ConferenceID:cid}).filter(function(r){return mealPassEligibility_(r,typeMap[r.ParticipantType]||{}).ok;}).length;return {version:APP.VERSION,conferenceId:cid,settingsAdded:added,eligibleMealPasses:eligible,optionConfig:getRegistrationOptionMap_(cid)};});
+}
+
+
+function upgradeTuhLoginPrintWorkV19(){
+  return runSafely_('upgradeTuhLoginPrintWorkV19',function(){
+    const cid=APP.DEFAULT_CONFERENCE_ID,addedColumns=ensureSheetColumns_('Works',['Region4Affiliation']);
+    const categories=[['RESEARCH','ผลงานวิจัยด้านคุณภาพและความปลอดภัย','Quality and Safety Research'],['INNOVATION','ผลงานนวัตกรรมด้านคุณภาพและความปลอดภัย','Quality and Safety Innovation'],['SERVICE','Service Excellence','Service Excellence'],['CQI','CQI/ Best Practice','CQI/ Best Practice'],['PRIMARY','Primary Care & Community Network Development','Primary Care & Community Network Development']];
+    categories.forEach(function(x,i){const r=findOne_('WorkCategories',{ConferenceID:cid,CategoryCode:x[0]});if(r)updateRecord_('WorkCategories',r.__row,{CategoryNameTH:x[1],CategoryNameEN:x[2],Active:true,SortOrder:i+1});else appendRecord_('WorkCategories',{CategoryID:nextId_('CAT'),ConferenceID:cid,CategoryCode:x[0],CategoryNameTH:x[1],CategoryNameEN:x[2],Active:true,SortOrder:i+1});});
+    const presentations=[['ORAL','แบบบรรยาย (Oral presentation)','Oral presentation',10,2,true,false],['EPOSTER','แบบโปสเตอร์ (e-poster)','e-Poster presentation',4,1,false,true]];
+    presentations.forEach(function(x,i){const r=findOne_('PresentationTypes',{ConferenceID:cid,TypeCode:x[0]});const patch={TypeNameTH:x[1],TypeNameEN:x[2],PresentationMinutes:x[3],QAMinutes:x[4],NeedsRoom:x[5],NeedsPoster:x[6],Active:true,SortOrder:i+1};if(r)updateRecord_('PresentationTypes',r.__row,patch);else appendRecord_('PresentationTypes',Object.assign({PresentationTypeID:nextId_('PT'),ConferenceID:cid,TypeCode:x[0]},patch));});
+    invalidateCache_(cid);CacheService.getScriptCache().removeAll(['PUBLIC_'+cid,'DASH_'+cid]);
+    return {version:APP.VERSION,conferenceId:cid,worksColumnsAdded:addedColumns,categories:categories.length,presentationTypes:presentations.length,canonicalWebAppUrl:getCanonicalWebAppUrl_()};
+  });
+}
+
+/** ===== 10_ExternalBrowserAccess_v2_1.gs ===== **/
+/**
+ * ทำให้ทุกลิงก์ใช้ Web App URL แบบ /exec เดียวกัน และไม่ผูกกับ /u/0, /u/1
+ * หรือ URL ของ Apps Script editor / Google Drive / Google Sites
+ */
+function normalizePublicWebAppUrl_(value){
+  let url=clean_(value);
+  if(!url)return '';
+  try{url=decodeURIComponent(url);}catch(ignore){}
+  url=url.replace(/\s+/g,'').replace(/\/u\/\d+\//g,'/');
+  url=url.split('#')[0].split('?')[0].replace(/\/$/,'');
+  url=url.replace(/\/dev$/i,'/exec');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/i.test(url))return '';
+  return url;
+}
+function getCanonicalWebAppUrl_(){
+  const props=PropertiesService.getScriptProperties();
+  const saved=normalizePublicWebAppUrl_(props.getProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL)||'');
+  if(saved)return saved;
+  let deployed='';
+  try{deployed=normalizePublicWebAppUrl_(ScriptApp.getService().getUrl()||'');}catch(ignore){}
+  return deployed;
+}
+function setPublicWebAppUrl(url){
+  return runSafely_('setPublicWebAppUrl',function(){
+    const normalized=normalizePublicWebAppUrl_(url);
+    if(!normalized)throw new Error('กรุณาใส่ URL Web App ที่ลงท้ายด้วย /exec เท่านั้น');
+    PropertiesService.getScriptProperties().setProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL,normalized);
+    return {url:normalized,public:buildWebAppRouteUrl_('public',APP.DEFAULT_CONFERENCE_ID,normalized),admin:buildWebAppRouteUrl_('admin',APP.DEFAULT_CONFERENCE_ID,normalized),reviewer:buildWebAppRouteUrl_('reviewer',APP.DEFAULT_CONFERENCE_ID,normalized),scanner:buildWebAppRouteUrl_('scanner',APP.DEFAULT_CONFERENCE_ID,normalized),launcher:buildWebAppRouteUrl_('launcher',APP.DEFAULT_CONFERENCE_ID,normalized)};
+  });
+}
+function buildWebAppRouteUrl_(page,conferenceId,baseUrl,extra){
+  const base=normalizePublicWebAppUrl_(baseUrl||getCanonicalWebAppUrl_());
+  if(!base)return '';
+  const params=[];
+  const p=clean_(page||'public').toLowerCase();
+  if(p&&p!=='public')params.push('page='+encodeURIComponent(p));
+  params.push('conferenceId='+encodeURIComponent(conferenceId||APP.DEFAULT_CONFERENCE_ID));
+  Object.keys(extra||{}).forEach(function(k){
+    const v=extra[k];if(v!==undefined&&v!==null&&String(v)!=='')params.push(encodeURIComponent(k)+'='+encodeURIComponent(String(v)));
+  });
+  return base+'?'+params.join('&');
+}
+function getExternalAccessLinks(conferenceId){
+  return runSafely_('getExternalAccessLinks',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID,base=getCanonicalWebAppUrl_();
+    if(!base)throw new Error('ยังไม่ได้กำหนด PUBLIC_WEB_APP_URL กรุณารัน setPublicWebAppUrl ด้วย URL /exec');
+    return {base:base,public:buildWebAppRouteUrl_('public',cid,base),admin:buildWebAppRouteUrl_('admin',cid,base),reviewer:buildWebAppRouteUrl_('reviewer',cid,base),scanner:buildWebAppRouteUrl_('scanner',cid,base),launcher:buildWebAppRouteUrl_('launcher',cid,base)};
+  });
+}
+function testExternalBrowserAccessV21(){
+  return runSafely_('testExternalBrowserAccessV21',function(){
+    const base=getCanonicalWebAppUrl_(),links=base?getExternalAccessLinks(APP.DEFAULT_CONFERENCE_ID).data:null;
+    return {success:!!base,version:APP.VERSION,canonicalUrl:base,links:links,requirements:['Deploy เป็น Web app','Execute as: Me','Who has access: Anyone','ใช้ URL /exec โดยตรง','Google Sites ใช้ปุ่มลิงก์หรือ Embed URL /exec เท่านั้น']};
+  });
+}
+function upgradeTuhExternalBrowserAccessV21(publicExecUrl){
+  return runSafely_('upgradeTuhExternalBrowserAccessV21',function(){
+    const normalized=normalizePublicWebAppUrl_(publicExecUrl||getCanonicalWebAppUrl_());
+    if(!normalized)throw new Error('หลัง Deploy ให้คัดลอก URL ที่ลงท้าย /exec แล้วรัน upgradeTuhExternalBrowserAccessV21(URL)');
+    PropertiesService.getScriptProperties().setProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL,normalized);
+    return {version:APP.VERSION,url:normalized,links:getExternalAccessLinks(APP.DEFAULT_CONFERENCE_ID).data};
+  });
+}
+
+function include(filename){return HtmlService.createHtmlOutputFromFile(filename).getContent();}
+function doGet(e){
+  const p=(e&&e.parameter)||{},page=String(p.page||'public').toLowerCase(),cid=p.conferenceId||APP.DEFAULT_CONFERENCE_ID;
+  const file=page==='admin'?'admin':page==='reviewer'?'reviewer':page==='scanner'?'scanner':page==='launcher'?'launcher':'index';
+  const base=getCanonicalWebAppUrl_();
+  const t=HtmlService.createTemplateFromFile(file);
+  t.conferenceId=cid;t.appName=APP.NAME_TH;t.version=APP.VERSION;t.appUrl=base;t.pageName=page;
+  t.directUrl=buildWebAppRouteUrl_(page,cid,base);
+  return t.evaluate()
+    .setTitle(APP.NAME_TH)
+    .addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover')
+    .addMetaTag('mobile-web-app-capable','yes')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/** ===== 08_EventScanner_v1_8.gs ===== **/
+/**
+ * Event scanner v1.8
+ * - ตรวจสอบก่อนบันทึก (2-step confirm)
+ * - เช็คอินรายวันช่วงเช้า/บ่ายได้อย่างละ 1 ครั้ง
+ * - รับอาหารว่างเช้า/กลางวัน/ว่างบ่ายได้มื้อละ 1 ครั้ง
+ * - รองรับ QR คูปองรวม, QR สิทธิ์รายมื้อ และการกรอก RegID
+ */
+function ensureSheetColumns_(sheetName, columns){
+  const sh=getSheet_(sheetName), last=Math.max(1,sh.getLastColumn());
+  const headers=sh.getRange(1,1,1,last).getDisplayValues()[0].map(clean_);
+  const missing=(columns||[]).filter(function(c){return headers.indexOf(c)<0;});
+  if(missing.length){
+    const start=Math.max(1,headers.filter(Boolean).length+1);
+    sh.getRange(1,start,1,missing.length).setValues([missing]);
+    sh.getRange(1,start,1,missing.length).setBackground(APP.THEME.TEAL).setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+  }
+  clearRequestCache_();
+  return missing;
+}
+function scannerDateKey_(value){
+  if(!value)return '';
+  if(Object.prototype.toString.call(value)==='[object Date]'&&!isNaN(value.getTime()))return Utilities.formatDate(value,APP.TIMEZONE,'yyyy-MM-dd');
+  const s=clean_(value),m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  const d=new Date(value);return isNaN(d.getTime())?s:Utilities.formatDate(d,APP.TIMEZONE,'yyyy-MM-dd');
+}
+function scannerServiceDefinitions_(conferenceId){
+  const meals=jsonParse_(getSetting_(conferenceId,'MEALS_JSON','[]'),[]);
+  const checkins=[
+    {code:'CHECKIN_AM',type:'CHECKIN',nameTH:'เช็คอินเข้าร่วมงานช่วงเช้า',shortTH:'เข้างานเช้า',nameEN:'Morning check-in'},
+    {code:'CHECKIN_PM',type:'CHECKIN',nameTH:'เช็คอินเข้าร่วมงานช่วงบ่าย',shortTH:'เข้างานบ่าย',nameEN:'Afternoon check-in'}
+  ];
+  const mealDefs=meals.map(function(m){
+    const code=upper_(m.code), fallback={BREAKFAST:'อาหารว่างเช้า',LUNCH:'อาหารกลางวัน',AFTERNOON:'อาหารว่างบ่าย'}[code]||code;
+    return {code:code,type:'MEAL',nameTH:clean_(m.th)||fallback,shortTH:clean_(m.th)||fallback,nameEN:clean_(m.en)||code};
+  });
+  return checkins.concat(mealDefs);
+}
+function scannerServiceDef_(conferenceId,serviceCode){
+  const code=upper_(serviceCode),def=scannerServiceDefinitions_(conferenceId).find(function(x){return x.code===code;});
+  if(!def)throw new Error('ประเภทบริการไม่ถูกต้องหรือยังไม่ได้ตั้งค่า');
+  return def;
+}
+function scannerResolveRegId_(identifier,conferenceId){
+  let raw=clean_(identifier);if(!raw)throw new Error('กรุณาสแกน QR Code หรือกรอก RegID');
+  try{raw=decodeURIComponent(raw);}catch(ignore){}
+  const urlToken=raw.match(/[?&#](?:token|qr)=([^&#]+)/i);if(urlToken){try{raw=decodeURIComponent(urlToken[1]);}catch(ignore){raw=urlToken[1];}}
+  const direct=raw.match(/REG-[A-Z0-9-]+/i);
+  if(/^REG-[A-Z0-9-]+$/i.test(raw))return upper_(raw);
+  try{
+    const parsed=parseAnyMealToken_(raw);
+    if(String(parsed.conferenceId)!==String(conferenceId))throw new Error('QR Code นี้เป็นของงานประชุมอื่น');
+    return clean_(parsed.regId);
+  }catch(e){
+    if(direct)return upper_(direct[0]);
+    if(/งานประชุมอื่น/.test(e.message||''))throw e;
+    throw new Error('ไม่สามารถอ่าน QR Code ได้ กรุณาสแกนใหม่หรือกรอก RegID');
+  }
+}
+function scannerSelectedDay_(conferenceId,registration,eventDate){
+  const dates=jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[]).slice(0,3).map(scannerDateKey_),target=scannerDateKey_(eventDate);
+  const idx=dates.indexOf(target);if(idx<0)return {configured:false,selected:false,index:-1};
+  return {configured:true,selected:bool_(registration['AttendanceDay'+(idx+1)]),index:idx};
+}
+function scannerRegistrationType_(conferenceId,registration){
+  return registrationTypeMap_(conferenceId)[registration.ParticipantType]||{};
+}
+function scannerPaymentOkay_(registration,type){
+  return !bool_(type.PaymentRequired)||['APPROVED','NOT_REQUIRED'].indexOf(upper_(registration.PaymentStatus))>=0;
+}
+function scannerRegistrationApproved_(registration){
+  return ['REGISTRATION_VERIFIED','COMPLETED'].indexOf(upper_(registration.RegistrationStatus))>=0;
+}
+function scannerCheckInRecord_(conferenceId,regId,eventDate,sessionCode){
+  const date=scannerDateKey_(eventDate),code=upper_(sessionCode);
+  return findMany_('AttendanceCheckIns',{ConferenceID:conferenceId,RegID:regId}).find(function(x){
+    return scannerDateKey_(x.EventDate)===date&&upper_(x.CheckInSession||x.Note)===code&&upper_(x.Status)!=='CANCELLED';
+  })||null;
+}
+function scannerMealEntitlement_(conferenceId,regId,eventDate,mealCode){
+  const date=scannerDateKey_(eventDate),code=upper_(mealCode);
+  const rows=findMany_('MealEntitlements',{ConferenceID:conferenceId,RegID:regId}).filter(function(x){return scannerDateKey_(x.EventDate)===date&&upper_(x.MealCode)===code;});
+  return rows.slice().reverse().find(function(x){return upper_(x.Status)!=='CANCELLED';})||rows[rows.length-1]||null;
+}
+function scannerInspectInternal_(ctx,conferenceId,identifier,eventDate,serviceCode){
+  const def=scannerServiceDef_(conferenceId,serviceCode),date=scannerDateKey_(eventDate);if(!date)throw new Error('กรุณาเลือกวันที่จัดงาน');
+  const regId=scannerResolveRegId_(identifier,conferenceId),r=findOne_('Registrations',{ConferenceID:conferenceId,RegID:regId});if(!r)throw new Error('ไม่พบข้อมูลผู้ลงทะเบียน '+regId);
+  const type=scannerRegistrationType_(conferenceId,r),day=scannerSelectedDay_(conferenceId,r,date);
+  const checks={
+    dataComplete:upper_(r.DataCompletenessStatus)==='COMPLETE',
+    registrationApproved:scannerRegistrationApproved_(r),
+    daySelected:day.configured&&day.selected,
+    paymentOkay:scannerPaymentOkay_(r,type),
+    active:['CANCELLED','REGISTRATION_RETURNED'].indexOf(upper_(r.RegistrationStatus))<0
+  };
+  let duplicate=false,usedAt='',usedBy='',serviceAvailable=true,serviceReason='';
+  if(def.type==='CHECKIN'){
+    const old=scannerCheckInRecord_(conferenceId,regId,date,def.code);
+    if(old){duplicate=true;usedAt=old.CheckInAt;usedBy=old.CheckedBy;serviceReason='เช็คอินช่วงเวลานี้แล้ว';}
+  }else{
+    const ent=scannerMealEntitlement_(conferenceId,regId,date,def.code);
+    if(ent&&upper_(ent.Status)==='REDEEMED'){duplicate=true;usedAt=ent.RedeemedAt;usedBy=ent.RedeemedBy;serviceReason='รับอาหารมื้อนี้แล้ว';}
+    if(ent&&(!bool_(ent.Eligible)||upper_(ent.Status)==='CANCELLED')){serviceAvailable=false;serviceReason='สิทธิ์อาหารมื้อนี้ถูกยกเลิก';}
+  }
+  const reasons=[];
+  if(!checks.active)reasons.push('สถานะลงทะเบียนถูกส่งคืนหรือยกเลิก');
+  if(!checks.dataComplete)reasons.push('ข้อมูลลงทะเบียนยังไม่ครบ');
+  if(!checks.registrationApproved)reasons.push('เจ้าหน้าที่ทะเบียนยังไม่ได้ตรวจผ่าน');
+  if(!checks.daySelected)reasons.push('ผู้สมัครไม่ได้เลือกเข้าร่วมในวันนี้');
+  if(!checks.paymentOkay)reasons.push('ยังไม่ได้รับอนุมัติการชำระเงิน');
+  if(!serviceAvailable)reasons.push(serviceReason||'ไม่มีสิทธิ์ใช้บริการนี้');
+  if(duplicate)reasons.push(serviceReason);
+  const canConfirm=reasons.length===0;
+  return {
+    RegID:r.RegID,FullName:r.FullName||[r.Prefix,r.FirstName,r.LastName].filter(Boolean).join(' '),Prefix:r.Prefix,FirstName:r.FirstName,LastName:r.LastName,
+    ParticipantType:r.ParticipantType,ParticipantTypeName:type.TypeNameTH||r.ParticipantType,Organization:r.Institution||r.OrganizationUnit||r.OrganizationGroup||'',
+    Email:r.Email,Phone:r.Phone,FoodType:r.FoodType,RegistrationStatus:r.RegistrationStatus,DataCompletenessStatus:r.DataCompletenessStatus,PaymentStatus:r.PaymentStatus,
+    EventDate:date,ServiceCode:def.code,ServiceType:def.type,ServiceNameTH:def.nameTH,ServiceNameEN:def.nameEN,Checks:checks,
+    Duplicate:duplicate,UsedAt:usedAt,UsedBy:usedBy,CanConfirm:canConfirm,Message:canConfirm?'ตรวจสอบผ่าน สามารถกดยืนยันได้':reasons.join(' â€¢ ')
+  };
+}
+function getEventScannerBootstrap(token,conferenceId){
+  return runSafely_('getEventScannerBootstrap',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId),conf=findOne_('Conferences',{ConferenceID:conferenceId});
+    return {user:serialize_(ctx.user),role:ctx.role,conference:serialize_(conf||{}),eventDates:jsonParse_(getSetting_(conferenceId,'EVENT_DATES_JSON','[]'),[]).map(scannerDateKey_),services:scannerServiceDefinitions_(conferenceId)};
+  });
+}
+function inspectEventScanner(token,conferenceId,identifier,eventDate,serviceCode){
+  return runSafely_('inspectEventScanner',function(){const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId);return serialize_(scannerInspectInternal_(ctx,conferenceId,identifier,eventDate,serviceCode));});
+}
+function confirmEventScanner(token,conferenceId,identifier,eventDate,serviceCode,scannerPoint){
+  return runSafely_('confirmEventScanner',function(){
+    const ctx=requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId);
+    return withLock_(function(){
+      const checked=scannerInspectInternal_(ctx,conferenceId,identifier,eventDate,serviceCode);if(!checked.CanConfirm)throw new Error(checked.Message);
+      const now=new Date(),point=clean_(scannerPoint)||'จุดบริการหลัก';
+      if(checked.ServiceType==='CHECKIN'){
+        appendRecord_('AttendanceCheckIns',{CheckInID:nextId_('CHK'),ConferenceID:conferenceId,RegID:checked.RegID,EventDate:checked.EventDate,CheckInSession:checked.ServiceCode,CheckInSessionName:checked.ServiceNameTH,CheckInAt:now,CheckInPoint:point,CheckedBy:ctx.user.Email,Status:'SUCCESS',Note:checked.ServiceCode});
+      }else{
+        ensureMealEntitlements_(conferenceId,checked.RegID);
+        const e=scannerMealEntitlement_(conferenceId,checked.RegID,checked.EventDate,checked.ServiceCode);if(!e||!bool_(e.Eligible)||upper_(e.Status)==='CANCELLED')throw new Error('ไม่พบสิทธิ์อาหารสำหรับมื้อนี้');
+        if(upper_(e.Status)==='REDEEMED')throw new Error('รับอาหารมื้อนี้แล้วเมื่อ '+formatDateTime_(e.RedeemedAt));
+        updateRecord_('MealEntitlements',e.__row,{RedeemedAt:now,RedeemedBy:ctx.user.Email,ScannerPoint:point,Status:'REDEEMED'});
+        appendRecord_('MealScans',{ScanID:nextId_('SCAN'),ConferenceID:conferenceId,RegID:checked.RegID,EntitlementID:e.EntitlementID,EventDate:checked.EventDate,MealCode:checked.ServiceCode,ScanAt:now,ScannerUserID:ctx.user.UserID,ScannerPoint:point,Result:'SUCCESS',Note:checked.ServiceNameTH});
+      }
+      invalidateCache_(conferenceId);logAudit_(conferenceId,ctx.user,ctx.role,'EVENT_SCANNER_CONFIRM',checked.ServiceType,checked.RegID,{eventDate:checked.EventDate,serviceCode:checked.ServiceCode,scannerPoint:point});
+      return serialize_({success:true,RegID:checked.RegID,FullName:checked.FullName,Organization:checked.Organization,EventDate:checked.EventDate,ServiceCode:checked.ServiceCode,ServiceType:checked.ServiceType,ServiceNameTH:checked.ServiceNameTH,ConfirmedAt:now,ConfirmedBy:ctx.user.FullName||ctx.user.Email,ScannerPoint:point});
+    });
+  });
+}
+function getEventScannerRecent(token,conferenceId,eventDate,serviceCode,limit){
+  return runSafely_('getEventScannerRecent',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'],conferenceId);
+    const date=scannerDateKey_(eventDate),def=scannerServiceDef_(conferenceId,serviceCode),max=Math.min(Math.max(num_(limit,50),1),200),regs={};
+    findMany_('Registrations',{ConferenceID:conferenceId}).forEach(function(r){regs[r.RegID]=r;});let rows=[];
+    if(def.type==='CHECKIN'){
+      rows=findMany_('AttendanceCheckIns',{ConferenceID:conferenceId}).filter(function(x){return scannerDateKey_(x.EventDate)===date&&upper_(x.CheckInSession||x.Note)===def.code&&upper_(x.Status)==='SUCCESS';}).map(function(x){const r=regs[x.RegID]||{};return {RecordID:x.CheckInID,RegID:x.RegID,FullName:r.FullName||'',Organization:r.Institution||r.OrganizationUnit||'',ParticipantType:r.ParticipantType||'',ServiceCode:def.code,ServiceNameTH:def.nameTH,EventDate:date,RecordedAt:x.CheckInAt,RecordedBy:x.CheckedBy,ScannerPoint:x.CheckInPoint,Result:x.Status};});
+    }else{
+      rows=findMany_('MealScans',{ConferenceID:conferenceId}).filter(function(x){return scannerDateKey_(x.EventDate)===date&&upper_(x.MealCode)===def.code&&upper_(x.Result)==='SUCCESS';}).map(function(x){const r=regs[x.RegID]||{};return {RecordID:x.ScanID,RegID:x.RegID,FullName:r.FullName||'',Organization:r.Institution||r.OrganizationUnit||'',ParticipantType:r.ParticipantType||'',ServiceCode:def.code,ServiceNameTH:def.nameTH,EventDate:date,RecordedAt:x.ScanAt,RecordedBy:x.ScannerUserID,ScannerPoint:x.ScannerPoint,Result:x.Result};});
+    }
+    rows.sort(function(a,b){return new Date(b.RecordedAt).getTime()-new Date(a.RecordedAt).getTime();});
+    return serialize_({count:rows.length,rows:rows.slice(0,max)});
+  });
+}
+function upgradeTuhEventScannerV18(){
+  return runSafely_('upgradeTuhEventScannerV18',function(){
+    const added=ensureSheetColumns_('AttendanceCheckIns',['CheckInSession','CheckInSessionName']);
+    const cid=APP.DEFAULT_CONFERENCE_ID,meals=jsonParse_(getSetting_(cid,'MEALS_JSON','[]'),[]);
+    if(!meals.length)upsertSetting_(cid,'MEALS_JSON','[{"code":"BREAKFAST","th":"อาหารว่างเช้า"},{"code":"LUNCH","th":"อาหารกลางวัน"},{"code":"AFTERNOON","th":"อาหารว่างบ่าย"}]','JSON','FOOD','รายการอาหาร','Meals');
+    return {version:'1.8.0-EVENT-SCANNER',conferenceId:cid,columnsAdded:added,eventDates:jsonParse_(getSetting_(cid,'EVENT_DATES_JSON','[]'),[]),services:scannerServiceDefinitions_(cid)};
+  });
+}
+function adminAssignReviewersBulk(token,conferenceId,workIds,roundId,reviewerIds){
+  return runSafely_('adminAssignReviewersBulk',function(){
+    const ctx = requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    if(!workIds||!workIds.length){
+      workIds = findMany_('Works',{ConferenceID:conferenceId}).filter(w=>w.Status!=='REJECTED'&&w.Status!=='RECEIVED').map(w=>w.WorkID);
+    }
+    if(!reviewerIds||!reviewerIds.length)throw new Error('No reviewers provided');
+    let created=0,skipped=0;
+    workIds.forEach(function(wid){
+      const w = findOne_('Works',{ConferenceID:conferenceId,WorkID:wid});
+      reviewerIds.forEach(function(rid){
+        const exist = findOne_('ReviewAssignments',{ConferenceID:conferenceId,WorkID:wid,ReviewerID:rid,ReviewRoundID:roundId});
+        if(exist) { skipped++; return; }
+        const rvw = findOne_('Reviewers',{ReviewerID:rid});
+        if(!rvw) return;
+        appendRecord_('ReviewAssignments',{AssignmentID:nextId_('ASN'),ConferenceID:conferenceId,ReviewRoundID:roundId,WorkID:wid,WorkCode:w?w.WorkCode:wid,ReviewerID:rid,ReviewerName:rvw.FullName||(rvw.FirstName+' '+rvw.LastName),ReviewerEmail:rvw.Email,AssignedAt:new Date(),AssignedBy:ctx.user.Email,Status:'ASSIGNED',CreatedAt:new Date(),UpdatedAt:new Date()});
+        created++;
+      });
+    });
+    return {created:created,skipped:skipped};
+  });
+}
+function adminGetReviewer(token,conferenceId,reviewerId){
+  return runSafely_('adminGetReviewer',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    const r = findOne_('Reviewers',{ReviewerID:reviewerId});
+    if(!r)throw new Error('Not found');
+    const pool = findOne_('ReviewerPool',{ConferenceID:conferenceId,ReviewerID:reviewerId});
+    const result = Object.assign({}, r);
+    if(pool){
+      if(pool.MaxWorkload !== undefined && pool.MaxWorkload !== '') result.MaxWorkload = pool.MaxWorkload;
+      if(pool.ExpertiseCategories) result.ExpertiseCategories = pool.ExpertiseCategories;
+      if(pool.ExpertiseTypes) result.ExpertiseTypes = pool.ExpertiseTypes;
+      if(pool.Status) result.PoolStatus = pool.Status;
+    }
+    return serialize_(result);
+  });
+}
+function adminUpdateReviewer(token,conferenceId,reviewerId,data){
+  return runSafely_('adminUpdateReviewer',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    const r = findOne_('Reviewers',{ReviewerID:reviewerId});
+    if(!r)throw new Error('Not found');
+    data = data || {};
+    if(data.Phone) data.Phone = "'"+String(data.Phone); // prevent losing 0
+    const fullName = [data.Prefix, data.FirstName, data.LastName].filter(Boolean).join(' ');
+    const patch = Object.assign({}, data, {
+      FullName: fullName || r.FullName,
+      UpdatedAt: new Date()
+    });
+    delete patch.__row;
+    delete patch.ReviewerID;
+    updateRecord_('Reviewers',r.__row,patch);
+    
+    // Also update ReviewerPool for this conference if exists or create it
+    const pool = findOne_('ReviewerPool',{ConferenceID:conferenceId,ReviewerID:reviewerId});
+    if(pool){
+      updateRecord_('ReviewerPool',pool.__row,{
+        ExpertiseCategories: data.ExpertiseCategories !== undefined ? data.ExpertiseCategories : pool.ExpertiseCategories,
+        ExpertiseTypes: data.ExpertiseTypes !== undefined ? data.ExpertiseTypes : pool.ExpertiseTypes,
+        MaxWorkload: data.MaxWorkload !== undefined ? num_(data.MaxWorkload, 10) : pool.MaxWorkload,
+        Status: data.Status || pool.Status || 'ACTIVE'
+      });
+    }
+    invalidateCache_(conferenceId);
+    return {success:true};
+  });
+}
+function adminResendReviewerCreds(token,conferenceId,reviewerId){
+  return runSafely_('adminResendReviewerCreds',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    const r = findOne_('Reviewers',{ReviewerID:reviewerId});
+    if(!r)throw new Error('Not found');
+    const email = normalizeEmail_(r.Email);
+    if(!email) throw new Error('Reviewer ไม่มีอีเมล');
+    let u = getRecords_('Users').find(function(x){ return normalizeEmail_(x.Email) === email || normalizeEmail_(x.Username) === email; });
+    const pass = 'Rev@' + String(Math.floor(100000 + Math.random() * 900000));
+    const salt = uuid_();
+    if(u) {
+      updateRecord_('Users',u.__row,{
+        Salt: salt,
+        PasswordHash: hashPassword_(pass, salt),
+        Status: 'ACTIVE',
+        UpdatedAt: new Date()
+      });
+    } else {
+      const uid = nextId_('USR');
+      appendRecord_('Users',{
+        UserID: uid,
+        Username: email,
+        Email: email,
+        PasswordHash: hashPassword_(pass, salt),
+        Salt: salt,
+        Prefix: clean_(r.Prefix),
+        FirstName: clean_(r.FirstName),
+        LastName: clean_(r.LastName),
+        FullName: r.FullName || [r.Prefix, r.FirstName, r.LastName].filter(Boolean).join(' '),
+        Phone: normalizePhone_(r.Phone),
+        Organization: clean_(r.Institution),
+        Role: 'REVIEWER',
+        Status: 'ACTIVE',
+        CreatedAt: new Date(),
+        UpdatedAt: new Date()
+      });
+      u = findOne_('Users',{UserID: uid});
+    }
+    let role = findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID,Role:'REVIEWER'});
+    if(!role){
+      appendRecord_('UserConferenceRoles',{
+        UserConferenceRoleID: nextId_('UCR'),
+        ConferenceID: conferenceId,
+        UserID: u.UserID,
+        Role: 'REVIEWER',
+        PermissionsJson: safeJson_({ReviewerID:reviewerId}),
+        Status: 'ACTIVE',
+        AssignedAt: new Date(),
+        AssignedBy: 'SYSTEM'
+      });
+    } else {
+      updateRecord_('UserConferenceRoles',role.__row,{
+        PermissionsJson: safeJson_({ReviewerID:reviewerId}),
+        Status: 'ACTIVE'
+      });
+    }
+    sendReviewerCredentials_(conferenceId, email, pass, reviewerId);
+    return {success:true, email:email};
+  });
+}
+function adminSendDirectEmail(token,conferenceId,to,subj,msg){
+  return runSafely_('adminSendDirectEmail',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    sendEmailLogged_(conferenceId,to,subj,String(msg).replace(/\n/g,'<br>'),'DIRECT_MESSAGE','',null);
+    return {success:true};
+  });
+}
+function adminListUsers(token,conferenceId){
+  return runSafely_('adminListUsers',function(){
+    requireSession_(token,['SUPERADMIN'],conferenceId);
+    const roles = findMany_('UserConferenceRoles',{ConferenceID:conferenceId});
+    const users = findMany_('Users',{});
+    const map = {}; users.forEach(u=>map[u.UserID]=u);
+    return serialize_(roles.map(r=>({UserID:r.UserID,Email:map[r.UserID]?map[r.UserID].Email:'',FullName:map[r.UserID]?map[r.UserID].FullName:'',Role:r.Role,Status:bool_(map[r.UserID]?map[r.UserID].IsActive:false)?'ACTIVE':'INACTIVE'})));
+  });
+}
+function adminAddUser(token,conferenceId,email,role){
+  return runSafely_('adminAddUser',function(){
+    requireSession_(token,['SUPERADMIN'],conferenceId);
+    email=clean_(email).toLowerCase();
+    let u = findOne_('Users',{Email:email});
+    if(!u) {
+       u = {UserID:nextId_('USR'),Email:email,PasswordHash:hashPassword_(email),FullName:email.split('@')[0],IsActive:true,CreatedAt:new Date(),UpdatedAt:new Date()};
+       appendRecord_('Users',u);
+    }
+    let r = findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID,Role:role});
+    if(!r) appendRecord_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID,Role:role,PermissionsJson:'{}',CreatedAt:new Date()});
+    return {success:true};
+  });
+}
+function adminUpdateUserStatus(token,conferenceId,userId,status){
+  return runSafely_('adminUpdateUserStatus',function(){
+    requireSession_(token,['SUPERADMIN'],conferenceId);
+    let u = findOne_('Users',{UserID:userId});
+    if(u) updateRecord_('Users',u.__row,{IsActive:status==='ACTIVE',UpdatedAt:new Date()});
+    return {success:true};
+  });
+}
+function exportWorksToExcel(token,conferenceId){
+  return runSafely_('exportWorksToExcel',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'],conferenceId);
+    let rows=findMany_('Works',{ConferenceID:conferenceId});
+    const authorsByWork={};
+    findMany_('WorkAuthors',{ConferenceID:conferenceId}).forEach(function(a){(authorsByWork[a.WorkID]||(authorsByWork[a.WorkID]=[])).push(a);});
+    const assigns=findMany_('ReviewAssignments',{ConferenceID:conferenceId});
+    const asc=assigns.reduce(function(a,c){if(upper_(c.Status)!=='CANCELLED'&&upper_(c.Status)!=='DECLINED'){if(!a[c.WorkID])a[c.WorkID]={a:0,c:0,t:0};a[c.WorkID].a++;if(['COMPLETE','LOCKED'].indexOf(upper_(c.Status))>=0){a[c.WorkID].c++;a[c.WorkID].t+=num_(c.TotalScore);}}return a;},{});
+    
+    rows = rows.map(function(w){
+      const ac=asc[w.WorkID]||{a:0,c:0,t:0};
+      const presenter = (authorsByWork[w.WorkID]||[]).find(a=>a.IsPresenter) || {};
+      return {
+        WorkCode: w.WorkCode||w.WorkID,
+        ThaiTitle: w.ThaiTitle||w.TitleTH||'',
+        EnglishTitle: w.EnglishTitle||w.TitleEN||'',
+        WorkType: w.WorkType||'',
+        PresenterName: w.PresenterName||presenter.FullName||'',
+        PresenterEmail: w.PresenterEmail||'',
+        Theme: w.Theme||w.Field||'',
+        CurrentStatus: w.Status||w.CurrentStatus||'',
+        ReviewerAssignedCount: ac.a,
+        ReviewerCompletedCount: ac.c,
+        AverageScore: ac.c?ac.t/ac.c:0
+      };
+    });
+    
+    rows.sort(function(a, b) { return (parseFloat(b.AverageScore)||0) - (parseFloat(a.AverageScore)||0); });
+    
+    const ss = SpreadsheetApp.create('Works_Export_' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd_HHmm'));
+    const sh = ss.getSheets()[0];
+    sh.setName('Works');
+    const headers = ['WorkCode','ThaiTitle','EnglishTitle','WorkType','PresenterName','PresenterEmail','Theme','CurrentStatus','ReviewerAssignedCount','ReviewerCompletedCount','AverageScore'];
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    if (rows.length) {
+      sh.getRange(2,1,rows.length,headers.length).setValues(rows.map(r => headers.map(h => r[h] || '')));
+    }
+    return {url:ss.getUrl(), fileId:ss.getId(), fileName:ss.getName()};
+  });
+}
+function ensureRegFolder_(conferenceId, regId, subFolderType) {
+  const ADMIN_UPLOAD_PARENT_ID = '1nwdNRU_0dYcdA6tbEUJdJoT0AAsFz-ze';
+  const ADMIN_UPLOAD_PARENT_NAME = 'Author_file_admin_upload';
+  let rootFolder = null;
+
+  // 1. ดึงโฟลเดอร์หลัก Author_file_admin_upload จาก ID ที่กำหนด
+  try {
+    if (ADMIN_UPLOAD_PARENT_ID) {
+      rootFolder = DriveApp.getFolderById(ADMIN_UPLOAD_PARENT_ID);
+    }
+  } catch(e) {
+    rootFolder = null;
+  }
+
+  // 2. ถ้าไม่พบจาก ID ให้ค้นหาจาก Settings หรือชื่อโฟลเดอร์
+  if (!rootFolder) {
+    const s = findOne_('Settings', {ConferenceID: conferenceId, SettingKey: 'ADMIN_UPLOAD_FOLDER_ID'}) ||
+              findOne_('Settings', {ConferenceID: conferenceId, SettingKey: 'DRIVE_ROOT_FOLDER_ID'});
+    if (s && s.SettingValue) {
+      try { rootFolder = DriveApp.getFolderById(s.SettingValue); } catch(e) {}
+    }
+  }
+
+  if (!rootFolder) {
+    try {
+      const iter = DriveApp.getFoldersByName(ADMIN_UPLOAD_PARENT_NAME);
+      if (iter.hasNext()) {
+        rootFolder = iter.next();
+      }
+    } catch(e) {}
+  }
+
+  // 3. Fallback: ถ้ายังไม่มีโฟลเดอร์นี้ ให้สร้าง Author_file_admin_upload
+  if (!rootFolder) {
+    try {
+      rootFolder = DriveApp.getRootFolder().createFolder(ADMIN_UPLOAD_PARENT_NAME);
+    } catch(e) {
+      rootFolder = DriveApp.getRootFolder();
+    }
+  }
+
+  // 4. สร้างหรือค้นหาโฟลเดอร์ตามรหัสลงทะเบียน (regId) ภายใต้ Author_file_admin_upload
+  let regFolder = null;
+  const regIter = rootFolder.getFoldersByName(regId);
+  if (regIter.hasNext()) {
+    regFolder = regIter.next();
+  } else {
+    // ตรวจสอบว่าเคยมีโฟลเดอร์ regId ถูกสร้างค้างไว้นอกโฟลเดอร์หลักหรือไม่ ถ้าย้ายเข้ามาได้ให้ย้าย
+    try {
+      const orphanIter = DriveApp.getRootFolder().getFoldersByName(regId);
+      if (orphanIter.hasNext()) {
+        const orphan = orphanIter.next();
+        orphan.moveTo(rootFolder);
+        regFolder = orphan;
+      }
+    } catch(e) {}
+
+    if (!regFolder) {
+      regFolder = rootFolder.createFolder(regId);
+    }
+  }
+
+  if (!subFolderType) {
+    return regFolder;
+  }
+
+  // 5. สร้างหรือค้นหา Subfolder ย่อยตามประเภทไฟล์ (เช่น 04_Work_Original, 05_Work_Blind) ภายใต้โฟลเดอร์ regId
+  let subFolder = null;
+  const subIter = regFolder.getFoldersByName(subFolderType);
+  if (subIter.hasNext()) {
+    subFolder = subIter.next();
+  } else {
+    subFolder = regFolder.createFolder(subFolderType);
+  }
+  
+  return subFolder;
+}
+
+function adminSearchDriveFiles(token, conferenceId, query) {
+  return runSafely_('adminSearchDriveFiles', function(){
+    requireSession_(token, ['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'], conferenceId);
+    let files = [];
+    if (!query) return [];
+    const queryEsc = String(query).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    const ADMIN_PARENT_FOLDER_ID = '1nwdNRU_0dYcdA6tbEUJdJoT0AAsFz-ze';
+    
+    // 1. ค้นหาในโฟลเดอร์ Author_file_admin_upload โดยตรงตามชื่อ RegID หรือชื่อโฟลเดอร์ย่อย
+    try {
+      const parentFolder = DriveApp.getFolderById(ADMIN_PARENT_FOLDER_ID);
+      if (parentFolder) {
+        const subFolders = parentFolder.getFoldersByName(query);
+        while (subFolders.hasNext() && files.length < 25) {
+          const sf = subFolders.next();
+          const fIter = sf.getFiles();
+          while (fIter.hasNext() && files.length < 25) {
+            const f = fIter.next();
+            files.push({id: f.getId(), name: f.getName(), folder: sf.getName()});
+          }
+          const nestedFolders = sf.getFolders();
+          while (nestedFolders.hasNext() && files.length < 25) {
+            const nf = nestedFolders.next();
+            const nfFiles = nf.getFiles();
+            while (nfFiles.hasNext() && files.length < 25) {
+              const f = nfFiles.next();
+              files.push({id: f.getId(), name: f.getName(), folder: sf.getName() + '/' + nf.getName()});
+            }
+          }
+        }
+      }
+    } catch(e) {}
+    
+    // 2. ค้นหาโฟลเดอร์ตามชื่อ
+    if (files.length === 0) {
+      try {
+        const folders = DriveApp.searchFolders('title = "' + queryEsc + '" and trashed = false');
+        if (folders.hasNext()) {
+          const folder = folders.next();
+          const fIter = folder.getFiles();
+          let limit = 20;
+          while (fIter.hasNext() && limit > 0) {
+            const f = fIter.next();
+            files.push({id: f.getId(), name: f.getName(), folder: folder.getName()});
+            limit--;
+          }
+          const subIter = folder.getFolders();
+          while (subIter.hasNext() && limit > 0) {
+            const sf = subIter.next();
+            const sfFiles = sf.getFiles();
+            while (sfFiles.hasNext() && limit > 0) {
+              const f = sfFiles.next();
+              files.push({id: f.getId(), name: f.getName(), folder: folder.getName() + '/' + sf.getName()});
+              limit--;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+    
+    // 3. ค้นหาไฟล์โดยตรงที่มีชื่อตรงกับคำค้นหา
+    if (files.length === 0) {
+      try {
+        const fIter = DriveApp.searchFiles('title contains "' + queryEsc + '" and trashed = false');
+        let limit = 20;
+        while (fIter.hasNext() && limit > 0) {
+          const f = fIter.next();
+          files.push({id: f.getId(), name: f.getName()});
+          limit--;
+        }
+      } catch(e) {}
+    }
+    return files;
+  });
+}
+
+function extractDriveId_(str) {
+  if (!str) return '';
+  str = String(str).trim();
+  const match = str.match(/[-\w]{25,}/);
+  return match ? match[0] : str;
+}
+
+function adminDeleteWorkFile(token, conferenceId, workFileId) {
+  return runSafely_('adminDeleteWorkFile', function() {
+    const ctx = requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'ACADEMIC_STAFF'], conferenceId);
+    const file = findOne_('WorkFiles', { ConferenceID: conferenceId, WorkFileID: workFileId });
+    if (!file) throw new Error('ไม่พบไฟล์ที่ต้องการลบ');
+    updateRecord_('WorkFiles', file.__row, {
+      Active: false,
+      UpdatedAt: new Date(),
+      Note: (file.Note || '') + ' [ลบโดยผู้ดูแลระบบ ' + (ctx.user.Email || ctx.user.UserID) + ' เมื่อ ' + Utilities.formatDate(new Date(), APP.TIMEZONE, 'yyyy-MM-dd HH:mm:ss') + ']'
+    });
+    logAudit_(conferenceId, ctx.user, ctx.role, 'DELETE_WORK_FILE', 'WorkFiles', workFileId, {
+      WorkID: file.WorkID,
+      FileName: file.FileName,
+      FileCategory: file.FileCategory
+    });
+    return { success: true, message: 'ลบไฟล์เรียบร้อยแล้ว' };
+  });
+}
+
+function adminUploadWorkFiles(token, conferenceId, workId, regId, payload) {
+  return runSafely_('adminUploadWorkFiles', function(){
+    const ctx = requireSession_(token, ['SUPERADMIN','CONFERENCE_ADMIN','ACADEMIC_STAFF'], conferenceId);
+    
+    if (!regId || regId === 'undefined') regId = 'UNKNOWN_REG_ID';
+    const cat = payload.fileCategory || 'ORIGINAL';
+    const folderType = cat === 'BLIND' ? '05_Work_Blind' :
+                       cat === 'ETHICS' ? '06_Work_Ethics' :
+                       cat === 'REVISION' ? '07_Work_Revisions' :
+                       cat === 'PRESENTER_BIO' ? '08_Presenter_Bio' :
+                       cat === 'FINAL_PRESENTATION' ? '09_Final_Presentation' : '04_Work_Original';
+    const folder = ensureRegFolder_(conferenceId, regId, folderType);
+    let fileUrl = '', fileId = '', fileName = payload.fileName || 'file';
+    
+    if (payload.method === 'LOCAL') {
+      const blob = Utilities.newBlob(Utilities.base64Decode(payload.base64), payload.mimeType || 'application/octet-stream', fileName);
+      const newFile = folder.createFile(blob);
+      fileUrl = newFile.getUrl();
+      fileId = newFile.getId();
+    } else if (payload.method === 'DRIVE' || payload.method === 'URL') {
+      const srcId = extractDriveId_(payload.driveFileId || payload.url || payload.fileId);
+      if (!srcId) throw new Error('ไม่พบ Google Drive File ID หรือ URL ที่ถูกต้อง');
+      try {
+        const sourceFile = DriveApp.getFileById(srcId);
+        if (!payload.fileName) fileName = sourceFile.getName();
+        const newFile = sourceFile.makeCopy(fileName, folder);
+        fileUrl = newFile.getUrl();
+        fileId = newFile.getId();
+      } catch (err) {
+        try {
+          const sourceFile = DriveApp.getFileById(srcId);
+          const blob = sourceFile.getBlob();
+          const newFile = folder.createFile(blob).setName(fileName);
+          fileUrl = newFile.getUrl();
+          fileId = newFile.getId();
+        } catch (e2) {
+          fileUrl = 'https://drive.google.com/file/d/' + srcId + '/view';
+          fileId = srcId;
+        }
+      }
+    } else {
+      throw new Error('Invalid method: ' + payload.method);
+    }
+    
+    const shouldReplace = payload.replace !== false;
+    const oldFiles = findMany_('WorkFiles', {ConferenceID: conferenceId, WorkID: workId, FileCategory: cat});
+    if (shouldReplace) {
+      oldFiles.forEach(function(f) {
+        if (bool_(f.Active)) {
+          updateRecord_('WorkFiles', f.__row, {Active: false, UpdatedAt: new Date()});
+        }
+      });
+    }
+    const versionNo = oldFiles.length + 1;
+    const wfId = nextId_('WF');
+    
+    appendRecord_('WorkFiles', {
+      WorkFileID: wfId,
+      ConferenceID: conferenceId,
+      WorkID: workId,
+      RegID: regId,
+      AssignmentID: '',
+      FileCategory: cat,
+      VersionNo: versionNo,
+      FileName: fileName,
+      FileId: fileId,
+      FileUrl: fileUrl,
+      MimeType: payload.mimeType || 'application/octet-stream',
+      FileSize: payload.fileSize || 0,
+      UploadedBy: ctx.user.UserID || ctx.user.Email,
+      UploadedAt: new Date(),
+      Active: true,
+      ReplacedFileID: (shouldReplace && oldFiles.length) ? (oldFiles[oldFiles.length - 1].WorkFileID || '') : '',
+      Note: cat === 'BLIND' ? 'Blind Review File attached by Admin' : ''
+    });
+    
+    logAudit_(conferenceId, ctx.user, ctx.role, 'UPLOAD_WORK_FILE', 'WorkFiles', wfId, {
+      WorkID: workId,
+      FileName: fileName,
+      FileCategory: cat,
+      VersionNo: versionNo
+    });
+    
+    return { success: true, url: fileUrl, fileId: fileId, workFileId: wfId };
+  });
+}
+
+/** ===== Missing Admin API functions for admin.html ===== **/
+
+/**
+ * adminBootstrap â€” เรียกหลัง login หรือ auto-login สำเร็จ
+ * คืนข้อมูล user, role, conference, settings เพื่อ render เมนูและ dashboard
+ */
+function adminBootstrap(token, conferenceId) {
+  return runSafely_('adminBootstrap', function() {
+    const ctx = requireSession_(token, null, conferenceId);
+    const conf = findOne_('Conferences', { ConferenceID: ctx.conferenceId });
+    if (!conf) throw new Error('ไม่พบข้อมูลงานประชุม');
+    const settings = settingsMap_(ctx.conferenceId);
+    return {
+      user: serialize_({
+        UserID: ctx.user.UserID,
+        FullName: ctx.user.FullName,
+        Email: ctx.user.Email,
+        Role: ctx.role
+      }),
+      role: ctx.role,
+      conference: serialize_(conf),
+      settings: settings
+    };
+  });
+}
+
+/**
+ * adminDashboard â€” ข้อมูลสรุปสำหรับหน้า Dashboard ของ admin
+ */
+function adminDashboard(token, conferenceId, forceRefresh, filters) {
+  return runSafely_('adminDashboard', function() {
+    requireSession_(token, null, conferenceId);
+    const cid = conferenceId || APP.DEFAULT_CONFERENCE_ID;
+    const cacheKey = 'DASH_' + cid + (filters && filters.type ? '_' + filters.type : '');
+
+    // ถ้ามี cache ใช้ก่อน
+    if (!forceRefresh) {
+      const cached = CacheService.getScriptCache().get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    }
+
+    let regs = findMany_('Registrations', { ConferenceID: cid });
+    const worksData = findMany_('Works', { ConferenceID: cid });
+    
+    // Extract participant types for dropdown filter
+    const participantTypes = [];
+    
+    // Compute charts using UNFILTERED regs so charts always show the full comparison
+    var chartRegByType = {};
+    var worksIntentByType = {};
+    var regTypeMap = {};
+    
+    regs.forEach(function(r) {
+      var t = r.ParticipantType || 'ไม่ระบุ';
+      if (participantTypes.indexOf(t) < 0) participantTypes.push(t);
+      regTypeMap[r.RegID] = t;
+      
+      // Chart 1: Reg by type
+      if (!chartRegByType[t]) chartRegByType[t] = 0;
+      chartRegByType[t]++;
+      
+      // Chart 2: Intent by type
+      if (!worksIntentByType[t]) worksIntentByType[t] = { intent: 0, actual: 0 };
+      if (bool_(r.WantsSubmitWork)) {
+        worksIntentByType[t].intent++;
+      }
+    });
+    
+    // Fetch PresentationTypes to map ID to Name
+    var ptMap = {};
+    findMany_('PresentationTypes', { ConferenceID: cid }).forEach(function(pt) {
+      ptMap[pt.PresentationTypeID] = pt.TypeNameTH || pt.TypeCode || pt.PresentationTypeID;
+    });
+
+    var categories = {};
+    findMany_('WorkCategories', { ConferenceID: cid }).forEach(function(c) {
+      categories[c.CategoryID] = c;
+    });
+
+    // Chart 3: Works by INTERNAL / EXTERNAL
+    var chartWorksByStatus = {};
+    var chartWorksByCategory = {};
+    worksData.forEach(function(w) {
+      var pt = regTypeMap[w.RegID] || 'ไม่ระบุ';
+      var s = pt.toUpperCase().indexOf('INTERNAL') >= 0 ? 'INTERNAL' : (pt.toUpperCase().indexOf('EXTERNAL') >= 0 ? 'EXTERNAL' : pt);
+      if (!chartWorksByStatus[s]) chartWorksByStatus[s] = 0;
+      chartWorksByStatus[s]++;
+      
+      // Works by Category
+      var cat = w.CategoryID ? (categories[w.CategoryID] ? categories[w.CategoryID].CategoryNameTH : w.CategoryID) : 'ไม่ระบุ';
+      if (!chartWorksByCategory[cat]) chartWorksByCategory[cat] = 0;
+      chartWorksByCategory[cat]++;
+      
+      // Actual works by type
+      var t = regTypeMap[w.RegID] || 'ไม่ระบุ';
+      if (!worksIntentByType[t]) worksIntentByType[t] = { intent: 0, actual: 0 };
+      worksIntentByType[t].actual++;
+    });
+
+    // Now apply filters to `regs` to calculate KPIs for the selected type
+    if (filters && filters.type) {
+      regs = regs.filter(function(r) {
+        return (r.ParticipantType || 'ไม่ระบุ') === filters.type;
+      });
+    }
+
+    const totalRegistrations = regs.length;
+    const incompleteCount = regs.filter(function(r) { return r.DataCompletenessStatus !== 'COMPLETE'; }).length;
+
+    const typeMap = registrationTypeMap_(cid);
+    const paidCount = regs.filter(function(r) {
+      var t = typeMap[r.ParticipantType] || {};
+      return bool_(t.PaymentRequired) && upper_(r.PaymentStatus) === 'APPROVED';
+    }).length;
+
+    // Payments associated with filtered regs
+    const validRegIds = {};
+    regs.forEach(function(r) { validRegIds[r.RegID] = true; });
+
+    var totalRevenue = 0;
+    findMany_('Payments', { ConferenceID: cid }).forEach(function(p) {
+      if (validRegIds[p.RegID] && upper_(p.Status) === 'APPROVED') totalRevenue += num_(p.Amount);
+    });
+
+    // Works associated with filtered regs
+    const works = worksData.filter(function(w) { return validRegIds[w.RegID]; });
+    const totalWorks = works.length;
+    const underReviewCount = works.filter(function(w) { return upper_(w.Status) === 'UNDER_REVIEW'; }).length;
+
+    const validWorkIds = {};
+    works.forEach(function(w) { validWorkIds[w.WorkID] = true; });
+
+    const assignments = findMany_('ReviewAssignments', { ConferenceID: cid }).filter(function(a) {
+      return validWorkIds[a.WorkID];
+    });
+    const completedReviews = assignments.filter(function(a) { return ['COMPLETE', 'LOCKED'].indexOf(upper_(a.Status)) >= 0; }).length;
+
+    const mealRedeemedCount = findMany_('MealEntitlements', { ConferenceID: cid }).filter(function(e) { 
+      return validRegIds[e.RegID] && upper_(e.Status) === 'REDEEMED'; 
+    }).length;
+
+    const result = {
+      totalRegistrations: totalRegistrations,
+      incompleteCount: incompleteCount,
+      paidCount: paidCount,
+      totalRevenue: totalRevenue,
+      totalWorks: totalWorks,
+      underReviewCount: underReviewCount,
+      completedReviews: completedReviews,
+      mealRedeemedCount: mealRedeemedCount,
+      participantTypes: participantTypes,
+      chartRegByType: chartRegByType,
+      chartWorksIntent: worksIntentByType,
+      chartWorksByStatus: chartWorksByStatus
+    };
+
+    try { CacheService.getScriptCache().put(cacheKey, JSON.stringify(result), APP.CACHE_SECONDS); } catch (ignore) {}
+    return result;
+  });
+}
+
+/**
+ * adminListRegistrations â€” รายการผู้ลงทะเบียนทั้งหมดสำหรับ admin
+ */
+function adminListRegistrations(token, conferenceId, filters) {
+  return runSafely_('adminListRegistrations', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'], conferenceId);
+    filters = filters || {};
+    var rows = findMany_('Registrations', { ConferenceID: conferenceId });
+
+    if (filters.q) {
+      var q = clean_(filters.q).toLowerCase();
+      rows = rows.filter(function(r) {
+        return [r.RegID, r.FullName, r.Email, r.Phone, r.CID].join(' ').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    if (filters.status) {
+      rows = rows.filter(function(r) { return upper_(r.RegistrationStatus) === upper_(filters.status); });
+    }
+
+    rows.sort(function(a, b) { return String(b.CreatedAt || '').localeCompare(String(a.CreatedAt || '')); });
+    return serialize_(rows);
+  });
+}
+
+/**
+ * adminUpdateRegistrationStatus â€” อัปเดตสถานะลงทะเบียน (ตรวจผ่าน / ส่งคืน)
+ */
+function adminUpdateRegistrationStatus(token, conferenceId, regId, newStatus, note) {
+  return runSafely_('adminUpdateRegistrationStatus', function() {
+    var ctx = requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'], conferenceId);
+    var r = findOne_('Registrations', { ConferenceID: conferenceId, RegID: regId });
+    if (!r) throw new Error('ไม่พบผู้ลงทะเบียน');
+
+    var patch = { RegistrationStatus: newStatus, Note: clean_(note) || r.Note, UpdatedAt: new Date(), LastModifiedBy: ctx.user.Email };
+
+    // ถ้าตรวจผ่านและข้อมูลครบ ตั้งเป็น COMPLETED ถ้า payment ไม่ต้อง
+    if (newStatus === 'REGISTRATION_VERIFIED') {
+      var type = registrationTypeMap_(conferenceId)[r.ParticipantType] || {};
+      if (!bool_(type.PaymentRequired) || upper_(r.PaymentStatus) === 'APPROVED') {
+        patch.RegistrationStatus = 'COMPLETED';
+      }
+    }
+
+    updateRecord_('Registrations', r.__row, patch);
+    invalidateCache_(conferenceId);
+
+    // ส่ง email แจ้งสถานะ
+    sendRegistrationStatusEmail_(conferenceId, r, patch.RegistrationStatus, note, ctx.user);
+
+    // ลอง auto issue meal pass
+    var mealPass = { sent: false, reason: '' };
+    try { mealPass = maybeAutoIssueMealPass_(conferenceId, regId, 'STATUS_UPDATE'); } catch (ignore) {}
+
+    logAudit_(conferenceId, ctx.user, ctx.role, 'UPDATE_REG_STATUS', 'Registration', regId, { newStatus: patch.RegistrationStatus, note: note });
+    return { newStatus: patch.RegistrationStatus, mealPass: mealPass };
+  });
+}
+
+/**
+ * adminListWorks â€” รายการผลงานวิชาการทั้งหมด
+ */
+function adminListWorks(token, conferenceId, filters) {
+  return runSafely_('adminListWorks', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'ACADEMIC_STAFF'], conferenceId);
+    filters = filters || {};
+
+    var works = findMany_('Works', { ConferenceID: conferenceId });
+    var authorsByWork = {};
+    findMany_('WorkAuthors', { ConferenceID: conferenceId }).forEach(function(a) {
+      (authorsByWork[a.WorkID] || (authorsByWork[a.WorkID] = [])).push(a);
+    });
+    var assigns = findMany_('ReviewAssignments', { ConferenceID: conferenceId });
+    var asc = assigns.reduce(function(acc, c) {
+      if (upper_(c.Status) !== 'CANCELLED' && upper_(c.Status) !== 'DECLINED') {
+        if (!acc[c.WorkID]) acc[c.WorkID] = { a: 0, c: 0, t: 0 };
+        acc[c.WorkID].a++;
+        if (['COMPLETE', 'LOCKED'].indexOf(upper_(c.Status)) >= 0) { acc[c.WorkID].c++; acc[c.WorkID].t += num_(c.TotalScore); }
+      }
+      return acc;
+    }, {});
+
+    var filesByWork = {};
+    findMany_('WorkFiles', { ConferenceID: conferenceId }).filter(function(f) { return bool_(f.Active); }).forEach(function(f) {
+      (filesByWork[f.WorkID] || (filesByWork[f.WorkID] = [])).push(f);
+    });
+
+    var categories = {};
+    findMany_('WorkCategories', { ConferenceID: conferenceId }).forEach(function(c) { categories[c.CategoryID] = c; });
+
+    var regs = findMany_('Registrations', { ConferenceID: conferenceId });
+    var regMap = {};
+    regs.forEach(function(r) { regMap[r.RegID] = r; });
+
+    var rows = works.map(function(w) {
+      var ac = asc[w.WorkID] || { a: 0, c: 0, t: 0 };
+      var presenter = (authorsByWork[w.WorkID] || []).find(function(a) { return bool_(a.IsPresenter); }) || {};
+      var cat = categories[w.CategoryID] || {};
+      var regId = w.RegID || presenter.RegID || '';
+      var reg = regMap[regId] || {};
+      return {
+        WorkID: w.WorkID,
+        RegID: regId,
+        WorkCode: w.WorkCode || w.WorkID,
+        TitleTH: w.TitleTH || '',
+        TitleEN: w.TitleEN || '',
+        ThaiTitle: w.TitleTH || '',
+        EnglishTitle: w.TitleEN || '',
+        WorkType: cat.CategoryNameTH || '',
+        Field: cat.CategoryNameTH || '',
+        Theme: cat.CategoryNameTH || '',
+        Status: w.Status || '',
+        CurrentStatus: w.Status || '',
+        RegistrationStatus: reg.RegistrationStatus || '',
+        PresenterName: presenter.FullName || '',
+        PresenterEmail: presenter.Email || '',
+        ReviewerAssignedCount: ac.a,
+        ReviewerCompletedCount: ac.c,
+        AverageScore: ac.c ? ac.t / ac.c : 0,
+        authors: serialize_(authorsByWork[w.WorkID] || []),
+        files: serialize_(filesByWork[w.WorkID] || [])
+      };
+    });
+
+    if (filters.q) {
+      var q = clean_(filters.q).toLowerCase();
+      rows = rows.filter(function(x) {
+        return [x.WorkCode, x.TitleTH, x.TitleEN, x.PresenterName].join(' ').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    if (filters.status) {
+      rows = rows.filter(function(x) { return upper_(x.Status) === upper_(filters.status); });
+    }
+
+    rows.sort(function(a, b) { return String(a.WorkCode).localeCompare(String(b.WorkCode)); });
+    return serialize_(rows);
+  });
+}
+
+/**
+ * getAdminSettings â€” ดึงค่าตั้งค่าสำหรับหน้า Settings ของ admin
+ */
+function getAdminSettings(token, conferenceId) {
+  return runSafely_('getAdminSettings', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN'], conferenceId);
+    var conf = findOne_('Conferences', { ConferenceID: conferenceId });
+    if (!conf) throw new Error('ไม่พบข้อมูลงานประชุม');
+    return {
+      conference: serialize_(conf),
+      settings: serialize_(findMany_('Settings', { ConferenceID: conferenceId })),
+      optionConfig: getRegistrationOptionMap_(conferenceId)
+    };
+  });
+}
+
+/**
+ * adminGetRegistrationSignSheet â€” ข้อมูลสำหรับพิมพ์ใบเซ็นชื่อ
+ */
+function adminGetRegistrationSignSheet(token, conferenceId, options) {
+  return runSafely_('adminGetRegistrationSignSheet', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'REGISTRATION_STAFF'], conferenceId);
+    options = options || {};
+    var eventDates = jsonParse_(getSetting_(conferenceId, 'EVENT_DATES_JSON', '[]'), []);
+    var conf = findOne_('Conferences', { ConferenceID: conferenceId }) || {};
+    var rows = findMany_('Registrations', { ConferenceID: conferenceId });
+
+    // กรองตามตัวเลือก
+    if (options.participantType) {
+      if (options.participantType === 'INTERNAL') {
+        rows = rows.filter(function(r) { return r.ParticipantType === 'INTERNAL'; });
+      } else if (options.participantType === 'EXTERNAL') {
+        rows = rows.filter(function(r) { return r.ParticipantType !== 'INTERNAL'; });
+      }
+    }
+    if (options.q) {
+      var q = clean_(options.q).toLowerCase();
+      rows = rows.filter(function(r) { return [r.RegID, r.FullName, r.Email].join(' ').toLowerCase().indexOf(q) >= 0; });
+    }
+    if (options.status) {
+      rows = rows.filter(function(r) { return upper_(r.RegistrationStatus) === upper_(options.status); });
+    }
+    if (options.organization) {
+      var org = clean_(options.organization).toLowerCase();
+      rows = rows.filter(function(r) { return [r.OrganizationGroup, r.OrganizationUnit, r.Institution].join(' ').toLowerCase().indexOf(org) >= 0; });
+    }
+    if (!options.includeIncomplete) {
+      rows = rows.filter(function(r) { return r.DataCompletenessStatus === 'COMPLETE' && ['CANCELLED', 'REGISTRATION_RETURNED'].indexOf(upper_(r.RegistrationStatus)) < 0; });
+    }
+    if (options.dayIndex && options.dayIndex > 0) {
+      var dayField = 'AttendanceDay' + options.dayIndex;
+      rows = rows.filter(function(r) { return bool_(r[dayField]); });
+    }
+
+    rows.sort(function(a, b) { return String(a.RegID || '').localeCompare(String(b.RegID || '')); });
+
+    return {
+      conference: serialize_(conf),
+      eventDates: eventDates,
+      rows: serialize_(rows),
+      generatedAt: new Date()
+    };
+  });
+}
+
+function adminGetWorkScoreSummary(token, conferenceId, workId) {
+  return runSafely_('adminGetWorkScoreSummary', function() {
+    requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'ACADEMIC_STAFF'], conferenceId);
+    
+    var work = findOne_('Works', { ConferenceID: conferenceId, WorkID: workId });
+    if (!work) throw new Error('ไม่พบข้อมูลผลงาน');
+    
+    var authors = findMany_('WorkAuthors', { ConferenceID: conferenceId, WorkID: workId });
+    var assignments = findMany_('ReviewAssignments', { ConferenceID: conferenceId, WorkID: workId });
+    var scores = findMany_('ReviewScores', { ConferenceID: conferenceId, WorkID: workId });
+    var criteria = findMany_('ScoringCriteria', { ConferenceID: conferenceId });
+    
+    return {
+      work: serialize_(work),
+      authors: serialize_(authors),
+      assignments: serialize_(assignments),
+      scores: serialize_(scores),
+      criteria: serialize_(criteria)
+    };
+  });
+}
+
+function adminUpdateWorkStatus(token, conferenceId, workId, newStatus) {
+  return runSafely_('adminUpdateWorkStatus', function() {
+    var ctx = requireSession_(token, ['SUPERADMIN', 'CONFERENCE_ADMIN', 'ACADEMIC_STAFF'], conferenceId);
+    var w = findOne_('Works', { ConferenceID: conferenceId, WorkID: workId });
+    if (!w) throw new Error('ไม่พบข้อมูลผลงาน');
+    updateRecord_('Works', w.__row, { Status: newStatus, UpdatedAt: new Date(), LastModifiedBy: ctx.user.Email });
+    return { newStatus: newStatus };
+  });
+}
+
+function requestPasswordReset(email, conferenceId) {
+  return runSafely_('requestPasswordReset', function() {
+    const e = normalizeEmail_(email);
+    if (!e) throw new Error('กรุณากรอกอีเมล');
+    let u = findOne_('Users', {Email: e});
+    if (!u) throw new Error('ไม่พบข้อมูลอีเมลในระบบ');
+    
+    const tempPass = Math.random().toString(36).slice(-8);
+    const salt = uuid_();
+    updateRecord_('Users', u.__row, {PasswordHash: hashPassword_(tempPass, salt), Salt: salt, UpdatedAt: new Date()});
+    
+    const html = `<p>เรียนคุณ ${u.FullName}</p><p>ระบบได้ทำการตั้งรหัสผ่านใหม่สำหรับการเข้าสู่ระบบของคุณแล้ว</p><p>อีเมล: ${e}<br>รหัสผ่านใหม่: <b>${tempPass}</b></p><p><a href="${buildWebAppRouteUrl_('login', conferenceId)}">เข้าสู่ระบบคลิกที่นี่</a></p><p>หากคุณไม่ได้ร้องขอการตั้งรหัสผ่านใหม่ โปรดติดต่อผู้ดูแลระบบ</p>`;
+    sendEmailLogged_(conferenceId, e, 'รหัสผ่านใหม่สำหรับการเข้าสู่ระบบ', html, 'ACCOUNT', u.UserID, null);
+    
+    return {success: true};
+  });
+}
+
+function registerNewUser(payload, conferenceId) {
+  return runSafely_('registerNewUser', function() {
+    const e = normalizeEmail_(payload.Email);
+    if (!e) throw new Error('กรุณากรอกอีเมล');
+    if (!payload.Password) throw new Error('กรุณากรอกรหัสผ่าน');
+    if (!payload.FirstName || !payload.LastName) throw new Error('กรุณากรอกชื่อและนามสกุล');
+    
+    const exist = findOne_('Users', {Email: e});
+    if (exist) throw new Error('อีเมลนี้มีอยู่ในระบบแล้ว');
+    
+    const salt = uuid_();
+    const uid = nextId_('USR');
+    
+    // Map selected roles to backend roles
+    // options: 'REGISTRATION_STAFF', 'FOOD_STAFF', 'ACADEMIC_STAFF', 'REVIEWER'
+    const roleMap = {
+      'Registration': 'REGISTRATION_STAFF',
+      'Scanner': 'FOOD_STAFF',
+      'Academic': 'ACADEMIC_STAFF',
+      'Reviewer': 'REVIEWER'
+    };
+    const mappedRole = roleMap[payload.Role] || 'REVIEWER';
+    
+    appendRecord_('Users', {
+      UserID: uid,
+      Username: payload.Username || e,
+      Email: e,
+      PasswordHash: hashPassword_(payload.Password, salt),
+      Salt: salt,
+      Prefix: clean_(payload.Prefix),
+      FirstName: clean_(payload.FirstName),
+      LastName: clean_(payload.LastName),
+      FullName: [payload.Prefix, payload.FirstName, payload.LastName].filter(Boolean).join(' '),
+      Phone: normalizePhone_(payload.Phone),
+      Organization: clean_(payload.Organization),
+      Role: mappedRole,
+      Status: 'PENDING',
+      CreatedAt: new Date(),
+      UpdatedAt: new Date()
+    });
+    
+    return {success: true};
+  });
+}
+
+
+
+/** ===== Combined from gas/ApiActions.gs ===== **/
+/** Actions discovered from the production frontends. Do not expose arbitrary globals. */
+const API_ACTIONS = Object.freeze({
+  adminAddReviewer: adminAddReviewer,
+  adminAddUser: adminAddUser,
+  adminAssignReviewersBulk: adminAssignReviewersBulk,
+  adminBootstrap: adminBootstrap,
+  adminDashboard: adminDashboard,
+  adminGetRegistration: adminGetRegistration,
+  adminGetRegistrationSignSheet: adminGetRegistrationSignSheet,
+  adminGetReviewConfig: adminGetReviewConfig,
+  adminGetReviewer: adminGetReviewer,
+  adminGetUserScanHistory: adminGetUserScanHistory,
+  adminGetWorkScoreSummary: adminGetWorkScoreSummary,
+  adminListMealPasses: adminListMealPasses,
+  adminListPayments: adminListPayments,
+  adminListRegistrations: adminListRegistrations,
+  adminListReviewers: adminListReviewers,
+  adminListUsers: adminListUsers,
+  adminListWorks: adminListWorks,
+  adminPreviewMealPass: adminPreviewMealPass,
+  adminResendReviewerCreds: adminResendReviewerCreds,
+  adminResetAndInitDatabase: adminResetAndInitDatabase,
+  adminSaveRegistration: adminSaveRegistration,
+  adminSearchDriveFiles: adminSearchDriveFiles,
+  adminSeedSampleData: adminSeedSampleData,
+  adminSendDirectEmail: adminSendDirectEmail,
+  adminSendMealPasses: adminSendMealPasses,
+  adminUpdateRegistrationStatus: adminUpdateRegistrationStatus,
+  adminUpdateReviewer: adminUpdateReviewer,
+  adminUpdateUserStatus: adminUpdateUserStatus,
+  adminUpdateWorkStatus: adminUpdateWorkStatus,
+  adminUploadWorkFiles: adminUploadWorkFiles,
+  adminVerifyPayment: adminVerifyPayment,
+  commitImportBatch: commitImportBatch,
+  confirmEventScanner: confirmEventScanner,
+  emailMyMealPass: emailMyMealPass,
+  exportWorksToExcel: exportWorksToExcel,
+  getAdminSettings: getAdminSettings,
+  getEventScannerBootstrap: getEventScannerBootstrap,
+  getEventScannerRecent: getEventScannerRecent,
+  getMealPass: getMealPass,
+  getPublicBootstrap: getPublicBootstrap,
+  inspectEventScanner: inspectEventScanner,
+  loginUser: loginUser,
+  logoutUser: logoutUser,
+  lookupRegistrationForEdit: lookupRegistrationForEdit,
+  registerNewUser: registerNewUser,
+  replaceWorkFile: replaceWorkFile,
+  requestPasswordReset: requestPasswordReset,
+  reviewerBootstrap: reviewerBootstrap,
+  reviewerGetAssignment: reviewerGetAssignment,
+  reviewerSaveReview: reviewerSaveReview,
+  saveAdminSettings: saveAdminSettings,
+  saveRegistrationEdit: saveRegistrationEdit,
+  submitRegistration: submitRegistration,
+  submitWork: submitWork,
+  uploadExcelForImport: uploadExcelForImport,
+  uploadPaymentSlip: uploadPaymentSlip,
+  verifyWorkAccess: verifyWorkAccess
+});
+
+const API_WRITE_ACTIONS = Object.freeze({
+  adminAddReviewer:1, adminAddUser:1, adminAssignReviewersBulk:1,
+  adminResendReviewerCreds:1, adminSaveRegistration:1, adminSendDirectEmail:1,
+  adminSendMealPasses:1, adminUpdateRegistrationStatus:1, adminUpdateReviewer:1,
+  adminUpdateUserStatus:1, adminUpdateWorkStatus:1, adminUploadWorkFiles:1,
+  adminVerifyPayment:1, commitImportBatch:1, confirmEventScanner:1,
+  emailMyMealPass:1, loginUser:1, logoutUser:1, registerNewUser:1,
+  replaceWorkFile:1, requestPasswordReset:1, reviewerSaveReview:1,
+  saveAdminSettings:1, saveRegistrationEdit:1, submitRegistration:1,
+  submitWork:1, uploadExcelForImport:1, uploadPaymentSlip:1
+});
+
+
+
+/** ===== Combined from gas/ApiSecurity.gs ===== **/
+const API_PERMISSION_MAP = Object.freeze({
+  PUBLIC: Object.freeze([
+    'getPublicBootstrap','submitRegistration','lookupRegistrationForEdit',
+    'saveRegistrationEdit','uploadPaymentSlip','verifyWorkAccess','submitWork',
+    'replaceWorkFile','emailMyMealPass','getMealPass','loginUser',
+    'requestPasswordReset','registerNewUser'
+  ]),
+  REVIEWER: Object.freeze(['reviewerBootstrap','reviewerGetAssignment','reviewerSaveReview']),
+  SCANNER: Object.freeze([
+    'getEventScannerBootstrap','inspectEventScanner','confirmEventScanner',
+    'getEventScannerRecent'
+  ])
+});
+
+const API_ADMIN_ROLES = Object.freeze([
+  'SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FINANCE_STAFF',
+  'ACADEMIC_STAFF','FOOD_STAFF','VIEWER'
+]);
+
+function apiValidateEnvelope_(body) {
+  if (!body || typeof body !== 'object') throw apiError_('VALIDATION_ERROR','รูปแบบคำขอไม่ถูกต้อง');
+  if (!/^[A-Za-z][A-Za-z0-9_]{1,80}$/.test(String(body.action || ''))) {
+    throw apiError_('VALIDATION_ERROR','ชื่อคำสั่งไม่ถูกต้อง');
+  }
+  if (!Array.isArray(body.args) || body.args.length > 20) {
+    throw apiError_('VALIDATION_ERROR','พารามิเตอร์ไม่ถูกต้อง');
+  }
+  if (!/^[A-Za-z0-9-]{8,100}$/.test(String(body.requestId || ''))) {
+    throw apiError_('VALIDATION_ERROR','requestId ไม่ถูกต้อง');
+  }
+  const timestamp = Number(body.timestamp);
+  if (!isFinite(timestamp) || Math.abs(Date.now() - timestamp) > 5 * 60 * 1000) {
+    throw apiError_('STALE_REQUEST','คำขอหมดอายุ');
+  }
+}
+
+function apiValidateSecret_(secret) {
+  const expected = PropertiesService.getScriptProperties().getProperty('TUH_API_SECRET');
+  if (!expected || !secret || !apiConstantTimeEqual_(String(expected), String(secret))) {
+    throw apiError_('UNAUTHORIZED_PROXY','ไม่อนุญาตให้เชื่อมต่อ API');
+  }
+}
+
+function apiConstantTimeEqual_(a,b) {
+  const aa = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, a);
+  const bb = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, b);
+  let diff = aa.length ^ bb.length;
+  for (let i=0;i<Math.max(aa.length,bb.length);i++) diff |= (aa[i % aa.length] ^ bb[i % bb.length]);
+  return diff === 0;
+}
+
+function apiAuthorize_(action,args) {
+  if (API_PERMISSION_MAP.PUBLIC.indexOf(action) >= 0) return null;
+  if (action === 'logoutUser') return requireSession_(args[0], null, null);
+  if (API_PERMISSION_MAP.REVIEWER.indexOf(action) >= 0) return requireSession_(args[0], ['REVIEWER'], args[1]);
+  if (API_PERMISSION_MAP.SCANNER.indexOf(action) >= 0) {
+    return requireSession_(args[0], ['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'], args[1]);
+  }
+  if (action.indexOf('admin') === 0 || [
+    'getAdminSettings','saveAdminSettings','uploadExcelForImport',
+    'commitImportBatch','exportWorksToExcel'
+  ].indexOf(action) >= 0) return requireSession_(args[0], API_ADMIN_ROLES, args[1]);
+  throw apiError_('FORBIDDEN','ไม่มีสิทธิ์ใช้คำสั่งนี้');
+}
+
+function apiError_(code,message) {
+  const error = new Error(message);
+  error.apiCode = code;
+  return error;
+}
+
+function apiClaimRequest_(requestId) {
+  const cache = CacheService.getScriptCache();
+  const key = 'api_request_' + requestId;
+  if (cache.get(key)) throw apiError_('DUPLICATE_REQUEST','คำขอนี้ถูกประมวลผลแล้ว');
+  cache.put(key, 'PROCESSING', 600);
+  return key;
+}
+
+function apiCompleteRequest_(key) {
+  if (key) CacheService.getScriptCache().put(key, 'DONE', 21600);
+}
+
+function apiReleaseRequest_(key) {
+  if (key) CacheService.getScriptCache().remove(key);
+}
+
+
+
+/** ===== Combined from gas/ApiResponse.gs ===== **/
+function apiJson_(payload) {
+  return ContentService.createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function apiSuccess_(data,requestId) {
+  return {success:true,data:data,message:'',requestId:requestId};
+}
+
+function apiFailure_(error,requestId) {
+  const known = error && error.apiCode;
+  return {
+    success:false,
+    message: known ? error.message : 'ไม่สามารถดำเนินการได้ กรุณาติดต่อผู้ดูแลระบบ',
+    errorCode: known || 'INTERNAL_ERROR',
+    requestId:requestId || ''
+  };
+}
+
+
+
+/** ===== Combined from gas/ApiGateway.gs ===== **/
+function doPost(e) {
+  let body = null;
+  let requestId = '';
+  let claimKey = '';
+  try {
+    if (!e || !e.postData || !e.postData.contents) throw apiError_('INVALID_JSON','ไม่พบข้อมูลคำขอ');
+    if (e.postData.contents.length > 28 * 1024 * 1024) throw apiError_('PAYLOAD_TOO_LARGE','ข้อมูลมีขนาดใหญ่เกินกำหนด');
+    body = JSON.parse(e.postData.contents);
+    requestId = String(body.requestId || '');
+    apiValidateEnvelope_(body);
+    apiValidateSecret_(body.secret);
+    const action = String(body.action);
+    const fn = API_ACTIONS[action];
+    if (!fn) throw apiError_('ACTION_NOT_ALLOWED','ไม่อนุญาตให้เรียกคำสั่งนี้');
+    apiAuthorize_(action, body.args);
+    if (API_WRITE_ACTIONS[action]) claimKey = apiClaimRequest_(requestId);
+    const legacyResult = fn.apply(null, body.args);
+    if (!legacyResult || legacyResult.success !== true) {
+      const message = legacyResult && legacyResult.message ? legacyResult.message : 'ไม่สามารถดำเนินการได้';
+      throw apiError_(legacyResult && legacyResult.errorCode || 'ACTION_FAILED', message);
+    }
+    apiCompleteRequest_(claimKey);
+    return apiJson_(apiSuccess_(legacyResult.data, requestId));
+  } catch (error) {
+    apiReleaseRequest_(claimKey);
+    try { logSystem_('doPost:' + (body && body.action || 'unknown'), error); } catch (ignore) {}
+    return apiJson_(apiFailure_(error, requestId));
+  }
+}
+
+
+
+/** ===== Combined from gas/ApiSetupAndTests.gs ===== **/
+function setupVercelIntegration(frontendUrl, apiSecret) {
+  if (!/^https:\/\//i.test(String(frontendUrl || ''))) throw new Error('Frontend URL ต้องเป็น HTTPS');
+  if (String(apiSecret || '').length < 32) throw new Error('API Secret ต้องยาวอย่างน้อย 32 ตัวอักษร');
+  PropertiesService.getScriptProperties().setProperties({
+    TUH_FRONTEND_URL: String(frontendUrl).replace(/\/+$/,''),
+    TUH_API_SECRET: String(apiSecret)
+  });
+  return {success:true,frontendUrl:String(frontendUrl).replace(/\/+$/,'')};
+}
+
+function testApiConfiguration() {
+  const p = PropertiesService.getScriptProperties();
+  return {
+    success: !!p.getProperty('TUH_API_SECRET') && !!p.getProperty('TUH_FRONTEND_URL'),
+    frontendConfigured: !!p.getProperty('TUH_FRONTEND_URL'),
+    secretConfigured: !!p.getProperty('TUH_API_SECRET')
+  };
+}
+
+function testDatabaseConnection() {
+  const ss = getSpreadsheet_();
+  return {success:true,spreadsheetName:ss.getName(),sheetCount:ss.getSheets().length};
+}
+
+function testDriveConnection() {
+  const folders = jsonParse_(getSetting_(APP.DEFAULT_CONFERENCE_ID,'DRIVE_FOLDERS_JSON','{}'),{});
+  const checked = Object.keys(folders).map(function(name){
+    const folder = DriveApp.getFolderById(folders[name]);
+    return {name:name,id:folder.getId(),accessible:true};
+  });
+  return {success:true,folders:checked};
+}
+
+function validateDatabaseSchema() {
+  const ss = getSpreadsheet_();
+  const issues = [];
+  Object.keys(DB_SCHEMA).forEach(function(name){
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) { issues.push({sheet:name,error:'MISSING_SHEET'}); return; }
+    const actual = sheet.getRange(1,1,1,Math.max(sheet.getLastColumn(),1)).getDisplayValues()[0];
+    DB_SCHEMA[name].forEach(function(header,index){
+      if (actual[index] !== header) issues.push({sheet:name,column:index+1,expected:header,actual:actual[index]||''});
+    });
+  });
+  return {success:issues.length===0,issues:issues,sheetCount:Object.keys(DB_SCHEMA).length};
+}
+
+function testPublicApi() {
+  return getPublicBootstrap(APP.DEFAULT_CONFERENCE_ID);
+}
+
+function testAuthenticatedApi(token) {
+  const context = requireSession_(token, null, APP.DEFAULT_CONFERENCE_ID);
+  return {success:true,data:{userId:context.user.UserID,role:context.role}};
+}

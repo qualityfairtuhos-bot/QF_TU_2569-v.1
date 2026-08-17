@@ -1,0 +1,10 @@
+{
+  "name": "TUH Quality Fair Conference Management",
+  "description": "Conference management and registration portal for TUH Quality Fair and HA-Regional Forum",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

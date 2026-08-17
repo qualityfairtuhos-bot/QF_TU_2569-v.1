@@ -1,0 +1,59 @@
+# Database Inventory
+
+Workbook: `TUH Quality App.xlsx`. Read-only inspection; no sheet, header, formatting or data was changed.
+
+| # | Sheet | Used range | Columns | Headers |
+|---:|---|---|---:|---|
+| 1 | Conferences | A1:AE2 | 31 | `ConferenceID`, `ConferenceCode`, `ConferenceNameTH`, `ConferenceNameEN`, `ShortName`, `Year`, `Organizer`, `DescriptionTH`, `DescriptionEN`, `PrimaryColor`, `SecondaryColor`, `GreenColor`, `GoldColor`, `LogoFileId`, `LogoUrl`, `Venue`, `Address`, `EventStartAt`, `EventEndAt`, `RegistrationOpenAt`, `RegistrationCloseAt`, `PaymentCloseAt`, `SubmissionOpenAt`, `SubmissionCloseAt`, `ResultAnnouncementAt`, `PresentationUploadOpenAt`, `PresentationUploadCloseAt`, `PublicStatus`, `Status`, `CreatedAt`, `UpdatedAt` |
+| 2 | Settings | A1:K26 | 11 | `SettingID`, `ConferenceID`, `SettingKey`, `SettingValue`, `ValueType`, `GroupName`, `DescriptionTH`, `DescriptionEN`, `IsEditable`, `UpdatedAt`, `UpdatedBy` |
+| 3 | Users | A1:P4 | 16 | `UserID`, `Username`, `Email`, `PasswordHash`, `Salt`, `Prefix`, `FirstName`, `LastName`, `FullName`, `Phone`, `Organization`, `Role`, `Status`, `LastLogin`, `CreatedAt`, `UpdatedAt` |
+| 4 | UserConferenceRoles | A1:H4 | 8 | `UserConferenceRoleID`, `ConferenceID`, `UserID`, `Role`, `PermissionsJson`, `Status`, `AssignedAt`, `AssignedBy` |
+| 5 | Sessions | A1:I44 | 9 | `SessionID`, `ConferenceID`, `UserID`, `Role`, `TokenHash`, `ExpiresAt`, `LastSeenAt`, `ClientInfo`, `Status` |
+| 6 | RegistrationTypes | A1:M4 | 13 | `RegistrationTypeID`, `ConferenceID`, `TypeCode`, `TypeNameTH`, `TypeNameEN`, `IsInternal`, `FeeAmount`, `Quota`, `UsedQuota`, `PaymentRequired`, `WorkRequiresPayment`, `Active`, `SortOrder` |
+| 7 | OrganizationUnits | A1:I53 | 9 | `UnitID`, `ConferenceID`, `ParticipantGroup`, `ParentUnitID`, `UnitLevel`, `UnitNameTH`, `UnitNameEN`, `Active`, `SortOrder` |
+| 8 | Registrations | A1:AO104 | 41 | `RegID`, `ConferenceID`, `SourceType`, `SourceBatchID`, `SourceRowNo`, `SourceTimestamp`, `SourceRespondentEmail`, `ConsentAccepted`, `ConsentVersion`, `ParticipantType`, `Region4Status`, `Prefix`, `FirstName`, `LastName`, `FullName`, `Position`, `OrganizationGroup`, `OrganizationUnit`, `Institution`, `Profession`, `LicenseNo`, `CID`, `Passport`, `Phone`, `LineID`, `Email`, `FoodType`, `FoodAllergyDetail`, `AttendanceDay1`, `AttendanceDay2`, `AttendanceDay3`, `WantsSubmitWork`, `DataCompletenessStatus`, `RegistrationStatus`, `PaymentStatus`, `MealPassStatus`, `EditAccessCodeHash`, `Note`, `CreatedAt`, `UpdatedAt`, `LastModifiedBy` |
+| 9 | Consents | A1:G206 | 7 | `ConsentID`, `ConferenceID`, `RegID`, `ConsentVersion`, `ConsentAccepted`, `AcceptedAt`, `ClientInfo` |
+| 10 | Payments | A1:T2 | 20 | `PaymentID`, `ConferenceID`, `RegID`, `Amount`, `Currency`, `PaymentChannelID`, `SlipFileId`, `SlipFileUrl`, `SlipFileName`, `Status`, `SubmittedAt`, `VerifiedBy`, `VerifiedAt`, `FinanceNote`, `ReceiptNo`, `ReceiptDate`, `ReceiptFileId`, `ReceiptFileUrl`, `CreatedAt`, `UpdatedAt` |
+| 11 | PaymentChannels | A1:L1 | 12 | `PaymentChannelID`, `ConferenceID`, `BankName`, `AccountName`, `AccountNumber`, `PromptPay`, `QRFileId`, `QRFileUrl`, `InstructionTH`, `InstructionEN`, `Active`, `SortOrder` |
+| 12 | ImportBatches | A1:P3 | 16 | `ImportBatchID`, `ConferenceID`, `SourceFileName`, `SourceFileId`, `SourceSheetName`, `UploadedBy`, `UploadedAt`, `TotalRows`, `ReadyRows`, `IncompleteRows`, `WarningRows`, `DuplicateRows`, `ImportedRows`, `Status`, `MappingVersion`, `Note` |
+| 13 | ImportRows | A1:M205 | 13 | `ImportRowID`, `ImportBatchID`, `ConferenceID`, `SourceRowNo`, `SourceTimestamp`, `SourceFingerprint`, `SourceDataJson`, `MappedDataJson`, `ValidationStatus`, `IssueCount`, `ImportStatus`, `ImportedRegID`, `CreatedAt` |
+| 14 | ImportIssues | A1:L401 | 12 | `ImportIssueID`, `ImportBatchID`, `ImportRowID`, `ConferenceID`, `IssueType`, `FieldName`, `MessageTH`, `MessageEN`, `Severity`, `Resolved`, `ResolvedBy`, `ResolvedAt` |
+| 15 | WorkCategories | A1:H6 | 8 | `CategoryID`, `ConferenceID`, `CategoryCode`, `CategoryNameTH`, `CategoryNameEN`, `DescriptionTH`, `Active`, `SortOrder` |
+| 16 | PresentationTypes | A1:K3 | 11 | `PresentationTypeID`, `ConferenceID`, `TypeCode`, `TypeNameTH`, `TypeNameEN`, `PresentationMinutes`, `QAMinutes`, `NeedsRoom`, `NeedsPoster`, `Active`, `SortOrder` |
+| 17 | Works | A1:W3 | 23 | `WorkID`, `ConferenceID`, `RegID`, `WorkCode`, `CategoryID`, `PresentationTypeRequested`, `PresentationTypeFinal`, `TitleTH`, `TitleEN`, `SummaryTH`, `Keywords`, `EthicsRequired`, `EthicsApprovalNo`, `Region4AwardIntent`, `ScreeningStatus`, `ScreeningNote`, `Status`, `FinalDecision`, `RevisionDeadline`, `PresentationUploadStatus`, `CreatedAt`, `UpdatedAt`, `LastModifiedBy` |
+| 18 | WorkAuthors | A1:N3 | 14 | `AuthorID`, `ConferenceID`, `WorkID`, `AuthorOrder`, `Prefix`, `FirstName`, `LastName`, `FullName`, `Position`, `Organization`, `Email`, `Phone`, `IsPresenter`, `IsCorrespondingAuthor` |
+| 19 | WorkFiles | A1:Q11 | 17 | `WorkFileID`, `ConferenceID`, `WorkID`, `RegID`, `AssignmentID`, `FileCategory`, `VersionNo`, `FileName`, `FileId`, `FileUrl`, `MimeType`, `FileSize`, `UploadedBy`, `UploadedAt`, `Active`, `ReplacedFileID`, `Note` |
+| 20 | Templates | A1:K1 | 11 | `TemplateID`, `ConferenceID`, `TemplateKey`, `TemplateNameTH`, `TemplateNameEN`, `DescriptionTH`, `FileId`, `FileUrl`, `Active`, `SortOrder`, `UpdatedAt` |
+| 21 | ReviewRounds | A1:P2 | 16 | `ReviewRoundID`, `ConferenceID`, `RoundNo`, `RoundNameTH`, `RoundNameEN`, `StartAt`, `EndAt`, `MinReviewers`, `MaxReviewers`, `BlindReview`, `AllowEditAfterSubmit`, `AllowDecline`, `CalculationMethod`, `PassingScore`, `Status`, `SortOrder` |
+| 22 | Reviewers | A1:V3 | 22 | `ReviewerID`, `Prefix`, `FirstName`, `LastName`, `FullName`, `Position`, `Institution`, `Department`, `Province`, `HealthRegion`, `Phone`, `Email`, `ExpertiseCategories`, `ExpertiseTypes`, `MaxWorkload`, `Status`, `NotificationPreference`, `LineToken`, `TelegramID`, `Note`, `CreatedAt`, `UpdatedAt` |
+| 23 | ReviewerPool | A1:K3 | 11 | `PoolID`, `ConferenceID`, `ReviewerID`, `ExpertiseCategories`, `ExpertiseTypes`, `MaxWorkload`, `CurrentAssignedCount`, `ConflictOrganizations`, `Status`, `AssignedAt`, `AssignedBy` |
+| 24 | ReviewerConflicts | A1:I1 | 9 | `ConflictID`, `ConferenceID`, `ReviewerID`, `WorkID`, `Organization`, `ConflictType`, `Note`, `Status`, `CreatedAt` |
+| 25 | ReviewAssignments | A1:V3 | 22 | `AssignmentID`, `ConferenceID`, `ReviewRoundID`, `WorkID`, `WorkCode`, `ReviewerID`, `ReviewerName`, `ReviewerEmail`, `AssignedAt`, `AssignedBy`, `Status`, `OpenedAt`, `CompletedAt`, `TotalScore`, `Decision`, `RecommendationToAuthor`, `InternalComment`, `DeclineReason`, `AnnotatedFileId`, `AnnotatedFileUrl`, `Locked`, `UpdatedAt` |
+| 26 | ScoringCriteria | A1:N6 | 14 | `CriteriaID`, `ConferenceID`, `ReviewRoundID`, `CategoryID`, `PresentationTypeID`, `ItemNo`, `CriteriaNameTH`, `CriteriaNameEN`, `DescriptionTH`, `MaxScore`, `WeightPercent`, `RequiredComment`, `Active`, `SortOrder` |
+| 27 | ReviewScores | A1:L11 | 12 | `ScoreID`, `ConferenceID`, `AssignmentID`, `ReviewRoundID`, `WorkID`, `ReviewerID`, `CriteriaID`, `Score`, `WeightedScore`, `Comment`, `CreatedAt`, `UpdatedAt` |
+| 28 | ReviewSummary | A1:L3 | 12 | `SummaryID`, `ConferenceID`, `AssignmentID`, `ReviewRoundID`, `WorkID`, `ReviewerID`, `TotalScore`, `Decision`, `RecommendationToAuthor`, `InternalComment`, `CreatedAt`, `UpdatedAt` |
+| 29 | FinalDecisions | A1:O1 | 15 | `DecisionID`, `ConferenceID`, `WorkID`, `ReviewRoundID`, `DecisionType`, `DecisionBy`, `DecisionAt`, `AverageScore`, `MedianScore`, `ScoreSD`, `Reason`, `AuthorVisibleComment`, `InternalComment`, `IsFinal`, `CreatedAt` |
+| 30 | MealEntitlements | A1:M64 | 13 | `EntitlementID`, `ConferenceID`, `RegID`, `EventDate`, `MealCode`, `MealNameTH`, `Eligible`, `RedeemedAt`, `RedeemedBy`, `ScannerPoint`, `TokenHash`, `Status`, `CreatedAt` |
+| 31 | MealScans | A1:K3 | 11 | `ScanID`, `ConferenceID`, `RegID`, `EntitlementID`, `EventDate`, `MealCode`, `ScanAt`, `ScannerUserID`, `ScannerPoint`, `Result`, `Note` |
+| 32 | AttendanceCheckIns | A1:I3 | 9 | `CheckInID`, `ConferenceID`, `RegID`, `EventDate`, `CheckInAt`, `CheckInPoint`, `CheckedBy`, `Status`, `Note` |
+| 33 | Venues | A1:G1 | 7 | `VenueID`, `ConferenceID`, `VenueNameTH`, `VenueNameEN`, `Address`, `MapUrl`, `Status` |
+| 34 | Rooms | A1:I1 | 9 | `RoomID`, `ConferenceID`, `VenueID`, `RoomCode`, `RoomNameTH`, `RoomNameEN`, `Capacity`, `RoomType`, `Status` |
+| 35 | PresentationSessions | A1:O1 | 15 | `SessionID`, `ConferenceID`, `SessionCode`, `SessionNameTH`, `SessionNameEN`, `PresentationTypeID`, `CategoryID`, `VenueID`, `RoomID`, `SessionDate`, `StartTime`, `EndTime`, `MaxWorks`, `PublishStatus`, `Note` |
+| 36 | PresentationSlots | A1:M1 | 13 | `SlotID`, `ConferenceID`, `SessionID`, `WorkID`, `WorkCode`, `SlotNo`, `PresentationDate`, `StartTime`, `EndTime`, `PresenterCheckInStatus`, `PresentationStatus`, `PublishStatus`, `Note` |
+| 37 | PosterAssignments | A1:K1 | 11 | `PosterAssignmentID`, `ConferenceID`, `WorkID`, `WorkCode`, `PosterNo`, `DisplayDate`, `DisplayStartTime`, `DisplayEndTime`, `Location`, `PublishStatus`, `Note` |
+| 38 | EmailTemplates | A1:L4 | 12 | `EmailTemplateID`, `ConferenceID`, `TemplateKey`, `TemplateNameTH`, `SubjectTH`, `SubjectEN`, `HtmlBodyTH`, `HtmlBodyEN`, `Variables`, `Status`, `UpdatedAt`, `UpdatedBy` |
+| 39 | EmailLogs | A1:J218 | 10 | `EmailLogID`, `ConferenceID`, `SentAt`, `SentBy`, `To`, `Subject`, `RelatedType`, `RelatedID`, `Status`, `ErrorMessage` |
+| 40 | AuditLogs | A1:K24 | 11 | `AuditLogID`, `ConferenceID`, `Timestamp`, `UserID`, `UserEmail`, `Role`, `Action`, `TargetType`, `TargetID`, `DetailsJson`, `ClientInfo` |
+| 41 | SystemLogs | A1:I32 | 9 | `SystemLogID`, `Timestamp`, `Level`, `FunctionName`, `Message`, `StackTrace`, `ConferenceID`, `UserEmail`, `ClientInfo` |
+| 42 | DashboardSnapshots | A1:O1 | 15 | `SnapshotID`, `ConferenceID`, `Timestamp`, `TotalRegistrations`, `InternalCount`, `ExternalCount`, `PaidCount`, `PendingPaymentCount`, `TotalRevenue`, `TotalWorks`, `UnderReviewCount`, `AcceptedOralCount`, `AcceptedPosterCount`, `MealRedeemedCount`, `JsonDetail` |
+| 43 | การตอบแบบฟอร์ม 1 | A1:BE103 | 57 | `ประทับเวลา`, `ที่อยู่อีเมล`, `ชี้เเจงข้อมูลความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล`, `ประเภทบุคคล`, `คำนำหน้า`, `ชื่อ-นามสกุล`, `ตำเเหน่ง`, `เลขใบประกอบวิชาชีพ (พยาบาล)`, `โทรศัพท์มือถือ`, `Line ID`, `Email`, `ประเภทอาหารที่รับประทาน`, `ส่งผลงานเข้าประกวด`, `สังกัดฝ่าย`, `หน่วยงาน`, `หน่วยงาน 2`, `หน่วยงาน 3`, `หน่วยงาน 4`, `หน่วยงาน 5`, `หน่วยงาน 6`, `หน่วยงาน 7`, `สาขาการพยาบาล`, `หน่วยงาน 8`, `หน่วยงาน 9`, `หน่วยงาน 10`, `หน่วยงาน 11`, `หน่วยงาน 12`, `หน่วยงาน 13`, `หน่วยงาน 14`, `หน่วยงาน 15`, `หน่วยงาน 16`, `หน่วยงาน 17`, `หน่วยงาน 18`, `หน่วยงาน 19`, `หน่วยงาน 20`, `หน่วยงาน 21`, `หน่วยงาน 22`, `หน่วยงาน 23`, `คำนำหน้า 2`, `ชื่อ-นามสกุล 2`, `ตำเเหน่ง 2`, `ชื่อหน่วยงานที่สังกัด`, `เลขใบประกอบวิชาชีพ (พยาบาล) 2`, `เลขบัตรประจำตัวประชาชน`, `โทรศัพท์มือถือ 2`, `Line ID 2`, `Email 2`, `ประเภทอาหารที่รับประทาน 2`, `ส่งผลงานเข้าประกวด 2`, `วันเข้าร่วมงาน`, `ความพึงพอใจในการลงทะเบียน`, `ประเภทสังกัด`, `หน่วยงาน 24`, `หน่วยงาน 25`, `หน่วยงาน 26`, `หน่วยงาน 27`, `คอลัมน์ 52` |
+
+## Key and relationship conventions
+
+- Primary keys are the first `*ID` column of each table (for example `RegID`, `WorkID`, `AssignmentID`).
+- `ConferenceID` partitions conference-scoped data.
+- `RegID` links registrations, payments, works, consents, meals and attendance.
+- `WorkID` links works, authors, files, assignments, scores and decisions.
+- `ReviewerID` and `AssignmentID` enforce reviewer ownership.
+- Identifier/text-sensitive fields in the GAS schema include CID, Passport, Phone, LicenseNo, AccountNumber, PromptPay, ReceiptNo, RegID, WorkCode and Postcode.
+- No schema migration is required for the frontend move.

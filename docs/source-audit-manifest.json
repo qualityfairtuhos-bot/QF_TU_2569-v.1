@@ -1,0 +1,3691 @@
+{
+  "generatedAt": "2026-07-23T04:09:49.844Z",
+  "gas": {
+    "lineCount": 2837,
+    "bytes": 228525,
+    "functions": [
+      {
+        "name": "getSpreadsheet_",
+        "parameters": [],
+        "line": 120
+      },
+      {
+        "name": "setRuntimeConfig",
+        "parameters": [
+          "spreadsheetId",
+          "rootFolderId"
+        ],
+        "line": 129
+      },
+      {
+        "name": "setupDatabase",
+        "parameters": [],
+        "line": 137
+      },
+      {
+        "name": "ensureHeaders_",
+        "parameters": [
+          "sheet",
+          "headers"
+        ],
+        "line": 153
+      },
+      {
+        "name": "styleSheet_",
+        "parameters": [
+          "sheet",
+          "headers"
+        ],
+        "line": 165
+      },
+      {
+        "name": "seedInitialData",
+        "parameters": [],
+        "line": 177
+      },
+      {
+        "name": "defaultSettings_",
+        "parameters": [],
+        "line": 209
+      },
+      {
+        "name": "seedRegistrationTypes_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 237
+      },
+      {
+        "name": "seedOrganizationUnits_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 250
+      },
+      {
+        "name": "seedWorkCategories_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 256
+      },
+      {
+        "name": "seedPresentationTypes_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 267
+      },
+      {
+        "name": "seedReviewRounds_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 271
+      },
+      {
+        "name": "seedScoringCriteria_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 274
+      },
+      {
+        "name": "seedEmailTemplates_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 286
+      },
+      {
+        "name": "setupDriveFolders",
+        "parameters": [],
+        "line": 295
+      },
+      {
+        "name": "runSafely_",
+        "parameters": [
+          "name",
+          "fn"
+        ],
+        "line": 313
+      },
+      {
+        "name": "now_",
+        "parameters": [],
+        "line": 317
+      },
+      {
+        "name": "clean_",
+        "parameters": [
+          "v"
+        ],
+        "line": 318
+      },
+      {
+        "name": "updateScoreSummaries_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 319
+      },
+      {
+        "name": "migrateReadableWorksColumns",
+        "parameters": [],
+        "line": 320
+      },
+      {
+        "name": "upper_",
+        "parameters": [
+          "v"
+        ],
+        "line": 358
+      },
+      {
+        "name": "bool_",
+        "parameters": [
+          "v"
+        ],
+        "line": 359
+      },
+      {
+        "name": "num_",
+        "parameters": [
+          "v",
+          "d"
+        ],
+        "line": 360
+      },
+      {
+        "name": "jsonParse_",
+        "parameters": [
+          "v",
+          "d"
+        ],
+        "line": 361
+      },
+      {
+        "name": "safeJson_",
+        "parameters": [
+          "v"
+        ],
+        "line": 362
+      },
+      {
+        "name": "pad2_",
+        "parameters": [
+          "n"
+        ],
+        "line": 363
+      },
+      {
+        "name": "uuid_",
+        "parameters": [],
+        "line": 364
+      },
+      {
+        "name": "normalizeCid_",
+        "parameters": [
+          "v"
+        ],
+        "line": 365
+      },
+      {
+        "name": "normalizePhone_",
+        "parameters": [
+          "v"
+        ],
+        "line": 366
+      },
+      {
+        "name": "normalizeEmail_",
+        "parameters": [
+          "v"
+        ],
+        "line": 367
+      },
+      {
+        "name": "formatDateTime_",
+        "parameters": [
+          "v"
+        ],
+        "line": 368
+      },
+      {
+        "name": "normalizeConferenceDateTime_",
+        "parameters": [
+          "value"
+        ],
+        "line": 374
+      },
+      {
+        "name": "normalizeEventDate_",
+        "parameters": [
+          "value"
+        ],
+        "line": 402
+      },
+      {
+        "name": "normalizeEventDatesJson_",
+        "parameters": [
+          "value"
+        ],
+        "line": 418
+      },
+      {
+        "name": "withLock_",
+        "parameters": [
+          "fn"
+        ],
+        "line": 429
+      },
+      {
+        "name": "getSheet_",
+        "parameters": [
+          "name"
+        ],
+        "line": 430
+      },
+      {
+        "name": "headerMap_",
+        "parameters": [
+          "name"
+        ],
+        "line": 431
+      },
+      {
+        "name": "getRecords_",
+        "parameters": [
+          "name"
+        ],
+        "line": 437
+      },
+      {
+        "name": "clearRequestCache_",
+        "parameters": [],
+        "line": 444
+      },
+      {
+        "name": "findOne_",
+        "parameters": [
+          "name",
+          "criteria"
+        ],
+        "line": 445
+      },
+      {
+        "name": "findMany_",
+        "parameters": [
+          "name",
+          "criteria"
+        ],
+        "line": 446
+      },
+      {
+        "name": "appendRecord_",
+        "parameters": [
+          "name",
+          "obj"
+        ],
+        "line": 447
+      },
+      {
+        "name": "updateRecord_",
+        "parameters": [
+          "name",
+          "rowNumber",
+          "patch"
+        ],
+        "line": 451
+      },
+      {
+        "name": "applyPlainTextToRow_",
+        "parameters": [
+          "sh",
+          "hm",
+          "row",
+          "obj"
+        ],
+        "line": 454
+      },
+      {
+        "name": "nextId_",
+        "parameters": [
+          "prefix"
+        ],
+        "line": 456
+      },
+      {
+        "name": "upsertSetting_",
+        "parameters": [
+          "conferenceId",
+          "key",
+          "value",
+          "type",
+          "group",
+          "th",
+          "en"
+        ],
+        "line": 469
+      },
+      {
+        "name": "getSetting_",
+        "parameters": [
+          "conferenceId",
+          "key",
+          "def"
+        ],
+        "line": 473
+      },
+      {
+        "name": "settingsMap_",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 474
+      },
+      {
+        "name": "invalidateCache_",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 475
+      },
+      {
+        "name": "getAuthSecret_",
+        "parameters": [],
+        "line": 476
+      },
+      {
+        "name": "bytesHex_",
+        "parameters": [
+          "bytes"
+        ],
+        "line": 478
+      },
+      {
+        "name": "hashText_",
+        "parameters": [
+          "text"
+        ],
+        "line": 479
+      },
+      {
+        "name": "hashPassword_",
+        "parameters": [
+          "password",
+          "salt"
+        ],
+        "line": 480
+      },
+      {
+        "name": "createDefaultAdmin_",
+        "parameters": [],
+        "line": 481
+      },
+      {
+        "name": "canonicalRole_",
+        "parameters": [
+          "role"
+        ],
+        "line": 486
+      },
+      {
+        "name": "sessionCacheKey_",
+        "parameters": [
+          "tokenHash"
+        ],
+        "line": 496
+      },
+      {
+        "name": "cacheSessionContext_",
+        "parameters": [
+          "tokenHash",
+          "ctx"
+        ],
+        "line": 497
+      },
+      {
+        "name": "clearSessionCache_",
+        "parameters": [
+          "tokenHash"
+        ],
+        "line": 500
+      },
+      {
+        "name": "loginUser",
+        "parameters": [
+          "username",
+          "password",
+          "conferenceId",
+          "clientInfo"
+        ],
+        "line": 501
+      },
+      {
+        "name": "requireSession_",
+        "parameters": [
+          "token",
+          "roles",
+          "conferenceId"
+        ],
+        "line": 517
+      },
+      {
+        "name": "logoutUser",
+        "parameters": [
+          "token"
+        ],
+        "line": 536
+      },
+      {
+        "name": "changePassword",
+        "parameters": [
+          "token",
+          "currentPassword",
+          "newPassword"
+        ],
+        "line": 537
+      },
+      {
+        "name": "logAudit_",
+        "parameters": [
+          "conferenceId",
+          "user",
+          "role",
+          "action",
+          "targetType",
+          "targetId",
+          "details"
+        ],
+        "line": 538
+      },
+      {
+        "name": "logSystem_",
+        "parameters": [
+          "name",
+          "e"
+        ],
+        "line": 540
+      },
+      {
+        "name": "sendEmailLogged_",
+        "parameters": [
+          "conferenceId",
+          "to",
+          "subject",
+          "html",
+          "relatedType",
+          "relatedId",
+          "user"
+        ],
+        "line": 541
+      },
+      {
+        "name": "validateThaiCid_",
+        "parameters": [
+          "cid"
+        ],
+        "line": 544
+      },
+      {
+        "name": "splitName_",
+        "parameters": [
+          "full"
+        ],
+        "line": 546
+      },
+      {
+        "name": "fingerprint_",
+        "parameters": [
+          "obj"
+        ],
+        "line": 547
+      },
+      {
+        "name": "uploadBase64File_",
+        "parameters": [
+          "file",
+          "folderName",
+          "prefix"
+        ],
+        "line": 548
+      },
+      {
+        "name": "getPublicBootstrap",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 556
+      },
+      {
+        "name": "serialize_",
+        "parameters": [
+          "v"
+        ],
+        "line": 573
+      },
+      {
+        "name": "normalizeImportHeader_",
+        "parameters": [
+          "value"
+        ],
+        "line": 577
+      },
+      {
+        "name": "buildImportRawRow_",
+        "parameters": [
+          "headers",
+          "values"
+        ],
+        "line": 586
+      },
+      {
+        "name": "importValue_",
+        "parameters": [
+          "row",
+          "aliases"
+        ],
+        "line": 603
+      },
+      {
+        "name": "isBlankImportRow_",
+        "parameters": [
+          "values"
+        ],
+        "line": 627
+      },
+      {
+        "name": "uniqueImportValues_",
+        "parameters": [
+          "values"
+        ],
+        "line": 633
+      },
+      {
+        "name": "isExternalParticipant_",
+        "parameters": [
+          "participantText"
+        ],
+        "line": 643
+      },
+      {
+        "name": "normalizeImportedName_",
+        "parameters": [
+          "fullName",
+          "prefix"
+        ],
+        "line": 650
+      },
+      {
+        "name": "uploadExcelForImport",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "file"
+        ],
+        "line": 659
+      },
+      {
+        "name": "mapTuhGoogleFormRow_",
+        "parameters": [
+          "row",
+          "conferenceId"
+        ],
+        "line": 838
+      },
+      {
+        "name": "validateImportedRegistration_",
+        "parameters": [
+          "mapped",
+          "conferenceId"
+        ],
+        "line": 954
+      },
+      {
+        "name": "add",
+        "parameters": [
+          "type",
+          "field",
+          "th",
+          "en",
+          "severity"
+        ],
+        "line": 957
+      },
+      {
+        "name": "commitImportBatch",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "batchId"
+        ],
+        "line": 1058
+      },
+      {
+        "name": "listImportBatches",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1184
+      },
+      {
+        "name": "repairImportedRegistrationNames",
+        "parameters": [
+          "conferenceId",
+          "batchId"
+        ],
+        "line": 1207
+      },
+      {
+        "name": "fillIfBlank",
+        "parameters": [
+          "field",
+          "value"
+        ],
+        "line": 1249
+      },
+      {
+        "name": "testTuhImportMappingV12",
+        "parameters": [],
+        "line": 1301
+      },
+      {
+        "name": "assertConferenceWindow_",
+        "parameters": [
+          "conferenceId",
+          "openField",
+          "closeField",
+          "label"
+        ],
+        "line": 1360
+      },
+      {
+        "name": "requireRegistrationAccess_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "editCode"
+        ],
+        "line": 1367
+      },
+      {
+        "name": "submitRegistration",
+        "parameters": [
+          "conferenceId",
+          "payload"
+        ],
+        "line": 1373
+      },
+      {
+        "name": "validateNewRegistration_",
+        "parameters": [
+          "m",
+          "cid",
+          "excludeRegId"
+        ],
+        "line": 1393
+      },
+      {
+        "name": "duplicateWarnings_",
+        "parameters": [
+          "m",
+          "cid",
+          "exclude"
+        ],
+        "line": 1394
+      },
+      {
+        "name": "createRegistrationRecord_",
+        "parameters": [
+          "m",
+          "userEmail",
+          "isImport",
+          "validationStatus"
+        ],
+        "line": 1395
+      },
+      {
+        "name": "incrementTypeQuota_",
+        "parameters": [
+          "cid",
+          "typeCode",
+          "delta"
+        ],
+        "line": 1402
+      },
+      {
+        "name": "lookupRegistrationForEdit",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "editCode"
+        ],
+        "line": 1403
+      },
+      {
+        "name": "saveRegistrationEdit",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "editCode",
+          "payload"
+        ],
+        "line": 1414
+      },
+      {
+        "name": "getRegistrationStatus",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1429
+      },
+      {
+        "name": "publicRegistration_",
+        "parameters": [
+          "r"
+        ],
+        "line": 1430
+      },
+      {
+        "name": "sendRegistrationEmail_",
+        "parameters": [
+          "reg"
+        ],
+        "line": 1431
+      },
+      {
+        "name": "uploadPaymentSlip",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "file"
+        ],
+        "line": 1435
+      },
+      {
+        "name": "adminListPayments",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 1438
+      },
+      {
+        "name": "adminVerifyPayment",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "paymentId",
+          "decision",
+          "note",
+          "receipt"
+        ],
+        "line": 1454
+      },
+      {
+        "name": "requireWorkAccess_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1477
+      },
+      {
+        "name": "canSubmitWork_",
+        "parameters": [
+          "reg"
+        ],
+        "line": 1481
+      },
+      {
+        "name": "verifyWorkAccess",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1488
+      },
+      {
+        "name": "submitWork",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "payload",
+          "files"
+        ],
+        "line": 1489
+      },
+      {
+        "name": "saveWorkFile_",
+        "parameters": [
+          "cid",
+          "workId",
+          "regId",
+          "category",
+          "file",
+          "folder"
+        ],
+        "line": 1508
+      },
+      {
+        "name": "getAuthorPortal",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1509
+      },
+      {
+        "name": "replaceWorkFile",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone",
+          "workId",
+          "category",
+          "file"
+        ],
+        "line": 1510
+      },
+      {
+        "name": "adminAddReviewer",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "payload"
+        ],
+        "line": 1514
+      },
+      {
+        "name": "sendReviewerCredentials_",
+        "parameters": [
+          "cid",
+          "email",
+          "password",
+          "reviewerId"
+        ],
+        "line": 1521
+      },
+      {
+        "name": "adminListReviewers",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1522
+      },
+      {
+        "name": "adminAssignReviewers",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workId",
+          "reviewRoundId",
+          "reviewerIds"
+        ],
+        "line": 1523
+      },
+      {
+        "name": "sendReviewAssignmentEmail_",
+        "parameters": [
+          "cid",
+          "w",
+          "rev",
+          "assignmentId"
+        ],
+        "line": 1526
+      },
+      {
+        "name": "reviewerBootstrap",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1527
+      },
+      {
+        "name": "reviewerGetAssignment",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "assignmentId"
+        ],
+        "line": 1528
+      },
+      {
+        "name": "reviewerSaveReview",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "assignmentId",
+          "payload",
+          "submit"
+        ],
+        "line": 1529
+      },
+      {
+        "name": "ensureMealEntitlements_",
+        "parameters": [
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1530
+      },
+      {
+        "name": "signMealToken_",
+        "parameters": [
+          "cid",
+          "regId",
+          "date",
+          "meal"
+        ],
+        "line": 1559
+      },
+      {
+        "name": "parseMealToken_",
+        "parameters": [
+          "token"
+        ],
+        "line": 1560
+      },
+      {
+        "name": "getMealPass",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1561
+      },
+      {
+        "name": "scanMealToken",
+        "parameters": [
+          "token",
+          "scannerToken",
+          "conferenceId",
+          "scannerPoint",
+          "eventDate",
+          "mealCode"
+        ],
+        "line": 1570
+      },
+      {
+        "name": "adminBootstrap",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1585
+      },
+      {
+        "name": "adminDashboard",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "force"
+        ],
+        "line": 1587
+      },
+      {
+        "name": "adminListRegistrations",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 1588
+      },
+      {
+        "name": "adminGetRegistrationSignSheet",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 1589
+      },
+      {
+        "name": "adminUpdateRegistrationStatus",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId",
+          "status",
+          "note"
+        ],
+        "line": 1606
+      },
+      {
+        "name": "adminListWorks",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 1622
+      },
+      {
+        "name": "adminScreenWork",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workId",
+          "decision",
+          "note",
+          "deadline"
+        ],
+        "line": 1623
+      },
+      {
+        "name": "getAdminSettings",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1624
+      },
+      {
+        "name": "saveAdminSettings",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "payload"
+        ],
+        "line": 1630
+      },
+      {
+        "name": "applyTuhDateLogoSettingsV13",
+        "parameters": [],
+        "line": 1651
+      },
+      {
+        "name": "adminSaveRegistrationType",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "p"
+        ],
+        "line": 1668
+      },
+      {
+        "name": "adminSaveReviewRound",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "p"
+        ],
+        "line": 1669
+      },
+      {
+        "name": "adminSaveScoringCriterion",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "p"
+        ],
+        "line": 1670
+      },
+      {
+        "name": "adminGetReviewConfig",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1671
+      },
+      {
+        "name": "adminImportIssues",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "batchId"
+        ],
+        "line": 1672
+      },
+      {
+        "name": "getOrganizationUnits",
+        "parameters": [
+          "conferenceId",
+          "participantGroup"
+        ],
+        "line": 1673
+      },
+      {
+        "name": "createFoodStaff",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "payload"
+        ],
+        "line": 1674
+      },
+      {
+        "name": "getScannerBootstrap",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 1675
+      },
+      {
+        "name": "participantQrUrl",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1678
+      },
+      {
+        "name": "htmlEscape_",
+        "parameters": [
+          "v"
+        ],
+        "line": 1681
+      },
+      {
+        "name": "uniqueCleanList_",
+        "parameters": [
+          "arr"
+        ],
+        "line": 1682
+      },
+      {
+        "name": "normalizeOptionJson_",
+        "parameters": [
+          "value"
+        ],
+        "line": 1683
+      },
+      {
+        "name": "optionListFromSetting_",
+        "parameters": [
+          "conferenceId",
+          "key",
+          "fallback"
+        ],
+        "line": 1689
+      },
+      {
+        "name": "getRegistrationOptionMap_",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 1694
+      },
+      {
+        "name": "registrationTypeMap_",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 1707
+      },
+      {
+        "name": "mealPassEligibility_",
+        "parameters": [
+          "registration",
+          "type"
+        ],
+        "line": 1708
+      },
+      {
+        "name": "signMealPassToken_",
+        "parameters": [
+          "cid",
+          "regId"
+        ],
+        "line": 1717
+      },
+      {
+        "name": "parseMealPassToken_",
+        "parameters": [
+          "token"
+        ],
+        "line": 1721
+      },
+      {
+        "name": "parseAnyMealToken_",
+        "parameters": [
+          "token"
+        ],
+        "line": 1727
+      },
+      {
+        "name": "mealPassEmailLogs_",
+        "parameters": [
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1731
+      },
+      {
+        "name": "mealPassDispatchInfo_",
+        "parameters": [
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1732
+      },
+      {
+        "name": "buildMealPassEmailHtml_",
+        "parameters": [
+          "conferenceId",
+          "r",
+          "type",
+          "passToken"
+        ],
+        "line": 1737
+      },
+      {
+        "name": "formatThaiDateServer_",
+        "parameters": [
+          "value"
+        ],
+        "line": 1750
+      },
+      {
+        "name": "sendMealPassEmail_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "user",
+          "reason"
+        ],
+        "line": 1755
+      },
+      {
+        "name": "emailMyMealPass",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "emailOrPhone"
+        ],
+        "line": 1777
+      },
+      {
+        "name": "maybeAutoIssueMealPass_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "trigger"
+        ],
+        "line": 1785
+      },
+      {
+        "name": "sendRegistrationStatusEmail_",
+        "parameters": [
+          "conferenceId",
+          "r",
+          "status",
+          "note",
+          "user"
+        ],
+        "line": 1794
+      },
+      {
+        "name": "adminGetRegistration",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1801
+      },
+      {
+        "name": "adminSaveRegistration",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId",
+          "payload"
+        ],
+        "line": 1802
+      },
+      {
+        "name": "adminListMealPasses",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 1817
+      },
+      {
+        "name": "adminPreviewMealPass",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1830
+      },
+      {
+        "name": "adminSendMealPasses",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regIds"
+        ],
+        "line": 1831
+      },
+      {
+        "name": "adminGetUserScanHistory",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId"
+        ],
+        "line": 1834
+      },
+      {
+        "name": "upgradeTuhAdminMealOptionsV17",
+        "parameters": [],
+        "line": 1858
+      },
+      {
+        "name": "upgradeTuhLoginPrintWorkV19",
+        "parameters": [],
+        "line": 1861
+      },
+      {
+        "name": "normalizePublicWebAppUrl_",
+        "parameters": [
+          "value"
+        ],
+        "line": 1880
+      },
+      {
+        "name": "getCanonicalWebAppUrl_",
+        "parameters": [],
+        "line": 1890
+      },
+      {
+        "name": "setPublicWebAppUrl",
+        "parameters": [
+          "url"
+        ],
+        "line": 1898
+      },
+      {
+        "name": "buildWebAppRouteUrl_",
+        "parameters": [
+          "page",
+          "conferenceId",
+          "baseUrl",
+          "extra"
+        ],
+        "line": 1906
+      },
+      {
+        "name": "getExternalAccessLinks",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 1918
+      },
+      {
+        "name": "testExternalBrowserAccessV21",
+        "parameters": [],
+        "line": 1925
+      },
+      {
+        "name": "upgradeTuhExternalBrowserAccessV21",
+        "parameters": [
+          "publicExecUrl"
+        ],
+        "line": 1931
+      },
+      {
+        "name": "include",
+        "parameters": [
+          "filename"
+        ],
+        "line": 1939
+      },
+      {
+        "name": "doGet",
+        "parameters": [
+          "e"
+        ],
+        "line": 1941
+      },
+      {
+        "name": "ensureSheetColumns_",
+        "parameters": [
+          "sheetName",
+          "columns"
+        ],
+        "line": 1963
+      },
+      {
+        "name": "scannerDateKey_",
+        "parameters": [
+          "value"
+        ],
+        "line": 1975
+      },
+      {
+        "name": "scannerServiceDefinitions_",
+        "parameters": [
+          "conferenceId"
+        ],
+        "line": 1981
+      },
+      {
+        "name": "scannerServiceDef_",
+        "parameters": [
+          "conferenceId",
+          "serviceCode"
+        ],
+        "line": 1993
+      },
+      {
+        "name": "scannerResolveRegId_",
+        "parameters": [
+          "identifier",
+          "conferenceId"
+        ],
+        "line": 1998
+      },
+      {
+        "name": "scannerSelectedDay_",
+        "parameters": [
+          "conferenceId",
+          "registration",
+          "eventDate"
+        ],
+        "line": 2014
+      },
+      {
+        "name": "scannerRegistrationType_",
+        "parameters": [
+          "conferenceId",
+          "registration"
+        ],
+        "line": 2019
+      },
+      {
+        "name": "scannerPaymentOkay_",
+        "parameters": [
+          "registration",
+          "type"
+        ],
+        "line": 2022
+      },
+      {
+        "name": "scannerRegistrationApproved_",
+        "parameters": [
+          "registration"
+        ],
+        "line": 2025
+      },
+      {
+        "name": "scannerCheckInRecord_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "eventDate",
+          "sessionCode"
+        ],
+        "line": 2028
+      },
+      {
+        "name": "scannerMealEntitlement_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "eventDate",
+          "mealCode"
+        ],
+        "line": 2034
+      },
+      {
+        "name": "scannerInspectInternal_",
+        "parameters": [
+          "ctx",
+          "conferenceId",
+          "identifier",
+          "eventDate",
+          "serviceCode"
+        ],
+        "line": 2039
+      },
+      {
+        "name": "getEventScannerBootstrap",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 2076
+      },
+      {
+        "name": "inspectEventScanner",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "identifier",
+          "eventDate",
+          "serviceCode"
+        ],
+        "line": 2082
+      },
+      {
+        "name": "confirmEventScanner",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "identifier",
+          "eventDate",
+          "serviceCode",
+          "scannerPoint"
+        ],
+        "line": 2085
+      },
+      {
+        "name": "getEventScannerRecent",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "eventDate",
+          "serviceCode",
+          "limit"
+        ],
+        "line": 2105
+      },
+      {
+        "name": "upgradeTuhEventScannerV18",
+        "parameters": [],
+        "line": 2119
+      },
+      {
+        "name": "adminAssignReviewersBulk",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workIds",
+          "roundId",
+          "reviewerIds"
+        ],
+        "line": 2127
+      },
+      {
+        "name": "adminGetReviewer",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "reviewerId"
+        ],
+        "line": 2149
+      },
+      {
+        "name": "adminUpdateReviewer",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "reviewerId",
+          "data"
+        ],
+        "line": 2157
+      },
+      {
+        "name": "adminResendReviewerCreds",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "reviewerId"
+        ],
+        "line": 2167
+      },
+      {
+        "name": "adminSendDirectEmail",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "to",
+          "subj",
+          "msg"
+        ],
+        "line": 2188
+      },
+      {
+        "name": "adminListUsers",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 2195
+      },
+      {
+        "name": "adminAddUser",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "email",
+          "role"
+        ],
+        "line": 2204
+      },
+      {
+        "name": "adminUpdateUserStatus",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "userId",
+          "status"
+        ],
+        "line": 2218
+      },
+      {
+        "name": "exportWorksToExcel",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 2226
+      },
+      {
+        "name": "ensureRegFolder_",
+        "parameters": [
+          "conferenceId",
+          "regId",
+          "subFolderType"
+        ],
+        "line": 2266
+      },
+      {
+        "name": "adminSearchDriveFiles",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "query"
+        ],
+        "line": 2304
+      },
+      {
+        "name": "adminUploadWorkFiles",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workId",
+          "regId",
+          "payload"
+        ],
+        "line": 2335
+      },
+      {
+        "name": "adminBootstrap",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 2389
+      },
+      {
+        "name": "adminDashboard",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "forceRefresh",
+          "filters"
+        ],
+        "line": 2412
+      },
+      {
+        "name": "adminListRegistrations",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 2542
+      },
+      {
+        "name": "adminUpdateRegistrationStatus",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "regId",
+          "newStatus",
+          "note"
+        ],
+        "line": 2566
+      },
+      {
+        "name": "adminListWorks",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "filters"
+        ],
+        "line": 2600
+      },
+      {
+        "name": "getAdminSettings",
+        "parameters": [
+          "token",
+          "conferenceId"
+        ],
+        "line": 2680
+      },
+      {
+        "name": "adminGetRegistrationSignSheet",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "options"
+        ],
+        "line": 2696
+      },
+      {
+        "name": "adminGetWorkScoreSummary",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workId"
+        ],
+        "line": 2741
+      },
+      {
+        "name": "adminUpdateWorkStatus",
+        "parameters": [
+          "token",
+          "conferenceId",
+          "workId",
+          "newStatus"
+        ],
+        "line": 2763
+      },
+      {
+        "name": "requestPasswordReset",
+        "parameters": [
+          "email",
+          "conferenceId"
+        ],
+        "line": 2773
+      },
+      {
+        "name": "registerNewUser",
+        "parameters": [
+          "payload",
+          "conferenceId"
+        ],
+        "line": 2791
+      }
+    ]
+  },
+  "frontend": {
+    "index.html.txt": {
+      "bytes": 428781,
+      "lineCount": 354,
+      "calls": [
+        {
+          "function": "withSuccessHandler",
+          "arguments": "r=>r&&r.success?res(r.data",
+          "line": 227,
+          "hasSuccessHandler": false,
+          "hasFailureHandler": false
+        },
+        {
+          "function": "getPublicBootstrap",
+          "arguments": "CID",
+          "line": 287,
+          "via": "rpc"
+        },
+        {
+          "function": "submitRegistration",
+          "arguments": "CID,formObj(e.target",
+          "line": 304,
+          "via": "rpc"
+        },
+        {
+          "function": "lookupRegistrationForEdit",
+          "arguments": "CID,$('#statusRegId'",
+          "line": 305,
+          "via": "rpc"
+        },
+        {
+          "function": "saveRegistrationEdit",
+          "arguments": "CID,r.RegID,$('#statusKey'",
+          "line": 324,
+          "via": "rpc"
+        },
+        {
+          "function": "uploadPaymentSlip",
+          "arguments": "CID,$('#payRegId'",
+          "line": 327,
+          "via": "rpc"
+        },
+        {
+          "function": "verifyWorkAccess",
+          "arguments": "CID,$('#workRegId'",
+          "line": 328,
+          "via": "rpc"
+        },
+        {
+          "function": "submitWork",
+          "arguments": "CID,$('#workRegId'",
+          "line": 334,
+          "via": "rpc"
+        },
+        {
+          "function": "verifyWorkAccess",
+          "arguments": "CID,$('#authorWorkRegId'",
+          "line": 336,
+          "via": "rpc"
+        },
+        {
+          "function": "replaceWorkFile",
+          "arguments": "CID,$('#authorWorkRegId'",
+          "line": 338,
+          "via": "rpc"
+        },
+        {
+          "function": "emailMyMealPass",
+          "arguments": "CID,$('#passRegId'",
+          "line": 341,
+          "via": "rpc"
+        },
+        {
+          "function": "getMealPass",
+          "arguments": "CID,$('#passRegId'",
+          "line": 342,
+          "via": "rpc"
+        }
+      ],
+      "templates": [],
+      "ids": [
+        "directAccessBar",
+        "directAccessNewTab",
+        "brandDate",
+        "nav",
+        "homeHero",
+        "heroCarousel",
+        "heroLeftLogo",
+        "confName",
+        "confDesc",
+        "confMeta",
+        "heroRightLogo",
+        "announceRegistrationClose",
+        "announcePaymentClose",
+        "announceFees",
+        "announceResultDate",
+        "page-home",
+        "page-register",
+        "regForm",
+        "participantType",
+        "prefixSelect",
+        "positionList",
+        "professionList",
+        "groupList",
+        "unitList",
+        "foodTypeSelect",
+        "attendanceDates",
+        "consentLabel",
+        "consentAccepted",
+        "consentHint",
+        "page-status",
+        "statusRegId",
+        "statusKey",
+        "statusCode",
+        "statusResult",
+        "page-payment",
+        "payRegId",
+        "payKey",
+        "paymentSlipPreview",
+        "payFile",
+        "page-work",
+        "workRegId",
+        "workKey",
+        "workFormHost",
+        "page-author-status",
+        "authorWorkRegId",
+        "authorWorkKey",
+        "authorWorkResult",
+        "page-pass",
+        "passRegId",
+        "passKey",
+        "passResult",
+        "pdpaNoticeTemplate",
+        "loading",
+        "loadingText",
+        "${id}",
+        "editForm",
+        "workForm",
+        "workCategory",
+        "ethicsRule",
+        "ethicsRequired",
+        "region4IntentBox",
+        "workOriginal",
+        "workEthics",
+        "ethicsFileHint",
+        "workBio"
+      ],
+      "functions": [
+        "installDirectAccessGuard",
+        "canonicalRoute",
+        "rpc",
+        "load",
+        "done",
+        "alertErr",
+        "go",
+        "formObj",
+        "fileObj",
+        "esc",
+        "setHeroSlide",
+        "nextHeroSlide",
+        "startHeroCarousel",
+        "showScheduleNotice",
+        "openPdpaNotice",
+        "resetConsentState",
+        "renderAnnouncement",
+        "dateObject",
+        "formatThaiDate",
+        "formatEnglishDate",
+        "getEventDates",
+        "renderCurrentDate",
+        "renderConferenceTitle",
+        "eventRangeHtml",
+        "renderAttendanceDates",
+        "settingOptions",
+        "optionTags",
+        "fillSelect",
+        "renderConfiguredRegistrationOptions",
+        "init",
+        "lookupStatus",
+        "renderStatus",
+        "renderPaymentSlip",
+        "sendPayment",
+        "verifyWork",
+        "renderWorkForm",
+        "lookupAuthorWorks",
+        "renderAuthorWorks",
+        "promptReplaceWorkFile",
+        "updateWorkRules",
+        "updateRegion4Intent",
+        "emailMyPass",
+        "loadPass"
+      ],
+      "storageKeys": [],
+      "libraries": {
+        "sweetAlert": true,
+        "chartJs": false,
+        "qrScanner": false,
+        "fontAwesome": false,
+        "googleFonts": true
+      }
+    },
+    "admin.html.txt": {
+      "bytes": 110627,
+      "lineCount": 808,
+      "calls": [
+        {
+          "function": "withSuccessHandler",
+          "arguments": "r=>r&&r.success?res(r.data",
+          "line": 237,
+          "hasSuccessHandler": false,
+          "hasFailureHandler": false
+        },
+        {
+          "function": "loginUser",
+          "arguments": "$('#loginUser'",
+          "line": 260,
+          "via": "rpc"
+        },
+        {
+          "function": "adminBootstrap",
+          "arguments": "TOKEN,CID",
+          "line": 262,
+          "via": "rpc"
+        },
+        {
+          "function": "requestPasswordReset",
+          "arguments": "e,CID",
+          "line": 265,
+          "via": "rpc"
+        },
+        {
+          "function": "registerNewUser",
+          "arguments": "data,CID",
+          "line": 266,
+          "via": "rpc"
+        },
+        {
+          "function": "logoutUser",
+          "arguments": "TOKEN",
+          "line": 267,
+          "via": "rpc"
+        },
+        {
+          "function": "adminDashboard",
+          "arguments": "TOKEN,CID,false,{type:filterType}",
+          "line": 271,
+          "via": "rpc"
+        },
+        {
+          "function": "getAdminSettings",
+          "arguments": "TOKEN,CID",
+          "line": 285,
+          "via": "rpc"
+        },
+        {
+          "function": "saveAdminSettings",
+          "arguments": "TOKEN,CID,{conference:conf,settings}",
+          "line": 286,
+          "via": "rpc"
+        },
+        {
+          "function": "uploadExcelForImport",
+          "arguments": "TOKEN,CID,f",
+          "line": 288,
+          "via": "rpc"
+        },
+        {
+          "function": "commitImportBatch",
+          "arguments": "TOKEN,CID,id",
+          "line": 289,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListRegistrations",
+          "arguments": "TOKEN,CID,{q:$('#regSearch'",
+          "line": 290,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUpdateRegistrationStatus",
+          "arguments": "TOKEN,CID,id,status,x.value||''",
+          "line": 291,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetRegistration",
+          "arguments": "TOKEN,CID,id",
+          "line": 292,
+          "via": "rpc"
+        },
+        {
+          "function": "adminSaveRegistration",
+          "arguments": "TOKEN,CID,id,x.value",
+          "line": 292,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetRegistrationSignSheet",
+          "arguments": "TOKEN,CID,x.value",
+          "line": 301,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListPayments",
+          "arguments": "TOKEN,CID,{q:$('#paySearch'",
+          "line": 310,
+          "via": "rpc"
+        },
+        {
+          "function": "adminVerifyPayment",
+          "arguments": "TOKEN,CID,id,decision,x.value||'',{}",
+          "line": 311,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListWorks",
+          "arguments": "TOKEN,CID,{q:$('#workSearch'",
+          "line": 316,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetReviewConfig",
+          "arguments": "TOKEN,CID",
+          "line": 354,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListReviewers",
+          "arguments": "TOKEN,CID",
+          "line": 355,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetWorkScoreSummary",
+          "arguments": "TOKEN,CID,wid",
+          "line": 359,
+          "via": "rpc"
+        },
+        {
+          "function": "adminAssignReviewersBulk",
+          "arguments": "TOKEN,CID, wid?[wid]:null, x.value.roundId, x.value.reviewerIds",
+          "line": 381,
+          "via": "rpc"
+        },
+        {
+          "function": "exportWorksToExcel",
+          "arguments": "TOKEN, CID",
+          "line": 391,
+          "via": "rpc"
+        },
+        {
+          "function": "adminSendDirectEmail",
+          "arguments": "TOKEN,CID,x.value.to,x.value.subj,x.value.msg",
+          "line": 404,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetWorkScoreSummary",
+          "arguments": "TOKEN, CID, wid",
+          "line": 413,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUpdateWorkStatus",
+          "arguments": "TOKEN, CID, wid, x.value",
+          "line": 504,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListReviewers",
+          "arguments": "TOKEN,CID",
+          "line": 514,
+          "via": "rpc"
+        },
+        {
+          "function": "adminResendReviewerCreds",
+          "arguments": "TOKEN,CID,id",
+          "line": 544,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetReviewer",
+          "arguments": "TOKEN,CID,id",
+          "line": 554,
+          "via": "rpc"
+        },
+        {
+          "function": "getAdminSettings",
+          "arguments": "TOKEN,CID",
+          "line": 556,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUpdateReviewer",
+          "arguments": "TOKEN,CID,id,x.value",
+          "line": 583,
+          "via": "rpc"
+        },
+        {
+          "function": "adminAddReviewer",
+          "arguments": "TOKEN,CID,x.value",
+          "line": 587,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetReviewConfig",
+          "arguments": "TOKEN,CID",
+          "line": 594,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUploadWorkFiles",
+          "arguments": "TOKEN, CID, wid, regId, { method: 'LOCAL', fileName: file.name, mimeType: file.type || 'application/octet-stream', base64: b64, fileCategory: type }",
+          "line": 622,
+          "via": "rpc"
+        },
+        {
+          "function": "adminSearchDriveFiles",
+          "arguments": "TOKEN, CID, q",
+          "line": 640,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUploadWorkFiles",
+          "arguments": "TOKEN, CID, wid, regId, { method: 'DRIVE', driveFileId: fileId, fileName: fileName, fileCategory: type }",
+          "line": 659,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListUsers",
+          "arguments": "TOKEN,CID",
+          "line": 725,
+          "via": "rpc"
+        },
+        {
+          "function": "adminAddUser",
+          "arguments": "TOKEN,CID,x.value.email,x.value.role",
+          "line": 746,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUpdateUserStatus",
+          "arguments": "TOKEN,CID,uid,'ACTIVE'",
+          "line": 755,
+          "via": "rpc"
+        },
+        {
+          "function": "adminUpdateUserStatus",
+          "arguments": "TOKEN,CID,uid,'REVOKED'",
+          "line": 760,
+          "via": "rpc"
+        },
+        {
+          "function": "adminListMealPasses",
+          "arguments": "TOKEN,CID,foodFilters(",
+          "line": 764,
+          "via": "rpc"
+        },
+        {
+          "function": "adminPreviewMealPass",
+          "arguments": "TOKEN,CID,id",
+          "line": 766,
+          "via": "rpc"
+        },
+        {
+          "function": "adminSendMealPasses",
+          "arguments": "TOKEN,CID,[id]",
+          "line": 767,
+          "via": "rpc"
+        },
+        {
+          "function": "adminSendMealPasses",
+          "arguments": "TOKEN,CID,ids",
+          "line": 768,
+          "via": "rpc"
+        },
+        {
+          "function": "adminGetUserScanHistory",
+          "arguments": "TOKEN, CID, id",
+          "line": 773,
+          "via": "rpc"
+        }
+      ],
+      "templates": [],
+      "ids": [
+        "directAccessBar",
+        "directAccessNewTab",
+        "login",
+        "loginForm",
+        "loginUser",
+        "loginPassword",
+        "rememberLogin",
+        "app",
+        "sidebarOverlay",
+        "sidebar",
+        "userName",
+        "userRole",
+        "menu",
+        "topTitle",
+        "topSub",
+        "page-dashboard",
+        "dashFilterType",
+        "kpis",
+        "dashChartsContainer",
+        "chartRegByTypeCanvas",
+        "chartWorksIntentCanvas",
+        "chartWorksByCategoryCanvas",
+        "chartWorksByStatusCanvas",
+        "page-settings",
+        "settingsForm",
+        "page-import",
+        "importFile",
+        "importResult",
+        "page-registrations",
+        "regSearch",
+        "regStatus",
+        "regRows",
+        "page-payments",
+        "paySearch",
+        "payStatus",
+        "payRows",
+        "page-works",
+        "workSearch",
+        "workStatus",
+        "workRows",
+        "page-reviewers",
+        "revSearch",
+        "reviewerRows",
+        "reviewConfig",
+        "page-users",
+        "userRows",
+        "page-food",
+        "scannerLink",
+        "foodSearch",
+        "foodEligibility",
+        "foodPayment",
+        "foodSent",
+        "sendSelectedBtn",
+        "foodSelectedCount",
+        "foodAll",
+        "foodRows",
+        "loading",
+        "loadText",
+        "${id}",
+        "su_user",
+        "su_email",
+        "su_pass",
+        "su_prefix",
+        "su_fname",
+        "su_lname",
+        "su_phone",
+        "su_org",
+        "su_role",
+        "erType",
+        "erPrefix",
+        "erFirst",
+        "erLast",
+        "erCid",
+        "erPosition",
+        "erProfession",
+        "erGroup",
+        "erOrg",
+        "erLicense",
+        "erPhone",
+        "erEmail",
+        "erLine",
+        "erFood",
+        "erAllergy",
+        "erDay${i+1}",
+        "erWork",
+        "psType",
+        "psDay",
+        "psOrg",
+        "psIncomplete",
+        "assignRound",
+        "emTo",
+        "emSubj",
+        "emMsg",
+        "newWorkStatus",
+        "rvPrefix",
+        "rvFirst",
+        "rvLast",
+        "rvPos",
+        "rvInst",
+        "rvDept",
+        "rvProv",
+        "rvReg",
+        "rvEmail",
+        "rvPhone",
+        "rvExpCat",
+        "rvExpType",
+        "rvMax",
+        "rvNotif",
+        "rvLine",
+        "rvTel",
+        "rvPass",
+        "rvNote",
+        "tbLocal",
+        "tbDrive",
+        "tpLocal",
+        "localFile",
+        "localType",
+        "tpDrive",
+        "driveSearch",
+        "driveRes",
+        "driveType",
+        "nuEmail",
+        "nuRole"
+      ],
+      "functions": [
+        "installDirectAccessGuard",
+        "canonicalRoute",
+        "rpc",
+        "show",
+        "err",
+        "toast",
+        "fileObj",
+        "formObj",
+        "pad2",
+        "formatBeDateTime",
+        "validateRealDate",
+        "parseBeDateTime",
+        "parseBeEventDate",
+        "convertEventDatesJsonToCe",
+        "listTextToJson",
+        "optionHtml",
+        "dataList",
+        "statusBadge",
+        "togglePassword",
+        "loadRememberedLogin",
+        "saveRememberedLogin",
+        "currentAdminToken",
+        "storeAdminToken",
+        "menuForRole",
+        "boot",
+        "nav",
+        "toggleSidebar",
+        "forgotPassword",
+        "signUp",
+        "refreshPage",
+        "loadDashboard",
+        "loadSettings",
+        "previewImport",
+        "commitImport",
+        "loadRegistrations",
+        "setRegStatus",
+        "openRegistrationEdit",
+        "beDateOnly",
+        "openRegistrationSignSheet",
+        "renderSignSheetWindow",
+        "loadPayments",
+        "verifyPay",
+        "loadWorks",
+        "num",
+        "openAssignReviewerModal",
+        "exportWorks",
+        "openEmail",
+        "openScoreSummary",
+        "openUpdateWorkStatus",
+        "loadReviewers",
+        "resendReviewerCreds",
+        "openReviewerForm",
+        "loadReviewConfig",
+        "switchUploadTab",
+        "uploadLocalFile",
+        "searchDriveFiles",
+        "selectDriveFile",
+        "promptReplaceWorkFile",
+        "loadUsers",
+        "openUserForm",
+        "adminApproveUser",
+        "adminRevokeUser",
+        "foodFilters",
+        "loadFood",
+        "toggleAllFood",
+        "previewFood",
+        "sendFood",
+        "sendSelectedFood",
+        "viewUserScanHistory"
+      ],
+      "storageKeys": [
+        "tuhAdminToken"
+      ],
+      "libraries": {
+        "sweetAlert": true,
+        "chartJs": true,
+        "qrScanner": false,
+        "fontAwesome": true,
+        "googleFonts": true
+      }
+    },
+    "reviewer.html.txt": {
+      "bytes": 42100,
+      "lineCount": 208,
+      "calls": [
+        {
+          "function": "withSuccessHandler",
+          "arguments": "r=>r&&r.success?res(r.data",
+          "line": 176,
+          "hasSuccessHandler": false,
+          "hasFailureHandler": false
+        },
+        {
+          "function": "loginUser",
+          "arguments": "$('#loginUser'",
+          "line": 178,
+          "via": "rpc"
+        },
+        {
+          "function": "reviewerBootstrap",
+          "arguments": "TOKEN,CID",
+          "line": 179,
+          "via": "rpc"
+        },
+        {
+          "function": "reviewerGetAssignment",
+          "arguments": "TOKEN,CID,id",
+          "line": 186,
+          "via": "rpc"
+        },
+        {
+          "function": "reviewerSaveReview",
+          "arguments": "TOKEN,CID,CURRENT.assignment.AssignmentID,payload,submit",
+          "line": 188,
+          "via": "rpc"
+        },
+        {
+          "function": "reviewerBootstrap",
+          "arguments": "TOKEN,CID",
+          "line": 188,
+          "via": "rpc"
+        },
+        {
+          "function": "reviewerBootstrap",
+          "arguments": "TOKEN, CID",
+          "line": 189,
+          "via": "rpc"
+        },
+        {
+          "function": "requestPasswordReset",
+          "arguments": "e,CID",
+          "line": 195,
+          "via": "rpc"
+        },
+        {
+          "function": "registerNewUser",
+          "arguments": "data,CID",
+          "line": 196,
+          "via": "rpc"
+        },
+        {
+          "function": "logoutUser",
+          "arguments": "TOKEN",
+          "line": 197,
+          "via": "rpc"
+        }
+      ],
+      "templates": [],
+      "ids": [
+        "directAccessBar",
+        "directAccessNewTab",
+        "loginView",
+        "loginForm",
+        "loginUser",
+        "loginPassword",
+        "rememberLogin",
+        "appView",
+        "confName",
+        "nav-dashboard",
+        "nav-assignments",
+        "nav-report",
+        "pageTitle",
+        "reviewerName",
+        "page-dashboard",
+        "dashboard-kpis",
+        "page-assignments",
+        "assignments-kpis",
+        "filterTabs",
+        "count-all",
+        "count-pending",
+        "count-completed",
+        "searchAssignment",
+        "assignmentGrid",
+        "reviewHost",
+        "page-report",
+        "report-reviewer-name",
+        "rep-tot",
+        "rep-com",
+        "rep-pen",
+        "rep-prog",
+        "reportRows",
+        "loading",
+        "loadText",
+        "reviewForm",
+        "su_user",
+        "su_email",
+        "su_pass",
+        "su_prefix",
+        "su_fname",
+        "su_lname",
+        "su_phone",
+        "su_org",
+        "su_role"
+      ],
+      "functions": [
+        "installDirectAccessGuard",
+        "canonicalRoute",
+        "loadCreds",
+        "boot",
+        "renderAll",
+        "statusBadge",
+        "renderAssignments",
+        "renderAssignmentsGrid",
+        "openAssignment",
+        "renderReview",
+        "saveReview",
+        "refreshData",
+        "renderDashboard",
+        "renderReportPage",
+        "printMyReport",
+        "nav",
+        "refreshPage",
+        "forgotPassword",
+        "signUp",
+        "logout"
+      ],
+      "storageKeys": [
+        "tuhReviewerToken"
+      ],
+      "libraries": {
+        "sweetAlert": true,
+        "chartJs": false,
+        "qrScanner": false,
+        "fontAwesome": false,
+        "googleFonts": true
+      }
+    },
+    "scanner.html.txt": {
+      "bytes": 37673,
+      "lineCount": 221,
+      "calls": [
+        {
+          "function": "withSuccessHandler",
+          "arguments": "r=>r&&r.success?resolve(r.data",
+          "line": 104,
+          "hasSuccessHandler": false,
+          "hasFailureHandler": false
+        },
+        {
+          "function": "loginUser",
+          "arguments": "$('#loginUser'",
+          "line": 120,
+          "via": "rpc"
+        },
+        {
+          "function": "getEventScannerBootstrap",
+          "arguments": "TOKEN,CID",
+          "line": 123,
+          "via": "rpc"
+        },
+        {
+          "function": "requestPasswordReset",
+          "arguments": "e,CID",
+          "line": 141,
+          "via": "rpc"
+        },
+        {
+          "function": "registerNewUser",
+          "arguments": "data,CID",
+          "line": 142,
+          "via": "rpc"
+        },
+        {
+          "function": "logoutUser",
+          "arguments": "TOKEN",
+          "line": 143,
+          "via": "rpc"
+        },
+        {
+          "function": "inspectEventScanner",
+          "arguments": "TOKEN,CID,id,$('#eventDate'",
+          "line": 210,
+          "via": "rpc"
+        },
+        {
+          "function": "confirmEventScanner",
+          "arguments": "TOKEN,CID,PENDING.RegID,PENDING.EventDate,PENDING.ServiceCode,$('#scannerPoint'",
+          "line": 213,
+          "via": "rpc"
+        },
+        {
+          "function": "getEventScannerRecent",
+          "arguments": "TOKEN,CID,$('#eventDate'",
+          "line": 214,
+          "via": "rpc"
+        }
+      ],
+      "templates": [],
+      "ids": [
+        "directAccessBar",
+        "directAccessNewTab",
+        "loginView",
+        "loginForm",
+        "loginUser",
+        "loginPass",
+        "rememberLogin",
+        "appView",
+        "userName",
+        "userRole",
+        "systemStatus",
+        "eventDate",
+        "scannerPoint",
+        "checkinButtons",
+        "mealButtons",
+        "consoleState",
+        "openCameraBtn",
+        "scanFileBtn",
+        "qrFileInput",
+        "closeCameraBtn",
+        "readerWrap",
+        "reader",
+        "identifier",
+        "inspectBtn",
+        "checkResult",
+        "recentCount",
+        "recentList",
+        "su_user",
+        "su_email",
+        "su_pass",
+        "su_prefix",
+        "su_fname",
+        "su_lname",
+        "su_phone",
+        "su_org",
+        "su_role",
+        "REG-2026-",
+        "loading",
+        "loadText"
+      ],
+      "functions": [
+        "installDirectAccessGuard",
+        "canonicalRoute",
+        "rpc",
+        "esc",
+        "parseDate",
+        "thDate",
+        "timeText",
+        "show",
+        "setBusy",
+        "togglePassword",
+        "loadRememberedLogin",
+        "saveRememberedLogin",
+        "scannerStoredToken",
+        "adminStoredToken",
+        "storeScannerToken",
+        "sessionError",
+        "bootScanner",
+        "selectService",
+        "autoBoot",
+        "forgotPassword",
+        "signUp",
+        "logoutScanner",
+        "handleFileScan",
+        "openCamera",
+        "closeCamera",
+        "onQrDecoded",
+        "clearScan",
+        "renderEmpty",
+        "checkBadge",
+        "inspectRegistration",
+        "renderInspection",
+        "confirmRecord",
+        "loadRecent"
+      ],
+      "storageKeys": [
+        "tuhScannerToken",
+        "tuhAdminToken"
+      ],
+      "libraries": {
+        "sweetAlert": true,
+        "chartJs": false,
+        "qrScanner": true,
+        "fontAwesome": false,
+        "googleFonts": true
+      }
+    },
+    "launcher.html.txt": {
+      "bytes": 2779,
+      "lineCount": 2,
+      "calls": [],
+      "templates": [],
+      "ids": [],
+      "functions": [],
+      "storageKeys": [],
+      "libraries": {
+        "sweetAlert": false,
+        "chartJs": false,
+        "qrScanner": false,
+        "fontAwesome": false,
+        "googleFonts": true
+      }
+    }
+  },
+  "workbook": {
+    "sheets": [
+      {
+        "name": "Conferences",
+        "usedRange": "A1:AE2",
+        "headers": [
+          "ConferenceID",
+          "ConferenceCode",
+          "ConferenceNameTH",
+          "ConferenceNameEN",
+          "ShortName",
+          "Year",
+          "Organizer",
+          "DescriptionTH",
+          "DescriptionEN",
+          "PrimaryColor",
+          "SecondaryColor",
+          "GreenColor",
+          "GoldColor",
+          "LogoFileId",
+          "LogoUrl",
+          "Venue",
+          "Address",
+          "EventStartAt",
+          "EventEndAt",
+          "RegistrationOpenAt",
+          "RegistrationCloseAt",
+          "PaymentCloseAt",
+          "SubmissionOpenAt",
+          "SubmissionCloseAt",
+          "ResultAnnouncementAt",
+          "PresentationUploadOpenAt",
+          "PresentationUploadCloseAt",
+          "PublicStatus",
+          "Status",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "Settings",
+        "usedRange": "A1:K26",
+        "headers": [
+          "SettingID",
+          "ConferenceID",
+          "SettingKey",
+          "SettingValue",
+          "ValueType",
+          "GroupName",
+          "DescriptionTH",
+          "DescriptionEN",
+          "IsEditable",
+          "UpdatedAt",
+          "UpdatedBy"
+        ]
+      },
+      {
+        "name": "Users",
+        "usedRange": "A1:P4",
+        "headers": [
+          "UserID",
+          "Username",
+          "Email",
+          "PasswordHash",
+          "Salt",
+          "Prefix",
+          "FirstName",
+          "LastName",
+          "FullName",
+          "Phone",
+          "Organization",
+          "Role",
+          "Status",
+          "LastLogin",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "UserConferenceRoles",
+        "usedRange": "A1:H4",
+        "headers": [
+          "UserConferenceRoleID",
+          "ConferenceID",
+          "UserID",
+          "Role",
+          "PermissionsJson",
+          "Status",
+          "AssignedAt",
+          "AssignedBy"
+        ]
+      },
+      {
+        "name": "Sessions",
+        "usedRange": "A1:I44",
+        "headers": [
+          "SessionID",
+          "ConferenceID",
+          "UserID",
+          "Role",
+          "TokenHash",
+          "ExpiresAt",
+          "LastSeenAt",
+          "ClientInfo",
+          "Status"
+        ]
+      },
+      {
+        "name": "RegistrationTypes",
+        "usedRange": "A1:M4",
+        "headers": [
+          "RegistrationTypeID",
+          "ConferenceID",
+          "TypeCode",
+          "TypeNameTH",
+          "TypeNameEN",
+          "IsInternal",
+          "FeeAmount",
+          "Quota",
+          "UsedQuota",
+          "PaymentRequired",
+          "WorkRequiresPayment",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "OrganizationUnits",
+        "usedRange": "A1:I53",
+        "headers": [
+          "UnitID",
+          "ConferenceID",
+          "ParticipantGroup",
+          "ParentUnitID",
+          "UnitLevel",
+          "UnitNameTH",
+          "UnitNameEN",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "Registrations",
+        "usedRange": "A1:AO104",
+        "headers": [
+          "RegID",
+          "ConferenceID",
+          "SourceType",
+          "SourceBatchID",
+          "SourceRowNo",
+          "SourceTimestamp",
+          "SourceRespondentEmail",
+          "ConsentAccepted",
+          "ConsentVersion",
+          "ParticipantType",
+          "Region4Status",
+          "Prefix",
+          "FirstName",
+          "LastName",
+          "FullName",
+          "Position",
+          "OrganizationGroup",
+          "OrganizationUnit",
+          "Institution",
+          "Profession",
+          "LicenseNo",
+          "CID",
+          "Passport",
+          "Phone",
+          "LineID",
+          "Email",
+          "FoodType",
+          "FoodAllergyDetail",
+          "AttendanceDay1",
+          "AttendanceDay2",
+          "AttendanceDay3",
+          "WantsSubmitWork",
+          "DataCompletenessStatus",
+          "RegistrationStatus",
+          "PaymentStatus",
+          "MealPassStatus",
+          "EditAccessCodeHash",
+          "Note",
+          "CreatedAt",
+          "UpdatedAt",
+          "LastModifiedBy"
+        ]
+      },
+      {
+        "name": "Consents",
+        "usedRange": "A1:G206",
+        "headers": [
+          "ConsentID",
+          "ConferenceID",
+          "RegID",
+          "ConsentVersion",
+          "ConsentAccepted",
+          "AcceptedAt",
+          "ClientInfo"
+        ]
+      },
+      {
+        "name": "Payments",
+        "usedRange": "A1:T2",
+        "headers": [
+          "PaymentID",
+          "ConferenceID",
+          "RegID",
+          "Amount",
+          "Currency",
+          "PaymentChannelID",
+          "SlipFileId",
+          "SlipFileUrl",
+          "SlipFileName",
+          "Status",
+          "SubmittedAt",
+          "VerifiedBy",
+          "VerifiedAt",
+          "FinanceNote",
+          "ReceiptNo",
+          "ReceiptDate",
+          "ReceiptFileId",
+          "ReceiptFileUrl",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "PaymentChannels",
+        "usedRange": "A1:L1",
+        "headers": [
+          "PaymentChannelID",
+          "ConferenceID",
+          "BankName",
+          "AccountName",
+          "AccountNumber",
+          "PromptPay",
+          "QRFileId",
+          "QRFileUrl",
+          "InstructionTH",
+          "InstructionEN",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "ImportBatches",
+        "usedRange": "A1:P3",
+        "headers": [
+          "ImportBatchID",
+          "ConferenceID",
+          "SourceFileName",
+          "SourceFileId",
+          "SourceSheetName",
+          "UploadedBy",
+          "UploadedAt",
+          "TotalRows",
+          "ReadyRows",
+          "IncompleteRows",
+          "WarningRows",
+          "DuplicateRows",
+          "ImportedRows",
+          "Status",
+          "MappingVersion",
+          "Note"
+        ]
+      },
+      {
+        "name": "ImportRows",
+        "usedRange": "A1:M205",
+        "headers": [
+          "ImportRowID",
+          "ImportBatchID",
+          "ConferenceID",
+          "SourceRowNo",
+          "SourceTimestamp",
+          "SourceFingerprint",
+          "SourceDataJson",
+          "MappedDataJson",
+          "ValidationStatus",
+          "IssueCount",
+          "ImportStatus",
+          "ImportedRegID",
+          "CreatedAt"
+        ]
+      },
+      {
+        "name": "ImportIssues",
+        "usedRange": "A1:L401",
+        "headers": [
+          "ImportIssueID",
+          "ImportBatchID",
+          "ImportRowID",
+          "ConferenceID",
+          "IssueType",
+          "FieldName",
+          "MessageTH",
+          "MessageEN",
+          "Severity",
+          "Resolved",
+          "ResolvedBy",
+          "ResolvedAt"
+        ]
+      },
+      {
+        "name": "WorkCategories",
+        "usedRange": "A1:H6",
+        "headers": [
+          "CategoryID",
+          "ConferenceID",
+          "CategoryCode",
+          "CategoryNameTH",
+          "CategoryNameEN",
+          "DescriptionTH",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "PresentationTypes",
+        "usedRange": "A1:K3",
+        "headers": [
+          "PresentationTypeID",
+          "ConferenceID",
+          "TypeCode",
+          "TypeNameTH",
+          "TypeNameEN",
+          "PresentationMinutes",
+          "QAMinutes",
+          "NeedsRoom",
+          "NeedsPoster",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "Works",
+        "usedRange": "A1:W3",
+        "headers": [
+          "WorkID",
+          "ConferenceID",
+          "RegID",
+          "WorkCode",
+          "CategoryID",
+          "PresentationTypeRequested",
+          "PresentationTypeFinal",
+          "TitleTH",
+          "TitleEN",
+          "SummaryTH",
+          "Keywords",
+          "EthicsRequired",
+          "EthicsApprovalNo",
+          "Region4AwardIntent",
+          "ScreeningStatus",
+          "ScreeningNote",
+          "Status",
+          "FinalDecision",
+          "RevisionDeadline",
+          "PresentationUploadStatus",
+          "CreatedAt",
+          "UpdatedAt",
+          "LastModifiedBy"
+        ]
+      },
+      {
+        "name": "WorkAuthors",
+        "usedRange": "A1:N3",
+        "headers": [
+          "AuthorID",
+          "ConferenceID",
+          "WorkID",
+          "AuthorOrder",
+          "Prefix",
+          "FirstName",
+          "LastName",
+          "FullName",
+          "Position",
+          "Organization",
+          "Email",
+          "Phone",
+          "IsPresenter",
+          "IsCorrespondingAuthor"
+        ]
+      },
+      {
+        "name": "WorkFiles",
+        "usedRange": "A1:Q11",
+        "headers": [
+          "WorkFileID",
+          "ConferenceID",
+          "WorkID",
+          "RegID",
+          "AssignmentID",
+          "FileCategory",
+          "VersionNo",
+          "FileName",
+          "FileId",
+          "FileUrl",
+          "MimeType",
+          "FileSize",
+          "UploadedBy",
+          "UploadedAt",
+          "Active",
+          "ReplacedFileID",
+          "Note"
+        ]
+      },
+      {
+        "name": "Templates",
+        "usedRange": "A1:K1",
+        "headers": [
+          "TemplateID",
+          "ConferenceID",
+          "TemplateKey",
+          "TemplateNameTH",
+          "TemplateNameEN",
+          "DescriptionTH",
+          "FileId",
+          "FileUrl",
+          "Active",
+          "SortOrder",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "ReviewRounds",
+        "usedRange": "A1:P2",
+        "headers": [
+          "ReviewRoundID",
+          "ConferenceID",
+          "RoundNo",
+          "RoundNameTH",
+          "RoundNameEN",
+          "StartAt",
+          "EndAt",
+          "MinReviewers",
+          "MaxReviewers",
+          "BlindReview",
+          "AllowEditAfterSubmit",
+          "AllowDecline",
+          "CalculationMethod",
+          "PassingScore",
+          "Status",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "Reviewers",
+        "usedRange": "A1:V3",
+        "headers": [
+          "ReviewerID",
+          "Prefix",
+          "FirstName",
+          "LastName",
+          "FullName",
+          "Position",
+          "Institution",
+          "Department",
+          "Province",
+          "HealthRegion",
+          "Phone",
+          "Email",
+          "ExpertiseCategories",
+          "ExpertiseTypes",
+          "MaxWorkload",
+          "Status",
+          "NotificationPreference",
+          "LineToken",
+          "TelegramID",
+          "Note",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "ReviewerPool",
+        "usedRange": "A1:K3",
+        "headers": [
+          "PoolID",
+          "ConferenceID",
+          "ReviewerID",
+          "ExpertiseCategories",
+          "ExpertiseTypes",
+          "MaxWorkload",
+          "CurrentAssignedCount",
+          "ConflictOrganizations",
+          "Status",
+          "AssignedAt",
+          "AssignedBy"
+        ]
+      },
+      {
+        "name": "ReviewerConflicts",
+        "usedRange": "A1:I1",
+        "headers": [
+          "ConflictID",
+          "ConferenceID",
+          "ReviewerID",
+          "WorkID",
+          "Organization",
+          "ConflictType",
+          "Note",
+          "Status",
+          "CreatedAt"
+        ]
+      },
+      {
+        "name": "ReviewAssignments",
+        "usedRange": "A1:V3",
+        "headers": [
+          "AssignmentID",
+          "ConferenceID",
+          "ReviewRoundID",
+          "WorkID",
+          "WorkCode",
+          "ReviewerID",
+          "ReviewerName",
+          "ReviewerEmail",
+          "AssignedAt",
+          "AssignedBy",
+          "Status",
+          "OpenedAt",
+          "CompletedAt",
+          "TotalScore",
+          "Decision",
+          "RecommendationToAuthor",
+          "InternalComment",
+          "DeclineReason",
+          "AnnotatedFileId",
+          "AnnotatedFileUrl",
+          "Locked",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "ScoringCriteria",
+        "usedRange": "A1:N6",
+        "headers": [
+          "CriteriaID",
+          "ConferenceID",
+          "ReviewRoundID",
+          "CategoryID",
+          "PresentationTypeID",
+          "ItemNo",
+          "CriteriaNameTH",
+          "CriteriaNameEN",
+          "DescriptionTH",
+          "MaxScore",
+          "WeightPercent",
+          "RequiredComment",
+          "Active",
+          "SortOrder"
+        ]
+      },
+      {
+        "name": "ReviewScores",
+        "usedRange": "A1:L11",
+        "headers": [
+          "ScoreID",
+          "ConferenceID",
+          "AssignmentID",
+          "ReviewRoundID",
+          "WorkID",
+          "ReviewerID",
+          "CriteriaID",
+          "Score",
+          "WeightedScore",
+          "Comment",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "ReviewSummary",
+        "usedRange": "A1:L3",
+        "headers": [
+          "SummaryID",
+          "ConferenceID",
+          "AssignmentID",
+          "ReviewRoundID",
+          "WorkID",
+          "ReviewerID",
+          "TotalScore",
+          "Decision",
+          "RecommendationToAuthor",
+          "InternalComment",
+          "CreatedAt",
+          "UpdatedAt"
+        ]
+      },
+      {
+        "name": "FinalDecisions",
+        "usedRange": "A1:O1",
+        "headers": [
+          "DecisionID",
+          "ConferenceID",
+          "WorkID",
+          "ReviewRoundID",
+          "DecisionType",
+          "DecisionBy",
+          "DecisionAt",
+          "AverageScore",
+          "MedianScore",
+          "ScoreSD",
+          "Reason",
+          "AuthorVisibleComment",
+          "InternalComment",
+          "IsFinal",
+          "CreatedAt"
+        ]
+      },
+      {
+        "name": "MealEntitlements",
+        "usedRange": "A1:M64",
+        "headers": [
+          "EntitlementID",
+          "ConferenceID",
+          "RegID",
+          "EventDate",
+          "MealCode",
+          "MealNameTH",
+          "Eligible",
+          "RedeemedAt",
+          "RedeemedBy",
+          "ScannerPoint",
+          "TokenHash",
+          "Status",
+          "CreatedAt"
+        ]
+      },
+      {
+        "name": "MealScans",
+        "usedRange": "A1:K3",
+        "headers": [
+          "ScanID",
+          "ConferenceID",
+          "RegID",
+          "EntitlementID",
+          "EventDate",
+          "MealCode",
+          "ScanAt",
+          "ScannerUserID",
+          "ScannerPoint",
+          "Result",
+          "Note"
+        ]
+      },
+      {
+        "name": "AttendanceCheckIns",
+        "usedRange": "A1:I3",
+        "headers": [
+          "CheckInID",
+          "ConferenceID",
+          "RegID",
+          "EventDate",
+          "CheckInAt",
+          "CheckInPoint",
+          "CheckedBy",
+          "Status",
+          "Note"
+        ]
+      },
+      {
+        "name": "Venues",
+        "usedRange": "A1:G1",
+        "headers": [
+          "VenueID",
+          "ConferenceID",
+          "VenueNameTH",
+          "VenueNameEN",
+          "Address",
+          "MapUrl",
+          "Status"
+        ]
+      },
+      {
+        "name": "Rooms",
+        "usedRange": "A1:I1",
+        "headers": [
+          "RoomID",
+          "ConferenceID",
+          "VenueID",
+          "RoomCode",
+          "RoomNameTH",
+          "RoomNameEN",
+          "Capacity",
+          "RoomType",
+          "Status"
+        ]
+      },
+      {
+        "name": "PresentationSessions",
+        "usedRange": "A1:O1",
+        "headers": [
+          "SessionID",
+          "ConferenceID",
+          "SessionCode",
+          "SessionNameTH",
+          "SessionNameEN",
+          "PresentationTypeID",
+          "CategoryID",
+          "VenueID",
+          "RoomID",
+          "SessionDate",
+          "StartTime",
+          "EndTime",
+          "MaxWorks",
+          "PublishStatus",
+          "Note"
+        ]
+      },
+      {
+        "name": "PresentationSlots",
+        "usedRange": "A1:M1",
+        "headers": [
+          "SlotID",
+          "ConferenceID",
+          "SessionID",
+          "WorkID",
+          "WorkCode",
+          "SlotNo",
+          "PresentationDate",
+          "StartTime",
+          "EndTime",
+          "PresenterCheckInStatus",
+          "PresentationStatus",
+          "PublishStatus",
+          "Note"
+        ]
+      },
+      {
+        "name": "PosterAssignments",
+        "usedRange": "A1:K1",
+        "headers": [
+          "PosterAssignmentID",
+          "ConferenceID",
+          "WorkID",
+          "WorkCode",
+          "PosterNo",
+          "DisplayDate",
+          "DisplayStartTime",
+          "DisplayEndTime",
+          "Location",
+          "PublishStatus",
+          "Note"
+        ]
+      },
+      {
+        "name": "EmailTemplates",
+        "usedRange": "A1:L4",
+        "headers": [
+          "EmailTemplateID",
+          "ConferenceID",
+          "TemplateKey",
+          "TemplateNameTH",
+          "SubjectTH",
+          "SubjectEN",
+          "HtmlBodyTH",
+          "HtmlBodyEN",
+          "Variables",
+          "Status",
+          "UpdatedAt",
+          "UpdatedBy"
+        ]
+      },
+      {
+        "name": "EmailLogs",
+        "usedRange": "A1:J218",
+        "headers": [
+          "EmailLogID",
+          "ConferenceID",
+          "SentAt",
+          "SentBy",
+          "To",
+          "Subject",
+          "RelatedType",
+          "RelatedID",
+          "Status",
+          "ErrorMessage"
+        ]
+      },
+      {
+        "name": "AuditLogs",
+        "usedRange": "A1:K24",
+        "headers": [
+          "AuditLogID",
+          "ConferenceID",
+          "Timestamp",
+          "UserID",
+          "UserEmail",
+          "Role",
+          "Action",
+          "TargetType",
+          "TargetID",
+          "DetailsJson",
+          "ClientInfo"
+        ]
+      },
+      {
+        "name": "SystemLogs",
+        "usedRange": "A1:I32",
+        "headers": [
+          "SystemLogID",
+          "Timestamp",
+          "Level",
+          "FunctionName",
+          "Message",
+          "StackTrace",
+          "ConferenceID",
+          "UserEmail",
+          "ClientInfo"
+        ]
+      },
+      {
+        "name": "DashboardSnapshots",
+        "usedRange": "A1:O1",
+        "headers": [
+          "SnapshotID",
+          "ConferenceID",
+          "Timestamp",
+          "TotalRegistrations",
+          "InternalCount",
+          "ExternalCount",
+          "PaidCount",
+          "PendingPaymentCount",
+          "TotalRevenue",
+          "TotalWorks",
+          "UnderReviewCount",
+          "AcceptedOralCount",
+          "AcceptedPosterCount",
+          "MealRedeemedCount",
+          "JsonDetail"
+        ]
+      },
+      {
+        "name": "การตอบแบบฟอร์ม 1",
+        "usedRange": "A1:BE103",
+        "headers": [
+          "ประทับเวลา",
+          "ที่อยู่อีเมล",
+          "ชี้เเจงข้อมูลความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล",
+          "ประเภทบุคคล",
+          "คำนำหน้า",
+          "ชื่อ-นามสกุล  ",
+          "ตำเเหน่ง",
+          "เลขใบประกอบวิชาชีพ (พยาบาล)",
+          "โทรศัพท์มือถือ",
+          "Line ID",
+          "Email ",
+          "ประเภทอาหารที่รับประทาน",
+          "ส่งผลงานเข้าประกวด",
+          "สังกัดฝ่าย",
+          "หน่วยงาน",
+          "หน่วยงาน 2",
+          "หน่วยงาน 3",
+          "หน่วยงาน 4",
+          "หน่วยงาน 5",
+          "หน่วยงาน 6",
+          "หน่วยงาน 7",
+          "สาขาการพยาบาล",
+          "หน่วยงาน 8",
+          "หน่วยงาน 9",
+          "หน่วยงาน 10",
+          "หน่วยงาน 11",
+          "หน่วยงาน 12",
+          "หน่วยงาน 13",
+          "หน่วยงาน 14",
+          "หน่วยงาน 15",
+          "หน่วยงาน 16",
+          "หน่วยงาน 17",
+          "หน่วยงาน 18",
+          "หน่วยงาน 19",
+          "หน่วยงาน 20",
+          "หน่วยงาน 21",
+          "หน่วยงาน 22",
+          "หน่วยงาน 23",
+          "คำนำหน้า 2",
+          "ชื่อ-นามสกุล   2",
+          "ตำเเหน่ง 2",
+          "ชื่อหน่วยงานที่สังกัด",
+          "เลขใบประกอบวิชาชีพ (พยาบาล) 2",
+          "เลขบัตรประจำตัวประชาชน",
+          "โทรศัพท์มือถือ 2",
+          "Line ID 2",
+          "Email  2",
+          "ประเภทอาหารที่รับประทาน 2",
+          "ส่งผลงานเข้าประกวด 2",
+          "วันเข้าร่วมงาน",
+          "ความพึงพอใจในการลงทะเบียน",
+          "ประเภทสังกัด",
+          "หน่วยงาน 24",
+          "หน่วยงาน 25",
+          "หน่วยงาน 26",
+          "หน่วยงาน 27",
+          "คอลัมน์ 52"
+        ]
+      }
+    ]
+  }
+}

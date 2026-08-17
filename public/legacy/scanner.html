@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Event Scanner — TUH Quality Fair Conference Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root{--navy:#0c385b;--deep:#071a2e;--teal:#007d80;--teal2:#0e9a9d;--gold:#c8a94d;--red:#d71920;--green:#1b8f5a;--ink:#102a43;--muted:#6c7f8d;--line:#d8e2e8;--soft:#f3f7f8;--white:#fff;--shadow:0 18px 55px rgba(12,56,91,.16)}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Prompt,sans-serif;color:var(--ink);background:radial-gradient(circle at 12% 10%,rgba(0,158,166,.14),transparent 30%),radial-gradient(circle at 91% 86%,rgba(200,178,120,.18),transparent 34%),#eef3f5}
+    button,input,select{font:inherit}.hidden{display:none!important}.en{display:block;font-size:.7em;font-weight:400;color:#78909c}.shell{min-height:100vh;padding:18px}.login-card{width:min(760px,100%);margin:7vh auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1fr}.login-brand{padding:34px;background:linear-gradient(145deg,#073552,#006d70);color:#fff}.logos{display:flex;gap:18px;align-items:center}.logos img{height:58px;max-width:160px;object-fit:contain;filter:drop-shadow(0 3px 8px rgba(0,0,0,.22))}.login-brand h1{font-size:1.55rem;margin:38px 0 8px}.login-form{padding:38px;display:flex;flex-direction:column;justify-content:center}.field{margin-bottom:14px}.field label{display:block;font-size:.84rem;font-weight:600;margin-bottom:5px}.field input,.field select{width:100%;border:1px solid #cbd8df;border-radius:11px;padding:11px 12px;background:#fff;outline:none}.field input:focus,.field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,125,128,.12)}.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:600;cursor:pointer;transition:.18s}.btn:hover{transform:translateY(-1px);filter:brightness(.97)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}.btn-primary{background:var(--teal);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-soft{background:#e9f1f3;color:var(--navy)}.btn-dark{background:#071426;color:#fff}.btn-outline{background:#fff;color:var(--navy);border:1px solid #aebdc7}.btn-success{background:var(--green);color:#fff}
+    .app-wrap{width:min(1440px,100%);margin:0 auto}.topbar{background:#fff;border-radius:18px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:15px;box-shadow:0 7px 24px rgba(12,56,91,.08);margin-bottom:14px}.brandline{display:flex;align-items:center;gap:16px}.brandline .logos img{height:42px;max-width:128px}.brand-title b{display:block;font-size:1rem}.userbox{text-align:right;font-size:.78rem}.userbox b{display:block}.layout{display:grid;grid-template-columns:minmax(0,1.48fr) minmax(330px,.72fr);gap:16px}.panel{background:#fff;border:1px solid #d4dee5;border-radius:18px;box-shadow:0 9px 26px rgba(12,56,91,.08)}.main-panel{padding:18px}.panel-title{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:14px}.panel-title h2{font-size:1.16rem;margin:0}.status-pill{padding:7px 11px;border-radius:999px;background:#ecf8f4;color:#147548;font-size:.76rem;font-weight:600}.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.service-box{grid-column:1/-1;background:#f5f8fa;border:1px solid #dfe7ec;border-radius:14px;padding:12px}.service-label{font-size:.84rem;font-weight:600;margin-bottom:8px}.service-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:9px}.service-group:last-child{margin-bottom:0}.service-btn{border:1px solid #aebdc7;border-radius:9px;background:#fff;color:var(--navy);padding:9px 13px;cursor:pointer;font-weight:500}.service-btn.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 5px 12px rgba(215,25,32,.24)}.scanner-console{margin-top:14px;border-radius:16px;background:linear-gradient(145deg,#061325,#0c1d34);color:#fff;padding:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}.console-head{display:flex;justify-content:space-between;font-size:.68rem;letter-spacing:.08em;color:#63d7cf;margin-bottom:10px}.scan-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.scan-actions .btn{padding:8px 12px}.reader-wrap{background:#020913;border-radius:12px;padding:8px;margin-bottom:10px}.reader-wrap.hidden{display:none!important}#reader{width:100%;min-height:260px;border-radius:9px;overflow:hidden;background:#020913}.manual-row{display:grid;grid-template-columns:1fr 165px;gap:9px}.manual-row input{width:100%;background:#020913;color:#fff;border:1px solid #2c3d55;border-radius:9px;padding:12px}.manual-row input::placeholder{color:#8291a5}.hint{margin-top:8px;font-size:.75rem;color:#92a2b6}.check-card{margin-top:14px;border:1px solid #d7e1e6;border-radius:15px;padding:14px;background:#fbfcfd}.empty-state{text-align:center;padding:24px;color:#718391}.person-head{display:flex;justify-content:space-between;gap:12px;align-items:start}.person-head h3{margin:0;font-size:1.18rem}.regid{font-family:monospace;color:#5d7180}.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;font-size:.72rem}.badge.ok{background:#e8f7ef;color:#147548}.badge.bad{background:#feeceb;color:#b42318}.badge.warn{background:#fff4db;color:#8a5a00}.message{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:.84rem}.message.ok{background:#e9f8f0;color:#146c43}.message.bad{background:#fff0ef;color:#a3261c}.confirm-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.recent-panel{display:flex;flex-direction:column;min-height:640px}.recent-head{padding:16px;border-bottom:1px solid #dce5ea}.recent-head h2{font-size:1rem;margin:0}.recent-count{display:inline-block;margin-top:6px;background:#edf3f5;border-radius:999px;padding:5px 9px;font-size:.74rem}.recent-list{padding:10px;overflow:auto;max-height:700px}.recent-item{border:1px solid #e1e8ec;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff}.recent-item .top{display:flex;justify-content:space-between;gap:8px}.recent-item b{font-size:.85rem}.recent-item small{display:block;color:#718391;margin-top:2px}.recent-time{font-size:.72rem;color:#b42318;font-weight:600;text-align:right}.recent-tag{display:inline-block;margin-top:7px;padding:3px 7px;border-radius:999px;background:#e8f7ef;color:#147548;font-size:.68rem}.success-flash{animation:flash .7s ease}@keyframes flash{0%{box-shadow:0 0 0 0 rgba(27,143,90,.45)}100%{box-shadow:0 0 0 14px rgba(27,143,90,0)}}
+    .password-wrap{position:relative}.password-wrap input{padding-right:48px}.eye-btn{position:absolute;right:7px;top:29px;width:36px;height:36px;border:0;border-radius:9px;background:#e9f1f3;color:var(--navy);cursor:pointer}.remember-row{display:flex;align-items:flex-start;gap:8px;margin:0 0 14px;font-size:.8rem}.remember-row input{margin-top:3px}.login-help{font-size:.76rem;color:#6c7f8d;margin-top:12px;border-top:1px solid #d8e2e8;padding-top:10px}.login-help a{color:var(--teal);font-weight:600}
+    .loading{position:fixed;inset:0;background:rgba(244,247,248,.88);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:100}.loading.show{display:flex}.loading-box{background:#fff;padding:22px 28px;border-radius:18px;box-shadow:0 18px 45px rgba(0,0,0,.16)}.spin{display:inline-block;width:24px;height:24px;border:3px solid #DCE5EA;border-top-color:var(--teal);border-radius:50%;animation:s .8s linear infinite;margin-right:10px}@keyframes s{to{transform:rotate(360deg)}}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.recent-panel{min-height:0}.recent-list{max-height:420px}}@media(max-width:700px){.shell{padding:8px}.login-card{grid-template-columns:1fr;margin:2vh auto}.login-brand,.login-form{padding:24px}.login-brand h1{margin-top:22px}.topbar{align-items:flex-start}.brandline{display:block}.brandline .logos{margin-bottom:8px}.userbox{font-size:.68rem}.layout{gap:10px}.main-panel{padding:12px}.config-grid{grid-template-columns:1fr}.manual-row{grid-template-columns:1fr}.manual-row .btn{width:100%}.person-head{display:block}.panel-title{display:block}.status-pill{display:inline-block;margin-top:8px}}
+  
+    /* v2.1 direct-access rescue for Google Sites / embedded browsers */
+    .direct-access-bar{position:fixed;right:10px;bottom:10px;z-index:9999;display:none;background:rgba(255,255,255,0.85);border-radius:8px;padding:5px 8px;font-size:0.75rem;}
+    .direct-access-bar.show{display:block}
+    .direct-access-bar a{color:#64748b;text-decoration:underline;}
+  </style>
+</head>
+<body>
+<div class="direct-access-bar" id="directAccessBar" role="status">
+  <a id="directAccessNewTab" href="/scanner?conferenceId=CONF-TUH-QF-2569" target="_blank" rel="noopener noreferrer" title="คัดลอกลิงก์นี้เพื่อเปิดในโหมดไม่ระบุตัวตน (Incognito)">หากจอขาว/เข้าไม่ได้ เปิด Incognito</a>
+</div>
+
+<div class="shell">
+  <section class="login-card" id="loginView">
+    <div class="login-brand">
+      <div class="logos"><img src="/images/tuh-logo.png" alt="TUH"><img src="/images/hacc-logo.png" alt="HACC"></div>
+      <h1>TUH 19 & HA-Regional 1</h1><p>ระบบเช็คอินและสแกนสิทธิ์ สำหรับเจ้าหน้าที่ลงทะเบียนและจุดบริการอาหาร</p><span class="en" style="color:#d2ebec">Event check-in & meal scanner</span>
+    </div>
+    <form class="login-form" id="loginForm" autocomplete="on"><div style="display:flex; border-bottom:1px solid #d9e3e8; margin-bottom:20px;"><a onclick="if(typeof show==='function')show('กำลังเปลี่ยนหน้า...'); else if(typeof setBusy==='function')setBusy(true,'กำลังเปลี่ยนหน้า...'); else Swal.fire({title:'กำลังเปลี่ยนหน้า...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()}); window.top.location.href=canonicalRoute('admin')" style="flex:1; padding:10px 0; text-align:center; text-decoration:none; color:#758593; font-weight:600; cursor:pointer;">Admin</a><a onclick="if(typeof show==='function')show('กำลังเปลี่ยนหน้า...'); else if(typeof setBusy==='function')setBusy(true,'กำลังเปลี่ยนหน้า...'); else Swal.fire({title:'กำลังเปลี่ยนหน้า...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()}); window.top.location.href=canonicalRoute('reviewer')" style="flex:1; padding:10px 0; text-align:center; text-decoration:none; color:#758593; font-weight:600; cursor:pointer;">Reviewer</a><a style="flex:1; padding:10px 0; text-align:center; text-decoration:none; color:var(--teal); border-bottom:2px solid var(--teal); font-weight:600; cursor:default;">สแกนสิทธิ์</a></div>
+      <h2 style="margin:0 0 20px">เข้าสู่ระบบเจ้าหน้าที่<span class="en">Staff sign in</span></h2>
+      <div class="field"><label>Username / Email</label><input id="loginUser" name="username" autocomplete="username" required></div>
+      <div class="field password-wrap"><label>รหัสผ่าน<span class="en">Password</span></label><input id="loginPass" name="password" type="password" autocomplete="current-password" required><button type="button" class="eye-btn" onclick="togglePassword('loginPass',this)" aria-label="แสดงหรือซ่อนรหัสผ่าน">👁</button></div>
+      <label class="remember-row"><input type="checkbox" id="rememberLogin" checked><span>จำ Username และรหัสผ่านบนอุปกรณ์ส่วนตัวนี้<span class="en">Remember credentials on this device</span></span></label>
+      <button class="btn btn-primary" type="submit">เข้าสู่ระบบ<span class="en" style="color:#d8eded">Sign in</span></button>
+      <div style="display:flex; justify-content:space-between; margin-top:15px;"><a href="#" onclick="forgotPassword()" style="font-size:0.85rem; color:var(--teal); text-decoration:none;">ลืมรหัสผ่าน?</a><a href="#" onclick="signUp()" style="font-size:0.85rem; color:var(--teal); text-decoration:none; font-weight:600;">+ สมัครเข้าใช้งาน</a></div>
+      <div class="login-help">หากเปิดผ่าน Google Sites หรือเบราว์เซอร์ภายในแอปแล้วไม่สำเร็จ ให้ <a href="/scanner?conferenceId=CONF-TUH-QF-2569" target="_blank" rel="noopener noreferrer">เปิด Web App โดยตรง</a> โดยไม่ต้องออกจากบัญชี Google</div>
+    </form>
+  </section>
+
+  <main class="app-wrap hidden" id="appView">
+    <header class="topbar">
+      <div class="brandline"><div class="logos"><img src="/images/tuh-logo.png" alt="TUH"><img src="/images/hacc-logo.png" alt="HACC"></div><div class="brand-title"><b>TUH 19 & HA-Regional 1</b><span class="en">Event scanner console</span></div></div>
+      <div class="userbox"><b id="userName">-</b><span id="userRole">-</span><br><button class="btn btn-soft" style="padding:6px 10px;margin-top:5px" onclick="logoutScanner()">ออกจากระบบ</button></div>
+    </header>
+
+    <div class="layout">
+      <section class="panel main-panel">
+        <div class="panel-title"><div><h2>เครื่องยิงรหัสเช็คอินและสิทธิ์ทางด่วน</h2><span class="en">Event Scanner Gun</span></div><span class="status-pill" id="systemStatus">STATUS: READY TO SCAN</span></div>
+        <div class="config-grid">
+          <div class="field"><label>เลือกวันเข้าร่วมงาน<span class="en">Event date</span></label><select id="eventDate"></select></div>
+          <div class="field"><label>จุดบริการ<span class="en">Scanner point</span></label><input id="scannerPoint" value="จุดบริการหลัก" placeholder="เช่น ประตูห้องประชุม / จุดอาหาร"></div>
+          <div class="service-box">
+            <div class="service-label">1. เลือกประเภทการเช็คอิน</div><div class="service-group" id="checkinButtons"></div>
+            <div class="service-label">2. เลือกการตรวจสอบอาหารว่าง/มื้อเที่ยง</div><div class="service-group" id="mealButtons"></div>
+          </div>
+        </div>
+
+        <div class="scanner-console">
+          <div class="console-head"><span id="consoleState">STATUS: READY TO SCAN</span><span>HARDWARE V1.8</span></div>
+          <div class="scan-actions"><button class="btn btn-red" id="openCameraBtn" onclick="openCamera()">เปิดกล้องสแกน</button><button class="btn btn-outline" id="scanFileBtn" onclick="document.getElementById('qrFileInput').click()">📸 ถ่ายรูปสแกน</button><input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleFileScan(this)"><button class="btn btn-outline" id="closeCameraBtn" onclick="closeCamera()" disabled>ปิดกล้อง</button><button class="btn btn-soft" onclick="clearScan()">ล้างค่า</button></div>
+          <div class="reader-wrap hidden" id="readerWrap"><div id="reader"></div></div>
+          <div class="manual-row"><input id="identifier" placeholder="ยิง QR Code หรือกรอก REG-2026-000001" autocomplete="off"><button class="btn btn-red" id="inspectBtn" onclick="inspectRegistration()">ตรวจสอบสิทธิ์</button></div>
+          <div class="hint">เมื่อสแกนสำเร็จ ระบบจะดึง RegID มาใส่ช่องนี้ก่อน จากนั้นกด “ตรวจสอบสิทธิ์” และ “ยืนยันบันทึก”</div>
+        </div>
+
+        <div class="check-card" id="checkResult"><div class="empty-state">ยังไม่มีข้อมูลสำหรับตรวจสอบ</div></div>
+      </section>
+
+      <aside class="panel recent-panel">
+        <div class="recent-head"><h2>รายการที่ยืนยันล่าสุด<span class="en">Recent confirmed records</span></h2><span class="recent-count" id="recentCount">0 รายการ</span></div>
+        <div class="recent-list" id="recentList"><div class="empty-state">ยังไม่มีรายการ</div></div>
+      </aside>
+    </div>
+  </main>
+</div>
+<script>
+const CID=''+(new URLSearchParams(location.search).get('conferenceId')||'CONF-TUH-QF-2569')+'';
+
+const APP_BASE_URL='';
+const DIRECT_ACCESS_URL='/scanner?conferenceId=CONF-TUH-QF-2569';
+function installDirectAccessGuard(){
+  const embedded=window.self!==window.top;
+  const fromGoogleSites=/sites\.google\.com/i.test(document.referrer||'');
+  const inApp=/FBAN|FBAV|Line\/|Instagram|GSA\//i.test(navigator.userAgent||'');
+  const bar=document.getElementById('directAccessBar');
+  if(bar&&(embedded||fromGoogleSites||inApp))bar.classList.add('show');
+}
+function canonicalRoute(page){const routes={public:'/',admin:'/admin',reviewer:'/reviewer',scanner:'/scanner',launcher:'/launcher'};const target=routes[page||'public']||'/';return target+'?conferenceId='+encodeURIComponent(CID)}
+window.addEventListener('DOMContentLoaded',installDirectAccessGuard);
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let TOKEN='',TOKEN_SOURCE='',BOOT=null,SELECTED_SERVICE='',PENDING=null,QR=null,CAMERA_ON=false,SCAN_LOCK=false;
+async function rpc(n,...a){const response=await fetch('/api/gas',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({action:n,args:a,requestId:crypto.randomUUID(),timestamp:Date.now()})});let result;try{result=await response.json()}catch(e){throw new Error('การตอบกลับจากระบบไม่ถูกต้อง')}if(!response.ok||!result.success)throw new Error(result.message||'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ');return result.data}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function parseDate(v){const s=String(v||''),m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3],12);const d=new Date(s);return isNaN(d)?null:d}
+function thDate(v){const d=parseDate(v);return d?new Intl.DateTimeFormat('th-TH-u-ca-buddhist',{day:'numeric',month:'long',year:'numeric'}).format(d):String(v||'')}
+function timeText(v){const d=new Date(v);return isNaN(d)?String(v||''):new Intl.DateTimeFormat('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Bangkok'}).format(d)}
+function show(t){const el=document.getElementById('loadText');if(el)el.textContent=t||'กำลังประมวลผล';const l=document.getElementById('loading');if(l)l.classList.add('show')}function hide(){const l=document.getElementById('loading');if(l)l.classList.remove('show')}
+function setBusy(on,text){if(on)show(text);else hide();const btn=document.getElementById('inspectBtn');if(btn)btn.disabled=on;const sys=document.getElementById('systemStatus');if(sys)sys.textContent=on?(text||'กำลังประมวลผล...'):'STATUS: READY TO SCAN';const con=document.getElementById('consoleState');if(con)con.textContent=on?'STATUS: PROCESSING':'STATUS: READY TO SCAN'}
+const SCANNER_CRED_KEY='tuhScannerRememberedCredentials';
+function togglePassword(id,btn){const el=document.getElementById(id);if(!el)return;const showing=el.type==='text';el.type=showing?'password':'text';if(btn)btn.textContent=showing?'👁':'🙈'}
+function loadRememberedLogin(){try{const username=localStorage.getItem(SCANNER_CRED_KEY)||'';$('#loginUser').value=username;$('#rememberLogin').checked=!!username}catch(e){}}
+function saveRememberedLogin(){if($('#rememberLogin').checked)localStorage.setItem(SCANNER_CRED_KEY,$('#loginUser').value.trim());else localStorage.removeItem(SCANNER_CRED_KEY)}
+function scannerStoredToken(){return '__COOKIE__'}
+function adminStoredToken(){return ''}
+function storeScannerToken(){}
+function sessionError(e){if(/Session|เข้าสู่ระบบใหม่|หมดอายุ/.test(e.message||'')){if(TOKEN_SOURCE==='scanner'){localStorage.removeItem('tuhScannerToken');sessionStorage.removeItem('tuhScannerToken')}if(TOKEN_SOURCE==='admin'){localStorage.removeItem('tuhAdminToken');sessionStorage.removeItem('tuhAdminToken')};TOKEN='';TOKEN_SOURCE='';$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden');Swal.fire({icon:'warning',title:'Session หมดอายุ',text:'กรุณาเข้าสู่ระบบใหม่'});return true}return false}
+
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();try{setBusy(true,'กำลังเข้าสู่ระบบ');const r=await rpc('loginUser',$('#loginUser').value,$('#loginPass').value,CID,navigator.userAgent);if(!['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF','FOOD_STAFF'].includes(r.role))throw new Error('บัญชีนี้ไม่มีสิทธิ์ใช้งานหน้าสแกน');TOKEN=r.token;TOKEN_SOURCE='scanner';saveRememberedLogin();storeScannerToken(TOKEN);await bootScanner()}catch(e){Swal.fire({icon:'error',title:'เข้าสู่ระบบไม่สำเร็จ',text:e.message})}finally{setBusy(false)}});
+async function bootScanner(){
+  try {
+    BOOT=await rpc('getEventScannerBootstrap',TOKEN,CID);
+    $('#loginView').classList.add('hidden');
+    $('#appView').classList.remove('hidden');
+    $('#userName').textContent=BOOT.user.FullName||BOOT.user.Email;
+    $('#userRole').textContent=BOOT.role;
+  $('#eventDate').innerHTML=(BOOT.eventDates||[]).map(d=>`<option value="${esc(d)}">${esc(thDate(d))}</option>`).join('');
+  const checkins=(BOOT.services||[]).filter(x=>x.type==='CHECKIN'),meals=(BOOT.services||[]).filter(x=>x.type==='MEAL');
+  $('#checkinButtons').innerHTML=checkins.map(x=>`<button class="service-btn" data-code="${esc(x.code)}" onclick="selectService('${esc(x.code)}')">${esc(x.shortTH||x.nameTH)}</button>`).join('');
+  $('#mealButtons').innerHTML=meals.map(x=>`<button class="service-btn" data-code="${esc(x.code)}" onclick="selectService('${esc(x.code)}')">${esc(x.shortTH||x.nameTH)}</button>`).join('');
+  SELECTED_SERVICE=(checkins[0]||meals[0]||{}).code||'';selectService(SELECTED_SERVICE);$('#eventDate').onchange=()=>{PENDING=null;renderEmpty();loadRecent()};
+  } catch (e) {
+    $('#appView').classList.add('hidden');
+    $('#loginView').classList.remove('hidden');
+    throw e;
+  }
+}
+function selectService(code){SELECTED_SERVICE=code;$$('.service-btn').forEach(b=>b.classList.toggle('active',b.dataset.code===code));PENDING=null;renderEmpty();loadRecent()}
+async function autoBoot(){loadRememberedLogin();const scannerToken=scannerStoredToken(),adminToken=adminStoredToken();TOKEN=scannerToken||adminToken;TOKEN_SOURCE=scannerToken?'scanner':(adminToken?'admin':'');if(!TOKEN)return;try{await bootScanner()}catch(e){if(TOKEN_SOURCE==='scanner'){localStorage.removeItem('tuhScannerToken');sessionStorage.removeItem('tuhScannerToken')}if(TOKEN_SOURCE==='admin'&&!sessionError(e)){localStorage.removeItem('tuhAdminToken');sessionStorage.removeItem('tuhAdminToken')}}}
+async function forgotPassword(){const{value:e}=await Swal.fire({title:'ลืมรหัสผ่าน',input:'email',inputLabel:'กรุณากรอกอีเมลที่ลงทะเบียนไว้',inputPlaceholder:'email@example.com',showCancelButton:true,confirmButtonText:'ส่งรหัสผ่านใหม่',cancelButtonText:'ยกเลิก',confirmButtonColor:'#007D80'});if(e){setBusy(true,'กำลังส่งข้อมูล...');try{await rpc('requestPasswordReset',e,CID);Swal.fire({icon:'success',title:'สำเร็จ',text:'ระบบได้ส่งรหัสผ่านใหม่ไปยังอีเมลของท่านแล้ว'})}catch(err){Swal.fire({icon:'error',title:'ไม่สำเร็จ',text:err.message})}finally{setBusy(false)}}}
+async function signUp(){const html=`<style>.swal-form{text-align:left;font-size:0.9rem}.swal-form .row{display:flex;gap:10px;margin-bottom:10px}.swal-form .row>div{flex:1}.swal-form label{display:block;margin-bottom:4px;font-weight:600;color:#334155}.swal-form input,.swal-form select{width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box}</style><div class="swal-form"><div class="row"><div><label>Username (หรือใช้อีเมล)</label><input id="su_user" placeholder="Username"></div><div><label>อีเมล (Email) *</label><input id="su_email" type="email" placeholder="Email"></div></div><div class="row"><div><label>รหัสผ่าน (Password) *</label><input id="su_pass" type="password"></div></div><div class="row"><div style="flex:0.4"><label>คำนำหน้า</label><input id="su_prefix" placeholder="นาย, นาง, นางสาว"></div><div><label>ชื่อ (First Name) *</label><input id="su_fname"></div><div><label>นามสกุล (Last Name) *</label><input id="su_lname"></div></div><div class="row"><div><label>เบอร์โทรศัพท์ (Phone)</label><input id="su_phone"></div><div><label>หน่วยงาน (Organization)</label><input id="su_org"></div></div><div class="row"><div><label>สิทธิ์การใช้งาน (Role) *</label><select id="su_role"><option value="Registration">ฝ่ายทะเบียนและการเงิน (Registration)</option><option value="Scanner">จุดบริการอาหารและเช็คอิน (Scanner)</option><option value="Academic">จัดการผลงาน (Academic)</option><option value="Reviewer">ผู้ประเมินผลงาน (Reviewer)</option></select></div></div></div>`;const{value:data}=await Swal.fire({title:'สมัครเข้าใช้งาน',html:html,width:'600px',showCancelButton:true,confirmButtonText:'สมัครสมาชิก',cancelButtonText:'ยกเลิก',confirmButtonColor:'#007D80',preConfirm:()=>{const email=document.getElementById('su_email').value.trim(),pass=document.getElementById('su_pass').value.trim(),fname=document.getElementById('su_fname').value.trim(),lname=document.getElementById('su_lname').value.trim();if(!email||!pass||!fname||!lname){Swal.showValidationMessage('กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบถ้วน');return false}return{Username:document.getElementById('su_user').value.trim(),Email:email,Password:pass,Prefix:document.getElementById('su_prefix').value.trim(),FirstName:fname,LastName:lname,Phone:document.getElementById('su_phone').value.trim(),Organization:document.getElementById('su_org').value.trim(),Role:document.getElementById('su_role').value}}});if(data){setBusy(true,'กำลังบันทึกข้อมูล...');try{await rpc('registerNewUser',data,CID);Swal.fire({icon:'success',title:'สำเร็จ',text:'ส่งข้อมูลสมัครสมาชิกเรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ'})}catch(e){Swal.fire({icon:'error',title:'ไม่สำเร็จ',text:e.message})}finally{setBusy(false)}}}
+async function logoutScanner(){if(TOKEN_SOURCE==='scanner'){try{await rpc('logoutUser',TOKEN)}catch(e){}}localStorage.removeItem('tuhScannerToken');sessionStorage.removeItem('tuhScannerToken');await closeCamera();TOKEN='';TOKEN_SOURCE='';$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden')}
+
+async function handleFileScan(input){
+  if(!input.files||!input.files.length)return;
+  const file=input.files[0];
+  setBusy(true, 'กำลังค้นหา QR Code...');
+  $('#readerWrap').classList.remove('hidden');
+  try{
+    if(!QR) QR=new Html5Qrcode('reader');
+    const decodedText=await QR.scanFile(file, true);
+    setBusy(false);
+    $('#readerWrap').classList.add('hidden');
+    onQrDecoded(decodedText);
+  }catch(e){
+    setBusy(false);
+    $('#readerWrap').classList.add('hidden');
+    Swal.fire({icon:'warning',title:'ไม่พบ QR Code',text:'ไม่สามารถอ่าน QR Code จากรูปนี้ได้ กรุณาถ่ายภาพให้เห็น QR ชัดเจน'});
+  }
+  input.value='';
+}
+
+async function openCamera(){
+  if(CAMERA_ON)return;
+  try{
+    $('#readerWrap').classList.remove('hidden');
+    QR=new Html5Qrcode('reader');
+    
+    // Primary method: getCameras() (More compatible with iOS Safari)
+    const cameras=await Html5Qrcode.getCameras();
+    if(!cameras||!cameras.length)throw new Error('ไม่พบกล้องในอุปกรณ์นี้');
+    
+    const preferred=cameras.find(c=>/back|rear|environment/i.test(c.label))||cameras[cameras.length-1];
+    await QR.start(preferred.id,{fps:10,qrbox:(w,h)=>({width:Math.min(280,w-30),height:Math.min(280,h-30)}),aspectRatio:1},decoded=>onQrDecoded(decoded),()=>{});
+    
+    CAMERA_ON=true;$('#openCameraBtn').disabled=true;$('#closeCameraBtn').disabled=false;$('#consoleState').textContent='STATUS: CAMERA ACTIVE';
+  }catch(e){
+    $('#readerWrap').classList.add('hidden');QR=null;
+    const msg=e.message||String(e);
+    let htmlMsg = `${esc(msg)}<br><br><small style="color:red">โปรดอนุญาตสิทธิ์กล้องใน Browser<br>หากอนุญาตแล้วแต่ยังไม่ได้ <b>กรุณารีเฟรชหน้าเว็บหรือเปิดโหมดไม่ระบุตัวตน (Private/Incognito)</b></small>`;
+    const directLnk = document.getElementById('directAccessNewTab');
+    if (directLnk && directLnk.href && window.top !== window.self) {
+       htmlMsg = `${esc(msg)}<br><br><span style="color:#b42318;font-size:0.9rem">ระบบของ Google อาจบล็อกกล้องเมื่อเปิดผ่านลิงก์นี้</span><br><br><a href="${directLnk.href}" target="_blank" class="btn btn-red" style="display:inline-block;text-decoration:none;margin-top:5px;width:100%">👉 คลิกที่นี่เพื่อสแกนผ่านลิงก์ตรง</a>`;
+    }
+    Swal.fire({
+      icon:'error',
+      title:'เปิดกล้องไม่ได้',
+      html: htmlMsg
+    });
+  }
+}
+async function closeCamera(){if(QR){try{if(CAMERA_ON)await QR.stop();await QR.clear()}catch(e){}}QR=null;CAMERA_ON=false;$('#readerWrap').classList.add('hidden');$('#openCameraBtn').disabled=false;$('#closeCameraBtn').disabled=true;$('#consoleState').textContent='STATUS: READY TO SCAN'}
+async function onQrDecoded(decoded){if(SCAN_LOCK)return;SCAN_LOCK=true;$('#identifier').value=decoded;navigator.vibrate&&navigator.vibrate(120);await closeCamera();Swal.fire({toast:true,position:'top-end',icon:'success',title:'อ่าน QR Code แล้ว กรุณากดตรวจสอบสิทธิ์',showConfirmButton:false,timer:2200});setTimeout(()=>SCAN_LOCK=false,800)}
+function clearScan(){$('#identifier').value='';PENDING=null;renderEmpty();$('#identifier').focus()}
+function renderEmpty(){$('#checkResult').innerHTML='<div class="empty-state">ยังไม่มีข้อมูลสำหรับตรวจสอบ</div>'}
+function checkBadge(ok,text){return `<span class="badge ${ok?'ok':'bad'}">${ok?'✓':'✕'} ${esc(text)}</span>`}
+async function inspectRegistration(){
+  if(!SELECTED_SERVICE)return Swal.fire({icon:'warning',title:'กรุณาเลือกบริการด้านบน'});
+  let id=$('#identifier').value.trim();
+  if(!id)return Swal.fire({icon:'warning',title:'กรุณาสแกน QR หรือพิมพ์ RegID'});
+  if(/^\d{1,6}$/.test(id)){
+    id='REG-2026-'+id.padStart(6,'0');
+    $('#identifier').value=id;
+  }else if(/^REG-\d{4}-\d{1,5}$/i.test(id)){
+    const p=id.split('-');
+    id=p[0].toUpperCase()+'-'+p[1]+'-'+p[2].padStart(6,'0');
+    $('#identifier').value=id;
+  }
+  setBusy(true,'กำลังตรวจสอบสิทธิ์');try{PENDING=await rpc('inspectEventScanner',TOKEN,CID,id,$('#eventDate').value,SELECTED_SERVICE);$('#identifier').value=PENDING.RegID;renderInspection(PENDING)}catch(e){if(!sessionError(e)){PENDING=null;$('#checkResult').innerHTML=`<div class="message bad"><b>ตรวจสอบไม่สำเร็จ</b><br>${esc(e.message)}</div>`}}finally{setBusy(false)}
+}
+function renderInspection(r){const c=r.Checks||{};$('#checkResult').innerHTML=`<div class="person-head"><div><h3>${esc(r.FullName)}</h3><div class="regid">${esc(r.RegID)}</div><div style="margin-top:4px;color:#647987">${esc(r.Organization||'-')}</div></div><div style="text-align:right"><b>${esc(r.ServiceNameTH)}</b><br><small>${esc(thDate(r.EventDate))}</small></div></div><div class="badges">${checkBadge(c.dataComplete,'ข้อมูลครบ')}${checkBadge(c.registrationApproved,'ทะเบียนตรวจผ่าน')}${checkBadge(c.daySelected,'เลือกเข้าร่วมวันนี้')}${checkBadge(c.paymentOkay,'การเงินผ่าน/ไม่ต้องชำระ')}${checkBadge(!r.Duplicate,'ยังไม่ใช้สิทธิ์')}</div><div class="message ${r.CanConfirm?'ok':'bad'}">${esc(r.Message)}</div><div class="confirm-row"><button class="btn btn-soft" onclick="clearScan()">ยกเลิก</button><button class="btn btn-success" ${r.CanConfirm?'':'disabled'} onclick="confirmRecord()">ยืนยันบันทึก</button></div>`}
+async function confirmRecord(){if(!PENDING||!PENDING.CanConfirm)return;const x=await Swal.fire({icon:'question',title:'ยืนยันบันทึก?',html:`<b>${esc(PENDING.FullName)}</b><br>${esc(PENDING.ServiceNameTH)}<br>${esc(thDate(PENDING.EventDate))}`,showCancelButton:true,confirmButtonText:'ยืนยันบันทึก',cancelButtonText:'ยกเลิก',confirmButtonColor:'#1b8f5a'});if(!x.isConfirmed)return;setBusy(true,'กำลังบันทึก');try{const r=await rpc('confirmEventScanner',TOKEN,CID,PENDING.RegID,PENDING.EventDate,PENDING.ServiceCode,$('#scannerPoint').value);$('#checkResult').classList.add('success-flash');$('#checkResult').innerHTML=`<div class="message ok" style="text-align:center"><h2 style="margin:0 0 6px">บันทึกสำเร็จ</h2><b>${esc(r.FullName)}</b><br>${esc(r.ServiceNameTH)}<br>${esc(thDate(r.EventDate))} เวลา ${esc(timeText(r.ConfirmedAt))}</div>`;navigator.vibrate&&navigator.vibrate([120,80,120]);PENDING=null;$('#identifier').value='';await loadRecent()}catch(e){if(!sessionError(e))Swal.fire({icon:'error',title:'บันทึกไม่สำเร็จ',text:e.message})}finally{setBusy(false);setTimeout(()=>$('#checkResult').classList.remove('success-flash'),800)}}
+async function loadRecent(){if(!TOKEN||!SELECTED_SERVICE||!$('#eventDate').value)return;try{setBusy(true, 'กำลังโหลดข้อมูล...');const d=await rpc('getEventScannerRecent',TOKEN,CID,$('#eventDate').value,SELECTED_SERVICE,80);$('#recentCount').textContent=`${d.count||0} รายการ`;$('#recentList').innerHTML=(d.rows||[]).length?(d.rows||[]).map(r=>`<div class="recent-item"><div class="top"><div><b>${esc(r.FullName||r.RegID)}</b><small>${esc(r.RegID)}</small><small>${esc(r.Organization||'')}</small></div><div class="recent-time">${esc(timeText(r.RecordedAt))}</div></div><span class="recent-tag">${esc(r.ServiceNameTH)}</span></div>`).join(''):'<div class="empty-state">ยังไม่มีรายการสำหรับวันและบริการที่เลือก</div>'}catch(e){if(!sessionError(e))$('#recentList').innerHTML=`<div class="empty-state">${esc(e.message)}</div>`}finally{setBusy(false)}}
+$('#identifier').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inspectRegistration()}});
+autoBoot();
+</script>
+<div class="loading" id="loading"><div class="loading-box"><span class="spin"></span><b id="loadText">กำลังประมวลผล</b></div></div>
+</body>
+</html>
