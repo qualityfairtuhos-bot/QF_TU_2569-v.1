@@ -281,6 +281,8 @@ function defaultSettings_(){ return {
   REGISTRATION_ENABLED:{value:'TRUE',type:'BOOLEAN',group:'REGISTRATION',th:'เปิดรับลงทะเบียน',en:'Registration enabled'},
   INTERNAL_QUOTA:{value:'400',type:'NUMBER',group:'REGISTRATION',th:'โควตาบุคลากรภายใน',en:'Internal quota'},
   EXTERNAL_QUOTA:{value:'200',type:'NUMBER',group:'REGISTRATION',th:'โควตาบุคคลทั่วไป',en:'External quota'},
+  INTERNAL_DAILY_QUOTA:{value:'400',type:'NUMBER',group:'REGISTRATION',th:'โควตารายวันบุคลากรภายใน (ท่าน/วัน)',en:'Internal daily quota'},
+  EXTERNAL_DAILY_QUOTA:{value:'200',type:'NUMBER',group:'REGISTRATION',th:'โควตารายวันบุคคลภายนอก (ท่าน/วัน)',en:'External daily quota'},
   REQUIRE_CID_ALL:{value:'TRUE',type:'BOOLEAN',group:'REGISTRATION',th:'บังคับเลขบัตรประชาชนทุกคน',en:'Require CID for all'},
   EMAIL_DUPLICATE_POLICY:{value:'WARNING',type:'TEXT',group:'REGISTRATION',th:'อีเมลซ้ำให้เตือน',en:'Email duplicates warning'},
   PHONE_DUPLICATE_POLICY:{value:'ALLOW',type:'TEXT',group:'REGISTRATION',th:'อนุญาตโทรศัพท์ซ้ำ',en:'Allow duplicate phone'},
@@ -308,14 +310,28 @@ function defaultSettings_(){ return {
 function seedRegistrationTypes_(cid){
   const rows = [
     ['INTERNAL','บุคลากรโรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ','TUH Staff',true,0,400,false,false,1],
-    ['EXTERNAL_2500','สาธารณสุขจังหวัด / โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป','Provincial public health / Regional or General hospital',false,2500,200,true,true,2],
-    ['EXTERNAL_1500','โรงพยาบาลชุมชน / สาธารณสุขอำเภอ / รพ.สต.','Community hospital / District public health / Health promoting hospital',false,1500,100,true,true,3],
-    ['EXTERNAL_GENERAL','บุคคลภายนอกทั่วไป / สถาบันการศึกษา / เอกชน','General Public / Academic Institute / Private Sector',false,3000,50,true,true,4]
+    ['EXTERNAL_2500','บุคคลภายนอกทั่วไป / สถาบันการศึกษา / เอกชน / สาธารณสุขจังหวัด / โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป','General Public / Academic Institute / Private / Provincial Health / Regional & General Hospital',false,2500,200,true,true,2],
+    ['EXTERNAL_1500','โรงพยาบาลชุมชน / สาธารณสุขอำเภอ / รพ.สต.','Community hospital / District public health / Health promoting hospital',false,1500,200,true,true,3]
   ];
   rows.forEach(function(r){
-    if(!findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:r[0]})) appendRecord_('RegistrationTypes',{
-      RegistrationTypeID:nextId_('RT'),ConferenceID:cid,TypeCode:r[0],TypeNameTH:r[1],TypeNameEN:r[2],IsInternal:r[3],FeeAmount:r[4],Quota:r[5],UsedQuota:0,PaymentRequired:r[6],WorkRequiresPayment:r[7],Active:true,SortOrder:r[8]
-    });
+    const existing = findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:r[0]});
+    if(!existing) {
+      appendRecord_('RegistrationTypes',{
+        RegistrationTypeID:nextId_('RT'),ConferenceID:cid,TypeCode:r[0],TypeNameTH:r[1],TypeNameEN:r[2],IsInternal:r[3],FeeAmount:r[4],Quota:r[5],UsedQuota:0,PaymentRequired:r[6],WorkRequiresPayment:r[7],Active:true,SortOrder:r[8]
+      });
+    } else {
+      updateRecord_('RegistrationTypes', existing.__row, {
+        TypeNameTH: r[1],
+        TypeNameEN: r[2],
+        FeeAmount: r[4],
+        IsInternal: r[3],
+        Quota: r[5],
+        PaymentRequired: r[6],
+        WorkRequiresPayment: r[7],
+        Active: true,
+        SortOrder: r[8]
+      });
+    }
   });
 }
 
@@ -1089,6 +1105,32 @@ function uploadBase64File_(file,folderName,prefix){
 
 
 /** ===== 03_ImportRegistration.gs ===== **/
+function getDailyQuotaStatus_(cid) {
+  const regs = findMany_('Registrations', {ConferenceID: cid}).filter(function(r) {
+    return String(r.RegistrationStatus || '').toUpperCase() !== 'CANCELLED';
+  });
+  const typeMap = {};
+  findMany_('RegistrationTypes', {ConferenceID: cid}).forEach(function(t) {
+    typeMap[t.TypeCode] = bool_(t.IsInternal);
+  });
+
+  const internalMax = num_(getSetting_(cid, 'INTERNAL_DAILY_QUOTA', '400'), 400);
+  const externalMax = num_(getSetting_(cid, 'EXTERNAL_DAILY_QUOTA', '200'), 200);
+
+  const internal = { max: internalMax, day1: 0, day2: 0, day3: 0 };
+  const external = { max: externalMax, day1: 0, day2: 0, day3: 0 };
+
+  regs.forEach(function(r) {
+    const isInternal = typeMap[r.ParticipantType] !== undefined ? typeMap[r.ParticipantType] : (r.ParticipantType === 'INTERNAL');
+    const target = isInternal ? internal : external;
+    if (bool_(r.AttendanceDay1)) target.day1++;
+    if (bool_(r.AttendanceDay2)) target.day2++;
+    if (bool_(r.AttendanceDay3)) target.day3++;
+  });
+
+  return { internal: internal, external: external };
+}
+
 function getPublicBootstrap(conferenceId){
   return runSafely_('getPublicBootstrap',function(){
     const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID, key='PUBLIC_'+cid, cache=CacheService.getScriptCache(), cached=cache.get(key); if(cached)return JSON.parse(cached);
@@ -1102,7 +1144,8 @@ function getPublicBootstrap(conferenceId){
     publicConference.LogoUrl=clean_(publicConference.LogoUrl)||APP.DEFAULT_LOGO_URL;
     let eventDates=[];
     try{eventDates=JSON.parse(normalizeEventDatesJson_(settings.EVENT_DATES_JSON||'[]'));}catch(e){eventDates=[];}
-    const out={conference:publicConference,settings:settings,eventDates:eventDates,registrationTypes:serialize_(types),organizationUnits:serialize_(units),workCategories:serialize_(categories),presentationTypes:serialize_(presentations)};
+    const dailyQuota=getDailyQuotaStatus_(cid);
+    const out={conference:publicConference,settings:settings,eventDates:eventDates,registrationTypes:serialize_(types),organizationUnits:serialize_(units),workCategories:serialize_(categories),presentationTypes:serialize_(presentations),dailyQuota:dailyQuota};
     cache.put(key,JSON.stringify(out),APP.CACHE_SECONDS); return out;
   });
 }
@@ -1914,10 +1957,51 @@ function submitRegistration(conferenceId,payload){
     assertConferenceWindow_(cid,'RegistrationOpenAt','RegistrationCloseAt','การลงทะเบียน');
     payload=payload||{};
     const organization=clean_(payload.OrganizationUnit||payload.Institution);
-    const mapped={ConferenceID:cid,SourceType:'WEB_APP',ConsentAccepted:bool_(payload.ConsentAccepted),ParticipantType:clean_(payload.ParticipantType),Region4Status:clean_(payload.Region4Status),Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:organization,Institution:clean_(payload.Institution||organization),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:normalizeCid_(payload.CID),Phone:normalizePhone_(payload.Phone),LineID:clean_(payload.LineID),Email:normalizeEmail_(payload.Email),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),Note:''};
+    const mapped={
+      ConferenceID:cid,
+      SourceType:'WEB_APP',
+      ConsentAccepted:bool_(payload.ConsentAccepted),
+      ParticipantType:clean_(payload.ParticipantType),
+      Region4Status:clean_(payload.Region4Status),
+      Prefix:clean_(payload.Prefix),
+      FirstName:clean_(payload.FirstName),
+      LastName:clean_(payload.LastName),
+      FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),
+      Position:clean_(payload.Position),
+      OrganizationGroup:clean_(payload.OrganizationGroup),
+      OrganizationUnit:organization,
+      Institution:clean_(payload.Institution||organization),
+      Profession:clean_(payload.Profession),
+      LicenseNo:clean_(payload.LicenseNo),
+      CID:normalizeCid_(payload.CID),
+      Phone:normalizePhone_(payload.Phone),
+      LineID:clean_(payload.LineID),
+      Email:normalizeEmail_(payload.Email),
+      FoodType:clean_(payload.FoodType),
+      FoodAllergyDetail:clean_(payload.FoodAllergyDetail),
+      AttendanceDay1:bool_(payload.AttendanceDay1),
+      AttendanceDay2:bool_(payload.AttendanceDay2),
+      AttendanceDay3:bool_(payload.AttendanceDay3),
+      WantsSubmitWork:bool_(payload.WantsSubmitWork),
+      ReceiptName:clean_(payload.ReceiptName),
+      ReceiptTaxID:clean_(payload.ReceiptTaxID),
+      ReceiptAddress:clean_(payload.ReceiptAddress),
+      ReceiptPostalCode:clean_(payload.ReceiptPostalCode),
+      ReceiptPhone:clean_(payload.ReceiptPhone),
+      Note:''
+    };
     validateNewRegistration_(mapped,cid);
     const typeRow=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:mapped.ParticipantType});
     if(typeRow&&num_(typeRow.Quota)>0&&num_(typeRow.UsedQuota)>=num_(typeRow.Quota))throw new Error('ผู้สมัครประเภทนี้เต็มโควตาแล้ว');
+
+    const isInternal = typeRow ? bool_(typeRow.IsInternal) : (mapped.ParticipantType === 'INTERNAL');
+    const dailyQuota = getDailyQuotaStatus_(cid);
+    const targetQuota = isInternal ? dailyQuota.internal : dailyQuota.external;
+    const typeLabel = isInternal ? 'บุคลากรภายใน รพ.ธรรมศาสตร์' : 'บุคคลภายนอก';
+    if(mapped.AttendanceDay1 && targetQuota.day1 >= targetQuota.max) throw new Error('วันที่ 1 เต็มโควตาสำหรับ' + typeLabel + 'แล้ว (จำกัด ' + targetQuota.max + ' ท่าน/วัน)');
+    if(mapped.AttendanceDay2 && targetQuota.day2 >= targetQuota.max) throw new Error('วันที่ 2 เต็มโควตาสำหรับ' + typeLabel + 'แล้ว (จำกัด ' + targetQuota.max + ' ท่าน/วัน)');
+    if(mapped.AttendanceDay3 && targetQuota.day3 >= targetQuota.max) throw new Error('วันที่ 3 เต็มโควตาสำหรับ' + typeLabel + 'แล้ว (จำกัด ' + targetQuota.max + ' ท่าน/วัน)');
+
     const reg=withLock_(function(){return createRegistrationRecord_(mapped,'PUBLIC',false,'READY');});
     invalidateCache_(cid);
     sendRegistrationEmail_(reg);
@@ -1956,14 +2040,44 @@ function saveRegistrationEdit(conferenceId,regId,emailOrPhone,editCode,payload){
     const providedOrg=clean_(incoming.OrganizationUnit||incoming.Institution);if(providedOrg){p.OrganizationUnit=providedOrg;p.Institution=providedOrg;}else{p.OrganizationUnit=clean_(p.OrganizationUnit||p.Institution);p.Institution=clean_(p.Institution||p.OrganizationUnit);}
     validateNewRegistration_(Object.assign({},p,{ConsentAccepted:true}),cid,r.RegID);
     const newStatus = (r.RegistrationStatus === 'WAIT_REGISTRATION_CHECK' || r.RegistrationStatus === 'IMPORTED_INCOMPLETE' || r.RegistrationStatus === 'REGISTRATION_RETURNED') ? 'WAIT_REGISTRATION_CHECK' : r.RegistrationStatus;
-    const patch={Prefix:clean_(p.Prefix),FirstName:clean_(p.FirstName),LastName:clean_(p.LastName),FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),Position:clean_(p.Position),OrganizationGroup:clean_(p.OrganizationGroup),OrganizationUnit:p.OrganizationUnit,Institution:p.Institution,Profession:clean_(p.Profession),LicenseNo:clean_(p.LicenseNo),CID:p.CID,Phone:p.Phone,LineID:clean_(p.LineID),Email:p.Email,FoodType:clean_(p.FoodType),FoodAllergyDetail:clean_(p.FoodAllergyDetail),AttendanceDay1:bool_(p.AttendanceDay1),AttendanceDay2:bool_(p.AttendanceDay2),AttendanceDay3:bool_(p.AttendanceDay3),WantsSubmitWork:bool_(p.WantsSubmitWork),DataCompletenessStatus:'COMPLETE',RegistrationStatus:newStatus,UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'};
+    const patch={
+      Prefix:clean_(p.Prefix),
+      FirstName:clean_(p.FirstName),
+      LastName:clean_(p.LastName),
+      FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),
+      Position:clean_(p.Position),
+      OrganizationGroup:clean_(p.OrganizationGroup),
+      OrganizationUnit:p.OrganizationUnit,
+      Institution:p.Institution,
+      Profession:clean_(p.Profession),
+      LicenseNo:clean_(p.LicenseNo),
+      CID:p.CID,
+      Phone:p.Phone,
+      LineID:clean_(p.LineID),
+      Email:p.Email,
+      FoodType:clean_(p.FoodType),
+      FoodAllergyDetail:clean_(p.FoodAllergyDetail),
+      AttendanceDay1:bool_(p.AttendanceDay1),
+      AttendanceDay2:bool_(p.AttendanceDay2),
+      AttendanceDay3:bool_(p.AttendanceDay3),
+      WantsSubmitWork:bool_(p.WantsSubmitWork),
+      ReceiptName:clean_(incoming.ReceiptName !== undefined ? incoming.ReceiptName : r.ReceiptName),
+      ReceiptTaxID:clean_(incoming.ReceiptTaxID !== undefined ? incoming.ReceiptTaxID : r.ReceiptTaxID),
+      ReceiptAddress:clean_(incoming.ReceiptAddress !== undefined ? incoming.ReceiptAddress : r.ReceiptAddress),
+      ReceiptPostalCode:clean_(incoming.ReceiptPostalCode !== undefined ? incoming.ReceiptPostalCode : r.ReceiptPostalCode),
+      ReceiptPhone:clean_(incoming.ReceiptPhone !== undefined ? incoming.ReceiptPhone : r.ReceiptPhone),
+      DataCompletenessStatus:'COMPLETE',
+      RegistrationStatus:newStatus,
+      UpdatedAt:new Date(),
+      LastModifiedBy:'PARTICIPANT'
+    };
     updateRecord_('Registrations',r.__row,patch);invalidateCache_(cid);
     let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(cid,r.RegID,'PARTICIPANT_EDIT');}catch(ignore){}
     return {RegID:r.RegID,warnings:duplicateWarnings_(patch,cid,r.RegID),mealPass:mealPass};
   });
 }
 function getRegistrationStatus(conferenceId,regId,emailOrPhone){return runSafely_('getRegistrationStatus',function(){return publicRegistration_(requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,''));});}
-function publicRegistration_(r){const out={};['RegID','ParticipantType','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','CreatedAt','UpdatedAt'].forEach(function(k){out[k]=r[k];});return serialize_(out);}
+function publicRegistration_(r){const out={};['RegID','ParticipantType','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','ReceiptName','ReceiptTaxID','ReceiptAddress','ReceiptPostalCode','ReceiptPhone','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','CreatedAt','UpdatedAt'].forEach(function(k){out[k]=r[k];});return serialize_(out);}
 function sendRegistrationEmail_(reg){try{const r=reg.record||reg;sendEmailLogged_(r.ConferenceID,r.Email,'ยืนยันการลงทะเบียน '+reg.RegID,'<div style="font-family:Prompt,sans-serif"><h2>ลงทะเบียนสำเร็จ</h2><p>เลขลงทะเบียน <b>'+reg.RegID+'</b></p><p>กรุณาเก็บเลขลงทะเบียนเพื่อแก้ไขข้อมูลและตรวจสอบสถานะ</p></div>','REGISTRATION',reg.RegID,null);}catch(ignore){} }
 
 
@@ -2041,9 +2155,72 @@ function submitWork(conferenceId,regId,emailOrPhone,payload,files){
     invalidateCache_(cid);sendEmailLogged_(cid,r.Email,'รับผลงาน '+workCode,'<p>ระบบได้รับผลงาน <b>'+workCode+'</b> เรียบร้อยแล้ว</p><p>รูปแบบการนำเสนอ: '+clean_(presentation.TypeNameTH)+'</p>','WORK',workId,null);return {WorkID:workId,WorkCode:workCode};
   });
 }
-function saveWorkFile_(cid,workId,regId,category,file,folder){const up=uploadBase64File_(file,folder,workId+'_'+category),old=findMany_('WorkFiles',{ConferenceID:cid,WorkID:workId}).filter(function(x){return x.FileCategory===category&&bool_(x.Active);});old.forEach(function(x){updateRecord_('WorkFiles',x.__row,{Active:false});});const version=old.length+1;appendRecord_('WorkFiles',{WorkFileID:nextId_('WF'),ConferenceID:cid,WorkID:workId,RegID:regId,FileCategory:category,VersionNo:version,FileName:up.fileName,FileId:up.fileId,FileUrl:up.fileUrl,MimeType:up.mimeType,FileSize:up.fileSize,UploadedBy:regId,UploadedAt:new Date(),Active:true,ReplacedFileID:old.length?old[old.length-1].WorkFileID:'',Note:''});return up;}
+function saveWorkFile_(cid,workId,regId,category,file,folder,prefix){
+  const filePrefix = prefix || (workId+'_'+category);
+  const up=uploadBase64File_(file,folder,filePrefix);
+  const old=findMany_('WorkFiles',{ConferenceID:cid,WorkID:workId}).filter(function(x){return x.FileCategory===category&&bool_(x.Active);});
+  old.forEach(function(x){updateRecord_('WorkFiles',x.__row,{Active:false});});
+  const version=old.length+1;
+  appendRecord_('WorkFiles',{
+    WorkFileID:nextId_('WF'),
+    ConferenceID:cid,
+    WorkID:workId,
+    RegID:regId,
+    FileCategory:category,
+    VersionNo:version,
+    FileName:up.fileName,
+    FileId:up.fileId,
+    FileUrl:up.fileUrl,
+    MimeType:up.mimeType,
+    FileSize:up.fileSize,
+    UploadedBy:regId,
+    UploadedAt:new Date(),
+    Active:true,
+    ReplacedFileID:old.length?old[old.length-1].WorkFileID:'',
+    Note:''
+  });
+  return up;
+}
 function getAuthorPortal(conferenceId,regId,emailOrPhone){return runSafely_('getAuthorPortal',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const works=findMany_('Works',{ConferenceID:r.ConferenceID,RegID:r.RegID}).map(function(w){return Object.assign({},w,{authors:findMany_('WorkAuthors',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}),files:findMany_('WorkFiles',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}).filter(function(f){return bool_(f.Active);})});});return {registration:publicRegistration_(r),works:serialize_(works)};});}
-function replaceWorkFile(conferenceId,regId,emailOrPhone,workId,category,file){return runSafely_('replaceWorkFile',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId,RegID:regId});if(!w)throw new Error('ไม่พบผลงาน');const st=upper_(w.Status);const canOriginal=['DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT'].indexOf(st)>=0;const canRevise=['REVISION_REQUIRED','REVISION_SUBMITTED'].indexOf(st)>=0;const canPresent=['ACCEPTED_ORAL','ACCEPTED_POSTER','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED'].indexOf(st)>=0;if(category==='ORIGINAL'&&!canOriginal)throw new Error('ไม่สามารถอัปโหลดไฟล์ผลงานเดิมในสถานะนี้ได้');if(category==='REVISION'&&!canRevise)throw new Error('ไม่สามารถอัปโหลดไฟล์แก้ไขในสถานะนี้ได้');if(category==='FINAL_PRESENTATION'){if(!canPresent)throw new Error('ไม่สามารถอัปโหลดไฟล์นำเสนอในสถานะนี้ได้');if(APP.PRESENTATION_DEADLINE&&new Date()>new Date(APP.PRESENTATION_DEADLINE))throw new Error('ระบบปิดรับไฟล์นำเสนอแล้ว');}const folder={ORIGINAL:'04_Work_Original',ETHICS:'06_Work_Ethics',PRESENTER_BIO:'08_Presenter_Bio',REVISION:'07_Work_Revisions',FINAL_PRESENTATION:'09_Final_Presentation'}[category];if(!folder)throw new Error('ประเภทไฟล์ไม่ถูกต้อง');const up=saveWorkFile_(conferenceId,workId,regId,category,file,folder);if(category==='REVISION')updateRecord_('Works',w.__row,{Status:'REVISION_SUBMITTED',UpdatedAt:new Date()});if(category==='FINAL_PRESENTATION')updateRecord_('Works',w.__row,{PresentationUploadStatus:'SUBMITTED',Status:'PRESENTATION_FILE_SUBMITTED',UpdatedAt:new Date()});return up;});}
+function replaceWorkFile(conferenceId,regId,emailOrPhone,workId,category,file){
+  return runSafely_('replaceWorkFile',function(){
+    const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID;
+    const r=requireRegistrationAccess_(cid,regId,emailOrPhone,'');
+    const w=findOne_('Works',{ConferenceID:cid,WorkID:workId,RegID:regId});
+    if(!w)throw new Error('ไม่พบผลงาน');
+    const st=upper_(w.Status);
+    const canOriginal=['DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT'].indexOf(st)>=0;
+    const canRevise=['REVISION_REQUIRED','REVISION_REQUESTED','REVISION_SUBMITTED'].indexOf(st)>=0;
+    const canPresent=['ACCEPTED','ACCEPTED_ORAL','ACCEPTED_POSTER','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED'].indexOf(st)>=0;
+    
+    if(['ORIGINAL','ETHICS','PRESENTER_BIO'].indexOf(category)>=0){
+      if(!canOriginal)throw new Error('บทความถูกส่งให้คณะกรรมการประเมิน (Reviewer) แล้ว หากต้องการแก้ไขไฟล์ กรุณาติดต่อผู้ดูแลระบบ (Admin)');
+    }
+    if(category==='REVISION'&&!canRevise)throw new Error('ไม่สามารถอัปโหลดไฟล์แก้ไขในสถานะนี้ได้');
+    if(category==='FINAL_PRESENTATION'){
+      if(!canPresent)throw new Error('ไม่สามารถอัปโหลดไฟล์นำเสนอในสถานะนี้ได้');
+      const conf=findOne_('Conferences',{ConferenceID:cid});
+      if(conf&&conf.PresentationUploadCloseAt&&new Date(conf.PresentationUploadCloseAt).getTime()<Date.now()){
+        throw new Error('ระบบปิดรับไฟล์นำเสนอแล้ว');
+      }
+    }
+    const folderMap={
+      ORIGINAL:'04_Work_Original',
+      ETHICS:'06_Work_Ethics',
+      PRESENTER_BIO:'08_Presenter_Bio',
+      REVISION:'07_Work_Revisions',
+      FINAL_PRESENTATION:'09_Final_Presentation'
+    };
+    const folder=folderMap[category];
+    if(!folder)throw new Error('ประเภทไฟล์ไม่ถูกต้อง');
+    const prefix = category==='REVISION' ? ((w.WorkCode||workId)+'_REVISION') : (category==='FINAL_PRESENTATION' ? ((w.WorkCode||workId)+'_PRESENTATION') : ((w.WorkCode||workId)+'_'+category));
+    const up=saveWorkFile_(cid,workId,regId,category,file,folder,prefix);
+    if(category==='REVISION')updateRecord_('Works',w.__row,{Status:'REVISION_SUBMITTED',UpdatedAt:new Date()});
+    if(category==='FINAL_PRESENTATION')updateRecord_('Works',w.__row,{PresentationUploadStatus:'SUBMITTED',Status:'PRESENTATION_FILE_SUBMITTED',UpdatedAt:new Date()});
+    invalidateCache_(cid);
+    return up;
+  });
+}
 
 
 /** ===== 05_ReviewerFoodAdmin.gs ===== **/
