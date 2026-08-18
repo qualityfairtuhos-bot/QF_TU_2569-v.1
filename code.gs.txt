@@ -557,6 +557,37 @@ function nextId_(prefix){
   }
   return prefix+'-'+Utilities.formatDate(new Date(),APP.TIMEZONE,'yyyy')+'-'+String(n).padStart(6,'0');
 }
+
+/**
+ * ฟังก์ชันสำหรับรีเซ็ตเลขลำดับ ID (Sequence)
+ * เรียกใช้เพื่อตั้งค่าให้เริ่มนับใหม่
+ */
+function resetRegistrationIdSequence() {
+  const p = PropertiesService.getScriptProperties();
+  p.setProperty('TUH_SEQ_REG', '0');
+  delete _seqCache['TUH_SEQ_REG'];
+  Logger.log('รีเซ็ตเลขลงทะเบียน (TUH_SEQ_REG) เป็น 0 เรียบร้อย (คนถัดไปจะได้เลข REG-xxxx-000001)');
+  return 'Success: TUH_SEQ_REG is reset to 0';
+}
+
+function resetWorkIdSequence() {
+  const p = PropertiesService.getScriptProperties();
+  p.setProperty('TUH_SEQ_WORK', '0');
+  delete _seqCache['TUH_SEQ_WORK'];
+  Logger.log('รีเซ็ตเลขผลงาน (TUH_SEQ_WORK) เป็น 0 เรียบร้อย (ผลงานถัดไปจะได้เลข WORK-xxxx-000001)');
+  return 'Success: TUH_SEQ_WORK is reset to 0';
+}
+
+function resetAllSequences() {
+  const p = PropertiesService.getScriptProperties();
+  const prefixes = ['REG', 'WORK', 'PAY', 'USR', 'CONS', 'SET', 'UCR', 'CERT', 'REV', 'MEAL', 'AUD'];
+  prefixes.forEach(function(prefix) {
+    p.setProperty('TUH_SEQ_' + prefix, '0');
+    delete _seqCache['TUH_SEQ_' + prefix];
+  });
+  Logger.log('รีเซ็ตเลข Sequence ทั้งหมดเป็น 0 เรียบร้อยแล้ว');
+  return 'Success: All sequences are reset to 0';
+}
 function upsertSetting_(conferenceId,key,value,type,group,th,en){
   const old=findOne_('Settings',{ConferenceID:conferenceId,SettingKey:key}), patch={SettingValue:String(value),ValueType:type||'TEXT',GroupName:group||'GENERAL',DescriptionTH:th||'',DescriptionEN:en||'',IsEditable:true,UpdatedAt:new Date(),UpdatedBy:'SYSTEM'};
   if(old) updateRecord_('Settings',old.__row,patch); else appendRecord_('Settings',Object.assign({SettingID:nextId_('SET'),ConferenceID:conferenceId,SettingKey:key},patch));
