@@ -31,6 +31,11 @@
     .page{display:none;max-width:1080px;margin:24px auto;padding:0 18px}.page.active{display:block}
     .card{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:0 10px 28px rgba(12,56,91,.06);padding:22px;margin-bottom:18px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .grid-full{grid-column:1/-1}
+    .form-section{background:#f8fbfd;border:1px solid #dce7ec;border-radius:16px;padding:18px 20px;margin-bottom:18px}
+    .form-section:last-of-type{margin-bottom:0}
+    .form-section-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid #e2edf2;color:var(--blue);font-weight:700;font-size:1.02rem}
+    .form-section-header .sec-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:0.8rem;font-weight:700;flex-shrink:0}
     .field label{font-weight:600;font-size:.92rem}.field input,.field select,.field textarea{width:100%;border:1px solid #BFCBD3;border-radius:12px;padding:11px 12px;margin-top:6px;background:#fff}
     .field textarea{min-height:92px}.section-title{display:flex;gap:10px;align-items:center;margin:4px 0 18px}.section-title b{font-size:1.15rem}
     .btn{border:0;border-radius:12px;padding:11px 16px;font-weight:600;cursor:pointer}.btn-primary{background:var(--teal);color:#fff}.btn-blue{background:var(--blue);color:#fff}.btn-gold{background:var(--gold);color:#172B3A}.btn-soft{background:#E8F0F2;color:var(--blue)}.btn:disabled{opacity:.55}
@@ -156,24 +161,75 @@
   <section class="page active" id="page-home"><div class="card"><div class="section-title"><b>ระบบบริการผู้เข้าร่วมงาน</b><span class="en">Participant services</span></div><div class="grid3"><button class="btn btn-primary" onclick="go('register')">ลงทะเบียน<span class="en">Registration</span></button><button class="btn btn-blue" onclick="go('status')">แก้ไขข้อมูล / ตรวจสอบสถานะ<span class="en">Edit profile / Check status</span></button><button class="btn btn-gold" onclick="go('work')">ส่งผลงาน<span class="en">Submit work</span></button></div></div></section>
 
   <section class="page" id="page-register"><div class="card"><div class="section-title"><b>ลงทะเบียนเข้าร่วมงาน</b><span class="en">Conference registration</span></div>
-    <form id="regForm"><div class="grid">
-      <div class="field"><label>ประเภทผู้สมัคร<span class="en">Participant type</span></label><select name="ParticipantType" id="participantType" required></select></div>
-      <div class="field"><label>สถานะสังกัดเขตสุขภาพที่ 4<span class="en">Health Region 4 affiliation</span></label><select name="Region4Status"><option value="">-- เลือก --</option><option>อยู่ในเขตสุขภาพที่ 4</option><option>อยู่นอกเขตสุขภาพที่ 4</option></select></div>
-      <div class="field"><label>คำนำหน้า<span class="en">Prefix</span></label><select name="Prefix" id="prefixSelect" required><option value="">-- เลือก --</option></select></div><div class="field"><label>ชื่อ<span class="en">First name</span></label><input name="FirstName" required></div><div class="field"><label>นามสกุล<span class="en">Last name</span></label><input name="LastName" required></div><div class="field"><label>เลขบัตรประชาชน 13 หลัก<span class="en">Thai citizen ID</span></label><input name="CID" inputmode="numeric" maxlength="13" required></div>
-      <div class="field"><label>ตำแหน่ง<span class="en">Position</span></label><input name="Position" list="positionList"><datalist id="positionList"></datalist></div><div class="field"><label>วิชาชีพ<span class="en">Profession</span></label><input name="Profession" list="professionList"><datalist id="professionList"></datalist></div>
-      <div class="field"><label>ฝ่าย/กลุ่มงาน<span class="en">Division</span></label><input name="OrganizationGroup" list="groupList"><datalist id="groupList"></datalist></div><div class="field"><label>หน่วยงาน/สถาบัน<span class="en">Organization / Institution</span></label><input name="OrganizationUnit" list="unitList"><datalist id="unitList"></datalist></div>
-      <div class="field"><label>เลขใบประกอบวิชาชีพ<span class="en">Professional license number</span></label><input name="LicenseNo"></div><div class="field"><label>โทรศัพท์มือถือ<span class="en">Mobile phone</span></label><input name="Phone" inputmode="tel" required></div><div class="field"><label>Email ส่วนบุคคล<span class="en">Personal email</span></label><input type="email" name="Email" required></div><div class="field"><label>Line ID<span class="en">LINE ID</span></label><input name="LineID"></div>
-      <div class="field"><label>ประเภทอาหาร<span class="en">Meal preference</span></label><select name="FoodType" id="foodTypeSelect"><option value="">-- เลือก --</option></select></div><div class="field"><label>รายละเอียดการแพ้อาหาร<span class="en">Food allergy details</span></label><input name="FoodAllergyDetail"></div>
-    </div>
-    <div class="card" style="box-shadow:none;margin-top:16px"><b>วันเข้าร่วมงาน <span class="en">Attendance days</span></b><div class="attendance-list" id="attendanceDates"><span class="notice">กำลังโหลดวันจัดงาน</span></div></div>
-    <label><input type="checkbox" name="WantsSubmitWork"> ประสงค์ส่งผลงาน <span class="en">I intend to submit a work</span></label><br>
-    <div class="consent-block">
-      <button type="button" class="privacy-link" onclick="openPdpaNotice()">แบบขอความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล</button>
-      <span class="en">Consent for the collection, use and disclosure of personal data — open and read before consenting</span>
-      <label class="consent-check locked" id="consentLabel"><input type="checkbox" id="consentAccepted" name="ConsentAccepted" required disabled> <span>ข้าพเจ้าได้อ่านและยินยอมให้โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติเก็บ รวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลตามรายละเอียดข้างต้น<span class="en">I have read and consent to the collection, use and disclosure of my personal data.</span></span></label>
-      <div class="consent-hint" id="consentHint">กรุณากดเปิดอ่านข้อความขอความยินยอมก่อน จึงจะสามารถเลือกให้ความยินยอมได้</div>
-    </div>
-    <div class="actions" style="margin-top:18px"><button class="btn btn-primary" type="submit">บันทึกการลงทะเบียน<span class="en">Submit registration</span></button></div>
+    <form id="regForm">
+      <!-- ส่วนที่ 1: ข้อมูลผู้สมัครและสังกัดหน่วยงาน -->
+      <div class="form-section">
+        <div class="form-section-header"><span class="sec-badge">1</span><span>ข้อมูลผู้สมัครและสังกัดหน่วยงาน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Participant & Organization</span></div>
+        <div class="grid">
+          <div class="field"><label>ประเภทผู้สมัคร <span class="required-star">*</span><span class="en">Participant type</span></label><select name="ParticipantType" id="participantType" required></select></div>
+          <div class="field"><label>สถานะสังกัดเขตสุขภาพที่ 4<span class="en">Health Region 4 affiliation</span></label><select name="Region4Status"><option value="">-- เลือก --</option><option>อยู่ในเขตสุขภาพที่ 4</option><option>อยู่นอกเขตสุขภาพที่ 4</option></select></div>
+          <div class="field"><label>คำนำหน้า <span class="required-star">*</span><span class="en">Prefix</span></label><select name="Prefix" id="prefixSelect" required><option value="">-- เลือก --</option></select></div>
+          <div class="field"><label>ชื่อ <span class="required-star">*</span><span class="en">First name</span></label><input name="FirstName" required></div>
+          <div class="field"><label>นามสกุล <span class="required-star">*</span><span class="en">Last name</span></label><input name="LastName" required></div>
+          <div class="field"><label>เลขบัตรประชาชน 13 หลัก <span class="required-star">*</span><span class="en">Thai citizen ID</span></label><input name="CID" inputmode="numeric" maxlength="13" required></div>
+          <div class="field"><label>ตำแหน่ง<span class="en">Position</span></label><input name="Position" list="positionList"><datalist id="positionList"></datalist></div>
+          <div class="field"><label>วิชาชีพ<span class="en">Profession</span></label><input name="Profession" list="professionList"><datalist id="professionList"></datalist></div>
+          <div class="field"><label>ฝ่าย/กลุ่มงาน<span class="en">Division</span></label><input name="OrganizationGroup" list="groupList"><datalist id="groupList"></datalist></div>
+          <div class="field"><label>หน่วยงาน/สถาบัน<span class="en">Organization / Institution</span></label><input name="OrganizationUnit" list="unitList"><datalist id="unitList"></datalist></div>
+          <div class="field grid-full"><label>เลขใบประกอบวิชาชีพ<span class="en">Professional license number</span></label><input name="LicenseNo"></div>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 2: ข้อมูลการติดต่อ -->
+      <div class="form-section">
+        <div class="form-section-header"><span class="sec-badge">2</span><span>ข้อมูลการติดต่อ</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Contact Information</span></div>
+        <div class="grid">
+          <div class="field"><label>โทรศัพท์มือถือ <span class="required-star">*</span><span class="en">Mobile phone</span></label><input name="Phone" inputmode="tel" required></div>
+          <div class="field"><label>Email ส่วนบุคคล <span class="required-star">*</span><span class="en">Personal email</span></label><input type="email" name="Email" required></div>
+          <div class="field grid-full"><label>Line ID<span class="en">LINE ID</span></label><input name="LineID"></div>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 3: ข้อมูลสำหรับออกใบเสร็จรับเงิน -->
+      <div class="form-section">
+        <div class="form-section-header"><span class="sec-badge">3</span><span>ข้อมูลสำหรับออกใบเสร็จรับเงิน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Receipt & Tax Invoice</span></div>
+        <div class="grid">
+          <div class="field"><label>ความประสงค์ออกใบเสร็จ<span class="en">Receipt requirement</span></label><select name="ReceiptRequirement" id="receiptRequirementSelect"><option value="NO_RECEIPT">ไม่ออกใบเสร็จ / No receipt</option><option value="NEED_RECEIPT">ต้องการออกใบเสร็จรับเงิน / Request receipt</option></select></div>
+          <div class="field"><label>ชื่อบุคคล/หน่วยงานสำหรับออกใบเสร็จ<span class="en">Receipt name / Entity name</span></label><input name="ReceiptName" placeholder="เช่น โรงพยาบาล... หรือ ชื่อ-สกุล"></div>
+          <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label><input name="ReceiptTaxId" inputmode="numeric" maxlength="13" placeholder="เลข 13 หลัก"></div>
+          <div class="field"><label>เบอร์โทรศัพท์สำหรับใบเสร็จ<span class="en">Receipt contact phone</span></label><input name="ReceiptPhone" inputmode="tel" placeholder="เบอร์โทรศัพท์สำหรับประสานงาน"></div>
+          <div class="field grid-full"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2" placeholder="เลขที่ อาคาร ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด รหัสไปรษณีย์"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 4: อาหารและการเข้าร่วมงาน -->
+      <div class="form-section">
+        <div class="form-section-header"><span class="sec-badge">4</span><span>อาหารและการเข้าร่วมงาน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Meal & Attendance</span></div>
+        <div class="grid">
+          <div class="field"><label>ประเภทอาหาร<span class="en">Meal preference</span></label><select name="FoodType" id="foodTypeSelect"><option value="">-- เลือก --</option></select></div>
+          <div class="field"><label>รายละเอียดการแพ้อาหาร<span class="en">Food allergy details</span></label><input name="FoodAllergyDetail" placeholder="ระบุหากมีอาหารที่แพ้"></div>
+        </div>
+        <div style="margin-top:14px">
+          <label style="font-weight:600;font-size:0.92rem;display:block;margin-bottom:6px">วันเข้าร่วมงาน <span class="required-star">*</span><span class="en">Attendance days</span></label>
+          <div class="attendance-list" id="attendanceDates"><span class="notice">กำลังโหลดวันจัดงาน</span></div>
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;background:#fff;border:1px solid #dce5ea;border-radius:12px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" name="WantsSubmitWork"><span>ประสงค์ส่งผลงาน <span class="en">I intend to submit a work</span></span></label>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 5: การให้ความยินยอมและการบันทึก -->
+      <div class="form-section" style="background:#fff">
+        <div class="form-section-header"><span class="sec-badge">5</span><span>แบบขอความยินยอมข้อมูลส่วนบุคคล</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">PDPA Consent</span></div>
+        <div class="consent-block" style="margin-top:0">
+          <button type="button" class="privacy-link" onclick="openPdpaNotice()">แบบขอความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล</button>
+          <span class="en">Consent for the collection, use and disclosure of personal data — open and read before consenting</span>
+          <label class="consent-check locked" id="consentLabel"><input type="checkbox" id="consentAccepted" name="ConsentAccepted" required disabled> <span>ข้าพเจ้าได้อ่านและยินยอมให้โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติเก็บ รวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลตามรายละเอียดข้างต้น<span class="en">I have read and consent to the collection, use and disclosure of my personal data.</span></span></label>
+          <div class="consent-hint" id="consentHint">กรุณากดเปิดอ่านข้อความขอความยินยอมก่อน จึงจะสามารถเลือกให้ความยินยอมได้</div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:18px"><button class="btn btn-primary" type="submit" style="padding:13px 28px;font-size:1.05rem">บันทึกการลงทะเบียน<span class="en">Submit registration</span></button></div>
     </form>
   </div></section>
 
@@ -311,16 +367,70 @@ function renderStatus(r){
   const foods=settingOptions('FOOD_TYPE_OPTIONS_JSON',['ปกติ','อิสลาม','มังสวิรัติ','แพ้อาหาร']);
   const dl=(id,values)=>`<datalist id="${id}">${optionTags(values)}</datalist>`;
   const select=(name,values,current)=>{const opts=[...(values||[])];if(current&&!opts.includes(current))opts.unshift(current);return `<select name="${name}"><option value="">-- เลือก --</option>${opts.map(v=>`<option value="${esc(v)}" ${String(v)===String(current)?'selected':''}>${esc(v)}</option>`).join('')}</select>`};
-  const input=(name,value,list='')=>`<input name="${name}" value="${esc(value||'')}" ${list?`list="${list}"`:''}>`;
-  const fields=[
-    ['คำนำหน้า','Prefix',select('Prefix',prefixes,r.Prefix)],['ชื่อ','FirstName',input('FirstName',r.FirstName)],['นามสกุล','LastName',input('LastName',r.LastName)],['เลขบัตรประชาชน','CID',input('CID',r.CID)],
-    ['ตำแหน่ง','Position',input('Position',r.Position,'editPositionList')+dl('editPositionList',positions)],['วิชาชีพ','Profession',input('Profession',r.Profession,'editProfessionList')+dl('editProfessionList',professions)],
-    ['ฝ่าย/กลุ่มงาน','OrganizationGroup',input('OrganizationGroup',r.OrganizationGroup,'editGroupList')+dl('editGroupList',groups)],['หน่วยงาน/สถาบัน','OrganizationUnit',input('OrganizationUnit',r.Institution||r.OrganizationUnit,'editOrgList')+dl('editOrgList',orgs)],
-    ['เลขใบประกอบวิชาชีพ','LicenseNo',input('LicenseNo',r.LicenseNo)],['โทรศัพท์','Phone',input('Phone',r.Phone)],['Line ID','LineID',input('LineID',r.LineID)],['Email','Email',input('Email',r.Email)],
-    ['ประเภทอาหาร','FoodType',select('FoodType',foods,r.FoodType)],['รายละเอียดการแพ้อาหาร','FoodAllergyDetail',input('FoodAllergyDetail',r.FoodAllergyDetail)]
-  ];
+  const input=(name,value,list='',type='text',maxlength='')=>`<input type="${type}" name="${name}" value="${esc(value||'')}" ${list?`list="${list}"`:''} ${maxlength?`maxlength="${maxlength}"`:''}>`;
   const locked = r.RegistrationStatus === 'REGISTRATION_VERIFIED' || r.RegistrationStatus === 'COMPLETED';
-  $('#statusResult').innerHTML=`<div class="card"><div class="notice ${r.DataCompletenessStatus==='COMPLETE'?'success':''}">สถานะข้อมูล: <b>${esc(r.DataCompletenessStatus)}</b> | สถานะลงทะเบียน: <b>${esc(r.RegistrationStatus)}</b> | การเงิน: <b>${esc(r.PaymentStatus)}</b></div>${locked?'<div class="notice" style="margin-bottom:12px;color:#d32f2f;background:#fdeded;border:1px solid #ebccd1"><b>ข้อมูลได้รับการตรวจสอบแล้ว ไม่สามารถแก้ไขได้</b></div>':''}<form id="editForm"><fieldset ${locked?'disabled':''} style="border:none;padding:0;margin:0"><div class="grid">${fields.map(x=>`<div class="field"><label>${esc(x[0])}<span class="en">${esc(x[1])}</span></label>${x[2]}</div>`).join('')}</div><div class="actions">${locked?'':`<button class="btn btn-primary">บันทึกข้อมูลแก้ไข<span class="en">Save changes</span></button>`}<button type="button" class="btn btn-gold" onclick="go('payment');$('#payRegId').value='${esc(r.RegID)}';$('#payKey').value=$('#statusKey').value;renderPaymentSlip('${esc(r.PaymentSlipUrl||'')}','${esc(r.PaymentSlipName||'')}','${esc(r.PaymentStatus||'')}')">ส่ง/เปลี่ยนหลักฐานชำระเงิน</button></div></fieldset></form></div>`;
+
+  $('#statusResult').innerHTML=`<div class="card">
+    <div class="notice ${r.DataCompletenessStatus==='COMPLETE'?'success':''}" style="margin-bottom:14px">
+      สถานะข้อมูล: <b>${esc(r.DataCompletenessStatus)}</b> | สถานะลงทะเบียน: <b>${esc(r.RegistrationStatus)}</b> | การเงิน: <b>${esc(r.PaymentStatus)}</b>
+    </div>
+    ${locked?'<div class="notice" style="margin-bottom:14px;color:#d32f2f;background:#fdeded;border:1px solid #ebccd1"><b>ข้อมูลได้รับการตรวจสอบแล้ว ไม่สามารถแก้ไขได้</b></div>':''}
+    <form id="editForm">
+      <fieldset ${locked?'disabled':''} style="border:none;padding:0;margin:0">
+        <!-- 1. ข้อมูลผู้สมัคร -->
+        <div class="form-section">
+          <div class="form-section-header"><span class="sec-badge">1</span><span>ข้อมูลผู้สมัครและสังกัดหน่วยงาน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Participant & Organization</span></div>
+          <div class="grid">
+            <div class="field"><label>คำนำหน้า<span class="en">Prefix</span></label>${select('Prefix',prefixes,r.Prefix)}</div>
+            <div class="field"><label>ชื่อ<span class="en">First name</span></label>${input('FirstName',r.FirstName)}</div>
+            <div class="field"><label>นามสกุล<span class="en">Last name</span></label>${input('LastName',r.LastName)}</div>
+            <div class="field"><label>เลขบัตรประชาชน<span class="en">CID</span></label>${input('CID',r.CID,'','text','13')}</div>
+            <div class="field"><label>ตำแหน่ง<span class="en">Position</span></label>${input('Position',r.Position,'editPositionList')}${dl('editPositionList',positions)}</div>
+            <div class="field"><label>วิชาชีพ<span class="en">Profession</span></label>${input('Profession',r.Profession,'editProfessionList')}${dl('editProfessionList',professions)}</div>
+            <div class="field"><label>ฝ่าย/กลุ่มงาน<span class="en">Division</span></label>${input('OrganizationGroup',r.OrganizationGroup,'editGroupList')}${dl('editGroupList',groups)}</div>
+            <div class="field"><label>หน่วยงาน/สถาบัน<span class="en">Organization / Institution</span></label>${input('OrganizationUnit',r.Institution||r.OrganizationUnit,'editOrgList')}${dl('editOrgList',orgs)}</div>
+            <div class="field grid-full"><label>เลขใบประกอบวิชาชีพ<span class="en">Professional license number</span></label>${input('LicenseNo',r.LicenseNo)}</div>
+          </div>
+        </div>
+
+        <!-- 2. ข้อมูลการติดต่อ -->
+        <div class="form-section">
+          <div class="form-section-header"><span class="sec-badge">2</span><span>ข้อมูลการติดต่อ</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Contact Information</span></div>
+          <div class="grid">
+            <div class="field"><label>โทรศัพท์มือถือ<span class="en">Mobile phone</span></label>${input('Phone',r.Phone,'','tel')}</div>
+            <div class="field"><label>Email ส่วนบุคคล<span class="en">Personal email</span></label>${input('Email',r.Email,'','email')}</div>
+            <div class="field grid-full"><label>Line ID<span class="en">LINE ID</span></label>${input('LineID',r.LineID)}</div>
+          </div>
+        </div>
+
+        <!-- 3. ข้อมูลสำหรับออกใบเสร็จรับเงิน -->
+        <div class="form-section">
+          <div class="form-section-header"><span class="sec-badge">3</span><span>ข้อมูลสำหรับออกใบเสร็จรับเงิน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Receipt & Tax Invoice</span></div>
+          <div class="grid">
+            <div class="field"><label>ความประสงค์ออกใบเสร็จ<span class="en">Receipt requirement</span></label><select name="ReceiptRequirement"><option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ / No receipt</option><option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จรับเงิน / Request receipt</option></select></div>
+            <div class="field"><label>ชื่อบุคคล/หน่วยงานสำหรับออกใบเสร็จ<span class="en">Receipt name / Entity name</span></label>${input('ReceiptName',r.ReceiptName||'')}</div>
+            <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label>${input('ReceiptTaxId',r.ReceiptTaxId||'','','text','13')}</div>
+            <div class="field"><label>เบอร์โทรศัพท์สำหรับใบเสร็จ<span class="en">Receipt contact phone</span></label>${input('ReceiptPhone',r.ReceiptPhone||'','','tel')}</div>
+            <div class="field grid-full"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2">${esc(r.ReceiptAddress||'')}</textarea></div>
+          </div>
+        </div>
+
+        <!-- 4. ข้อมูลอาหาร -->
+        <div class="form-section">
+          <div class="form-section-header"><span class="sec-badge">4</span><span>อาหารและการเข้าร่วมงาน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Meal & Preference</span></div>
+          <div class="grid">
+            <div class="field"><label>ประเภทอาหาร<span class="en">Meal preference</span></label>${select('FoodType',foods,r.FoodType)}</div>
+            <div class="field"><label>รายละเอียดการแพ้อาหาร<span class="en">Food allergy details</span></label>${input('FoodAllergyDetail',r.FoodAllergyDetail)}</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:16px">
+          ${locked?'':`<button class="btn btn-primary" type="submit">บันทึกข้อมูลแก้ไข<span class="en">Save changes</span></button>`}
+          <button type="button" class="btn btn-gold" onclick="go('payment');$('#payRegId').value='${esc(r.RegID)}';$('#payKey').value=$('#statusKey').value;renderPaymentSlip('${esc(r.PaymentSlipUrl||'')}','${esc(r.PaymentSlipName||'')}','${esc(r.PaymentStatus||'')}')">ส่ง/เปลี่ยนหลักฐานชำระเงิน</button>
+        </div>
+      </fieldset>
+    </form>
+  </div>`;
   $('#editForm').onsubmit=async e=>{e.preventDefault();load('กำลังบันทึกข้อมูล');try{const x=await rpc('saveRegistrationEdit',CID,r.RegID,$('#statusKey').value,$('#statusCode').value,formObj(e.target));done();Swal.fire({icon:'success',title:'บันทึกเรียบร้อย',html:(x.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});lookupStatus()}catch(z){alertErr(z)}}
 }
 function renderPaymentSlip(url,name,status){const p=$('#paymentSlipPreview'),btn=document.querySelector('#page-payment button[onclick="sendPayment()"]'),fi=$('#payFile');if(status==='APPROVED'){if(p)p.innerHTML=`<div class="notice success" style="margin-bottom:12px"><b>สถานะการเงิน: อนุมัติเรียบร้อยแล้ว</b><br>ไม่สามารถแก้ไขหลักฐานการชำระเงินได้อีก</div>`+(url&&url!=='undefined'?`<div style="padding:10px;border:1px solid #c7d3da;border-radius:8px;background:#fbfcfd;display:flex;align-items:center;gap:10px;font-size:0.85rem"><a href="${url}" target="_blank" style="color:#006D70;text-decoration:underline"><b>ดูไฟล์เดิม:</b> ${name||'เปิดดูหลักฐาน'}</a></div>`:'');if(btn)btn.style.display='none';if(fi)fi.style.display='none'}else{if(p){if(url&&url!=='undefined'){p.innerHTML=`<div class="notice" style="margin-bottom:12px"><b>สถานะการเงิน: ${esc(status||'ยังไม่ได้ชำระ')}</b></div><div style="padding:10px;border:1px solid #c7d3da;border-radius:8px;background:#fbfcfd;display:flex;align-items:center;gap:10px;font-size:0.85rem"><a href="${url}" target="_blank" style="color:#006D70;text-decoration:underline"><b>ดูไฟล์เดิม:</b> ${name||'เปิดดูหลักฐาน'}</a></div>`}else{p.innerHTML=`<div class="notice" style="margin-bottom:12px"><b>สถานะการเงิน: ${esc(status||'ยังไม่ได้ชำระ')}</b></div>`}}if(btn)btn.style.display='';if(fi)fi.style.display=''}}

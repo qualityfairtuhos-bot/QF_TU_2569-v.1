@@ -10,7 +10,6 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <style>
     :root{--blue:#0C385B;--teal:#006D70;--green:#649E77;--gold:#C8B278;--soft:#F4F7F8;--border:#DCE5EA;--ink:#102A43;--danger:#B42318}
     *{box-sizing:border-box}html,body{min-height:100%}body{margin:0;font-family:Prompt,sans-serif;background:var(--soft);color:var(--ink)}button,input,select,textarea{font:inherit}.en{display:block;font-size:.72em;color:#758593;font-weight:400}.muted{color:#71808d;font-size:.84rem}
@@ -95,94 +94,15 @@
         <div class="grid3">
           <div class="field"><label>คำนำหน้า<textarea name="PREFIX_OPTIONS_JSON"></textarea></label></div><div class="field"><label>ตำแหน่ง<textarea name="POSITION_OPTIONS_JSON"></textarea></label></div><div class="field"><label>วิชาชีพ<textarea name="PROFESSION_OPTIONS_JSON"></textarea></label></div>
           <div class="field"><label>ฝ่าย/กลุ่มงาน<textarea name="ORGANIZATION_GROUP_OPTIONS_JSON"></textarea></label></div><div class="field"><label>หน่วยงาน/สถาบัน<textarea name="ORGANIZATION_OPTIONS_JSON"></textarea></label></div><div class="field"><label>ประเภทอาหาร<textarea name="FOOD_TYPE_OPTIONS_JSON"></textarea></label></div>
-        </div>
-        <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap">
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่า</button>
-        </div>
-        </form>
-
-        <hr style="margin:25px 0; border:0; border-top:1px solid #e2e8f0">
-        <h4>เครื่องมือบำรุงรักษาระบบและฐานข้อมูล<span class="en">Database Maintenance & Testing</span></h4>
-        <div class="info-box">
-          <b>การจัดการฐานข้อมูล Google Sheet:</b> คุณสามารถสร้างตาราง Master Data เริ่มต้น หรือเติมชุดข้อมูลตัวอย่าง (Registrations, Works, Payments, Reviewers) เพื่อให้ Dashboard และเมนูต่างๆ แสดงผลได้อย่างสมบูรณ์
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
-          <button class="btn btn-blue" onclick="runInitMasterDatabase()"><i class="fa-solid fa-database"></i> 1. สร้างตารางและค่าเริ่มต้นระบบ (Setup Database)</button>
-          <button class="btn btn-gold" onclick="runSeedSampleData()"><i class="fa-solid fa-chart-pie"></i> 2. สร้างข้อมูลตัวอย่างทดสอบ Dashboard (Seed Sample Data)</button>
-          <button class="btn btn-soft" onclick="loadDashboard()"><i class="fa-solid fa-rotate"></i> 3. รีเฟรช Dashboard</button>
-        </div>
+        </div><button class="btn btn-primary">บันทึกการตั้งค่า</button></form>
       </div>
     </section>
 
     <section class="page" id="page-import"><div class="card"><h3>นำเข้าข้อมูล Excel จาก Google Form<span class="en">Import Excel from Google Form</span></h3><p>รองรับไฟล์ .xlsx ระบบจะแสดง Preview ก่อนนำเข้าจริง</p><div class="field"><input type="file" id="importFile" accept=".xlsx,.xls"></div><button class="btn btn-primary" onclick="previewImport()">อัปโหลดและตรวจสอบ</button></div><div id="importResult"></div></section>
 
-    <section class="page" id="page-registrations">
-      <div class="card">
-        <div class="toolbar" style="display:grid; grid-template-columns: 2fr minmax(130px, 1fr) minmax(140px, 1fr) auto auto auto; gap:8px; align-items:end; margin-bottom:12px;">
-          <div><label class="muted">ค้นหา</label><input id="regSearch" placeholder="RegID ชื่อ Email โทรศัพท์ CID" oninput="filterRegistrationsClient()"></div>
-          <div>
-            <label class="muted">กรองประเภท</label>
-            <select id="regType" onchange="loadRegistrations()">
-              <option value="">ทุกประเภท</option>
-              <option value="INTERNAL">บุคลากรภายใน รพ.มธ.</option>
-              <option value="EXTERNAL">บุคคลภายนอก</option>
-            </select>
-          </div>
-          <div>
-            <label class="muted">สถานะ</label>
-            <select id="regStatus" onchange="loadRegistrations()">
-              <option value="">ทั้งหมด</option>
-              <option>IMPORTED_INCOMPLETE</option>
-              <option>WAIT_REGISTRATION_CHECK</option>
-              <option>REGISTRATION_RETURNED</option>
-              <option>REGISTRATION_VERIFIED</option>
-              <option>COMPLETED</option>
-            </select>
-          </div>
-          <div><button class="btn btn-primary" onclick="loadRegistrations()"><i class="fa-solid fa-magnifying-glass"></i> ค้นหา</button></div>
-          <div><button class="btn btn-gold" onclick="openRegistrationSignSheet()"><i class="fa-solid fa-print"></i> พิมพ์ใบเซ็นชื่อ</button></div>
-          <div><button class="btn btn-gold" onclick="exportRegistrationsToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div>
-        </div>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr><th>RegID</th><th>ชื่อ</th><th>ประเภท</th><th>CID</th><th>Email / Phone</th><th>ข้อมูล</th><th>สถานะ</th><th>จัดการ</th></tr>
-            </thead>
-            <tbody id="regRows"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <section class="page" id="page-registrations"><div class="card"><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="regSearch" placeholder="RegID ชื่อ Email โทรศัพท์ CID"></div><div><label class="muted">สถานะ</label><select id="regStatus"><option value="">ทั้งหมด</option><option>IMPORTED_INCOMPLETE</option><option>WAIT_REGISTRATION_CHECK</option><option>REGISTRATION_RETURNED</option><option>REGISTRATION_VERIFIED</option><option>COMPLETED</option></select></div><div><button class="btn btn-primary" onclick="loadRegistrations()">ค้นหา</button></div><div><button class="btn btn-gold" onclick="openRegistrationSignSheet()">พิมพ์ใบเซ็นชื่อ</button></div></div><div class="print-note">พิมพ์แบบ A4 แนวนอน แยกตามฝ่าย/หน่วยงาน พร้อมช่องลายมือชื่อรายวัน</div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>ประเภท</th><th>CID</th><th>Email / Phone</th><th>ข้อมูล</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="regRows"></tbody></table></div></div></section>
 
-    <section class="page" id="page-payments">
-      <div class="card">
-        <div class="info-box"><b>ข้อมูลจะแสดงตั้งแต่ผู้สมัครประเภทที่ต้องชำระเงินลงทะเบียนเข้าระบบ</b> โดยสถานะ UNPAID หมายถึงยังไม่ส่งหลักฐาน และ PENDING_VERIFY หมายถึงส่งหลักฐานแล้วรอฝ่ายการเงินตรวจสอบ</div>
-        <div class="toolbar" style="display:grid; grid-template-columns: 2fr minmax(140px, 1fr) auto auto; gap:8px; align-items:end; margin-bottom:12px;">
-          <div><label class="muted">ค้นหา</label><input id="paySearch" placeholder="RegID ชื่อ Email โทรศัพท์ สังกัด" oninput="filterPaymentsClient()"></div>
-          <div>
-            <label class="muted">สถานะ</label>
-            <select id="payStatus" onchange="loadPayments()">
-              <option value="">ทั้งหมด</option>
-              <option>UNPAID</option>
-              <option>PENDING_VERIFY</option>
-              <option>APPROVED</option>
-              <option>RETURNED</option>
-              <option>REJECTED</option>
-            </select>
-          </div>
-          <div><button class="btn btn-primary" onclick="loadPayments()"><i class="fa-solid fa-magnifying-glass"></i> ค้นหา</button></div>
-          <div><button class="btn btn-gold" onclick="exportPaymentsToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div>
-        </div>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr><th>RegID</th><th>ชื่อ</th><th>จำนวน</th><th>สถานะ</th><th>หลักฐาน</th><th>จัดการ</th></tr>
-            </thead>
-            <tbody id="payRows"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <section class="page" id="page-payments"><div class="card"><div class="info-box"><b>ข้อมูลจะแสดงตั้งแต่ผู้สมัครประเภทที่ต้องชำระเงินลงทะเบียนเข้าระบบ</b> โดยสถานะ UNPAID หมายถึงยังไม่ส่งหลักฐาน และ PENDING_VERIFY หมายถึงส่งหลักฐานแล้วรอฝ่ายการเงินตรวจสอบ</div><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="paySearch" placeholder="RegID ชื่อ Email"></div><div><label class="muted">สถานะ</label><select id="payStatus"><option value="">ทั้งหมด</option><option>UNPAID</option><option>PENDING_VERIFY</option><option>APPROVED</option><option>RETURNED</option><option>REJECTED</option></select></div><div><button class="btn btn-primary" onclick="loadPayments()">ค้นหา</button></div></div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>จำนวน</th><th>สถานะ</th><th>หลักฐาน</th><th>จัดการ</th></tr></thead><tbody id="payRows"></tbody></table></div></div></section>
 
     <section class="page" id="page-works">
       <div class="card">
@@ -194,7 +114,7 @@
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:15px; margin-top:15px">
-          <input id="workSearch" class="field" placeholder="ค้นหา CODE / ชื่อเรื่อง / ผู้นำเสนอ" style="flex:1; margin:0; padding:10px; border-radius:8px; border:1px solid #ccc" oninput="filterWorksClient()">
+          <input id="workSearch" class="field" placeholder="ค้นหา CODE / ชื่อเรื่อง / ผู้นำเสนอ" style="flex:1; margin:0; padding:10px; border-radius:8px; border:1px solid #ccc" oninput="loadWorks()">
           <select id="workStatus" class="field" style="width:150px; margin:0; padding:10px; border-radius:8px; border:1px solid #ccc" onchange="loadWorks()">
             <option value="">ทุกสถานะ</option>
             <option value="RECEIVED">RECEIVED</option>
@@ -230,12 +150,11 @@
           <h3 style="margin:0">รายชื่อ Reviewer</h3>
           <div style="display:flex; gap:10px">
             <button class="btn btn-primary" onclick="openReviewerForm()">+ เพิ่ม Reviewer</button>
-            <button class="btn btn-gold" onclick="exportReviewersToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
             <button class="btn btn-soft" onclick="loadReviewers()">รีเฟรช</button>
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:15px; margin-top:15px">
-          <input id="revSearch" class="field" placeholder="ค้นหาชื่อ, อีเมล หรือหน่วยงาน Reviewer..." style="flex:1; margin:0; padding:10px; border-radius:8px; border:1px solid #ccc" oninput="filterReviewersClient()">
+          <input id="revSearch" class="field" placeholder="ค้นหาชื่อ, อีเมล หรือหน่วยงาน Reviewer..." style="flex:1; margin:0; padding:10px; border-radius:8px; border:1px solid #ccc" oninput="loadReviewers()">
         </div>
         <div class="table-wrap">
           <table class="table" style="font-size:0.85rem">
@@ -267,7 +186,6 @@
           <h3 style="margin:0">จัดการผู้ใช้งานระบบ (User Management)</h3>
           <div style="display:flex; gap:10px">
             <button class="btn btn-primary" onclick="openUserForm()">+ เพิ่มผู้ใช้งาน</button>
-            <button class="btn btn-gold" onclick="exportUsersToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
             <button class="btn btn-soft" onclick="loadUsers()">รีเฟรช</button>
           </div>
         </div>
@@ -288,7 +206,7 @@
       </div>
     </section>
 
-    <section class="page" id="page-food"><div class="card"><div class="actions" style="justify-content:space-between"><div><h3 style="margin:0">คูปองอาหาร QR Code<span class="en">Meal pass management</span></h3><div class="muted">เลือกผู้สมัครได้หลายคนเพื่อสร้างและส่ง QR Code ไปยัง Email</div></div><a class="btn btn-blue" target="_blank" id="scannerLink">เปิดหน้าสแกนอาหาร</a></div><div class="toolbar" style="margin-top:15px"><div class="wide"><label class="muted">ค้นหา</label><input id="foodSearch" placeholder="RegID ชื่อ Email โทรศัพท์"></div><div><label class="muted">สิทธิ์</label><select id="foodEligibility"><option value="">ทั้งหมด</option><option value="ELIGIBLE">พร้อมออกคูปอง</option><option value="NOT_ELIGIBLE">ยังไม่พร้อม</option></select></div><div><label class="muted">การชำระเงิน</label><select id="foodPayment"><option value="">ทั้งหมด</option><option>NOT_REQUIRED</option><option>UNPAID</option><option>PENDING_VERIFY</option><option>APPROVED</option></select></div><div><label class="muted">การส่ง Email</label><select id="foodSent"><option value="">ทั้งหมด</option><option value="SENT">ส่งแล้ว</option><option value="NOT_SENT">ยังไม่ส่ง</option></select></div><div><button class="btn btn-primary" onclick="loadFood()">กรองข้อมูล</button></div></div><div class="actions" style="margin-bottom:12px"><button class="btn btn-soft" onclick="toggleAllFood(true)">เลือกผู้มีสิทธิ์ทั้งหมดที่แสดง</button><button class="btn btn-soft" onclick="toggleAllFood(false)">ยกเลิกการเลือก</button><button class="btn btn-gold" id="sendSelectedBtn" onclick="sendSelectedFood()">สร้างและส่ง QR ที่เลือก</button><button class="btn btn-gold" onclick="exportFoodToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button><span class="count-pill" id="foodSelectedCount">เลือก 0 คน</span></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" id="foodAll" onchange="toggleAllFood(this.checked)"></th><th>ผู้ลงทะเบียน</th><th>ประเภท</th><th>สถานะลงทะเบียน</th><th>การเงิน</th><th>สิทธิ์คูปอง</th><th>ส่งแล้ว</th><th>ส่งล่าสุด</th><th>จัดการ</th></tr></thead><tbody id="foodRows"></tbody></table></div></div></section>
+    <section class="page" id="page-food"><div class="card"><div class="actions" style="justify-content:space-between"><div><h3 style="margin:0">คูปองอาหาร QR Code<span class="en">Meal pass management</span></h3><div class="muted">เลือกผู้สมัครได้หลายคนเพื่อสร้างและส่ง QR Code ไปยัง Email</div></div><a class="btn btn-blue" target="_blank" id="scannerLink">เปิดหน้าสแกนอาหาร</a></div><div class="toolbar" style="margin-top:15px"><div class="wide"><label class="muted">ค้นหา</label><input id="foodSearch" placeholder="RegID ชื่อ Email โทรศัพท์"></div><div><label class="muted">สิทธิ์</label><select id="foodEligibility"><option value="">ทั้งหมด</option><option value="ELIGIBLE">พร้อมออกคูปอง</option><option value="NOT_ELIGIBLE">ยังไม่พร้อม</option></select></div><div><label class="muted">การชำระเงิน</label><select id="foodPayment"><option value="">ทั้งหมด</option><option>NOT_REQUIRED</option><option>UNPAID</option><option>PENDING_VERIFY</option><option>APPROVED</option></select></div><div><label class="muted">การส่ง Email</label><select id="foodSent"><option value="">ทั้งหมด</option><option value="SENT">ส่งแล้ว</option><option value="NOT_SENT">ยังไม่ส่ง</option></select></div><div><button class="btn btn-primary" onclick="loadFood()">กรองข้อมูล</button></div></div><div class="actions" style="margin-bottom:12px"><button class="btn btn-soft" onclick="toggleAllFood(true)">เลือกผู้มีสิทธิ์ทั้งหมดที่แสดง</button><button class="btn btn-soft" onclick="toggleAllFood(false)">ยกเลิกการเลือก</button><button class="btn btn-gold" id="sendSelectedBtn" onclick="sendSelectedFood()">สร้างและส่ง QR ที่เลือก</button><span class="count-pill" id="foodSelectedCount">เลือก 0 คน</span></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" id="foodAll" onchange="toggleAllFood(this.checked)"></th><th>ผู้ลงทะเบียน</th><th>ประเภท</th><th>สถานะลงทะเบียน</th><th>การเงิน</th><th>สิทธิ์คูปอง</th><th>ส่งแล้ว</th><th>ส่งล่าสุด</th><th>จัดการ</th></tr></thead><tbody id="foodRows"></tbody></table></div></div></section>
   </main></div>
 </section>
 <div class="loading" id="loading"><div class="loading-box"><span class="spin"></span><b id="loadText">กำลังประมวลผล</b></div></div>
@@ -362,923 +280,39 @@ if(d.chartWorksByStatus) { const labels = Object.keys(d.chartWorksByStatus); con
 if(d.chartWorksByCategory) { const labels = Object.keys(d.chartWorksByCategory); const data = Object.values(d.chartWorksByCategory); if(chartWorksByCategory) chartWorksByCategory.destroy(); chartWorksByCategory = new Chart($('#chartWorksByCategoryCanvas'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'จำนวนผลงาน', data: data, backgroundColor: ['#decbe4','#fed9a6','#ffffcc','#e5d8bd','#fddaec','#f2f2f2','#fbb4ae','#b3cde3','#ccebc5'] }] }, options: { ...commonOptions, plugins: { datalabels: commonOptions.plugins.datalabels, title: { display: true, text: 'จำนวนผลงานแยกตามประเภทผลงาน (Work Category)' } } } }); }
 }finally{hide()}}
 async function loadSettings(){show('กำลังโหลดการตั้งค่า');try{const d=await rpc('getAdminSettings',TOKEN,CID),f=$('#settingsForm');['ConferenceNameTH','ConferenceNameEN','ShortName','LogoUrl','Venue','Address'].forEach(k=>f.elements[k].value=d.conference[k]||'');DATE_FIELDS.forEach(k=>f.elements[k].value=formatBeDateTime(d.conference[k]));const sm={};d.settings.forEach(x=>sm[x.SettingKey]=x.SettingValue);['INTERNAL_QUOTA','EXTERNAL_QUOTA','MAX_WORKS_PER_REGISTRATION','MIN_REVIEWERS_PER_WORK','MAX_REVIEWERS_PER_WORK'].forEach(k=>f.elements[k].value=sm[k]||'');f.elements.EVENT_DATES_JSON.value=storedEventJsonToBe(sm.EVENT_DATES_JSON);const o=d.optionConfig||{};f.elements.PREFIX_OPTIONS_JSON.value=(o.prefixes||[]).join('\n');f.elements.POSITION_OPTIONS_JSON.value=(o.positions||[]).join('\n');f.elements.PROFESSION_OPTIONS_JSON.value=(o.professions||[]).join('\n');f.elements.ORGANIZATION_GROUP_OPTIONS_JSON.value=(o.organizationGroups||[]).join('\n');f.elements.ORGANIZATION_OPTIONS_JSON.value=(o.organizations||[]).join('\n');f.elements.FOOD_TYPE_OPTIONS_JSON.value=(o.foodTypes||[]).join('\n');$$('.date-input').forEach(el=>el.onblur=()=>warnGregorianInput(el))}finally{hide()}}
-
-async function runInitMasterDatabase(){
-  const ask = await Swal.fire({
-    icon: 'question',
-    title: 'สร้างตารางและค่าเริ่มต้นระบบ?',
-    text: 'ระบบจะตรวจสอบ Schema และสร้างตารางข้อมูล Master Data (หมวดหมู่ผลงาน, ประเภทผู้สมัคร, เกณฑ์ประเมิน) ลงใน Google Sheet',
-    showCancelButton: true,
-    confirmButtonText: 'ยืนยันสร้างตาราง',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#006D70'
-  });
-  if(!ask.isConfirmed) return;
-  show('กำลังสร้างตารางและค่าเริ่มต้นระบบ...');
-  try {
-    const res = await rpc('adminResetAndInitDatabase', TOKEN, CID);
-    hide();
-    await Swal.fire({
-      icon: 'success',
-      title: 'สร้างตารางและข้อมูลเริ่มต้นสำเร็จ',
-      html: `สร้างตารางและข้อมูลตัวอย่างเรียบร้อยแล้ว<br>ผู้สมัคร: ${res.registrationsAdded||0} ราย | ผลงาน: ${res.worksAdded||0} เรื่อง | ผู้ประเมิน: ${res.reviewersAdded||0} ท่าน`,
-      confirmButtonColor: '#006D70'
-    });
-    loadDashboard();
-  } catch(e) {
-    err(e);
-  }
-}
-
-async function runSeedSampleData(){
-  const ask = await Swal.fire({
-    icon: 'question',
-    title: 'สร้างชุดข้อมูลตัวอย่าง (Sample Data)?',
-    text: 'ระบบจะเพิ่มข้อมูลตัวอย่างผู้ลงทะเบียน (ภายใน/ภายนอก), การชำระเงิน, ผลงานวิชาการ และผู้ประเมิน เพื่อให้ Dashboard แสดงผลกราฟและสถิติต่างๆ',
-    showCancelButton: true,
-    confirmButtonText: 'ยืนยันสร้างข้อมูลตัวอย่าง',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#C8B278'
-  });
-  if(!ask.isConfirmed) return;
-  show('กำลังสร้างชุดข้อมูลตัวอย่างลงใน Google Sheet...');
-  try {
-    const res = await rpc('adminSeedSampleData', TOKEN, CID);
-    hide();
-    await Swal.fire({
-      icon: 'success',
-      title: 'สร้างข้อมูลตัวอย่างสำเร็จ!',
-      html: `เพิ่มข้อมูลตัวอย่างเรียบร้อยแล้ว:<br>• ผู้สมัคร: ${res.registrationsAdded||0} ราย<br>• ชำระเงิน: ${res.paymentsAdded||0} รายการ<br>• ผลงานวิชาการ: ${res.worksAdded||0} เรื่อง<br>• ผู้ประเมิน: ${res.reviewersAdded||0} ท่าน`,
-      confirmButtonColor: '#006D70'
-    });
-    loadDashboard();
-  } catch(e) {
-    err(e);
-  }
-}
 $('#settingsForm').onsubmit=async e=>{e.preventDefault();try{const o=formObj(e.target),conf={};['ConferenceNameTH','ConferenceNameEN','ShortName','LogoUrl','Venue','Address'].forEach(k=>conf[k]=o[k]);DATE_FIELDS.forEach(k=>conf[k]=parseBeDateTime(o[k],k));const settings={};['INTERNAL_QUOTA','EXTERNAL_QUOTA','MAX_WORKS_PER_REGISTRATION','MIN_REVIEWERS_PER_WORK','MAX_REVIEWERS_PER_WORK'].forEach(k=>settings[k]=o[k]);settings.EVENT_DATES_JSON=convertEventDatesJsonToCe(o.EVENT_DATES_JSON);OPTION_KEYS.forEach(k=>settings[k]=listTextToJson(o[k]));show('กำลังบันทึกการตั้งค่า');await rpc('saveAdminSettings',TOKEN,CID,{conference:conf,settings});hide();await Swal.fire({icon:'success',title:'บันทึกเรียบร้อย',text:'ตัวเลือกใหม่จะแสดงในหน้าลงทะเบียนเมื่อรีเฟรชหน้าเว็บ',confirmButtonColor:'#006D70'});await loadSettings()}catch(x){err(x)}};
 
 async function previewImport(){show('กำลังอ่านไฟล์ Excel');try{const f=await fileObj($('#importFile'));if(!f)throw new Error('กรุณาเลือกไฟล์');const r=await rpc('uploadExcelForImport',TOKEN,CID,f);hide();$('#importResult').innerHTML=`<div class="card"><h3>ผลตรวจสอบไฟล์</h3><p>ทั้งหมด ${r.stats.totalRows} | พร้อม ${r.stats.readyRows} | ข้อมูลไม่ครบ ${r.stats.incompleteRows} | คำเตือน ${r.stats.warningRows}</p><button class="btn btn-primary" onclick="commitImport('${esc(r.batchId)}')">นำเข้าข้อมูลจริง</button></div>`}catch(e){err(e)}}
 async function commitImport(id){if(!(await Swal.fire({icon:'question',title:'ยืนยันนำเข้าข้อมูล?',showCancelButton:true,confirmButtonText:'นำเข้า'})).isConfirmed)return;show('กำลังนำเข้าข้อมูล');try{const r=await rpc('commitImportBatch',TOKEN,CID,id);hide();Swal.fire({icon:'success',title:'นำเข้าเรียบร้อย',html:`นำเข้า ${r.imported} ราย<br>ข้อมูลไม่ครบ ${r.importedIncomplete||0} ราย<br>ข้าม ${r.skipped} ราย`,confirmButtonColor:'#006D70'})}catch(e){err(e)}}
-window.REG_ROWS = [];
-function renderRegistrationsTable(rows){
-  $('#regRows').innerHTML = (rows && rows.length) ? rows.map(r=>`<tr>
-    <td><b>${esc(r.RegID)}</b></td>
-    <td><b>${esc(r.FullName)}</b></td>
-    <td>${esc(r.ParticipantType)}</td>
-    <td>${esc(r.CID)}</td>
-    <td>${esc(r.Email)}<br>${esc(r.Phone)}</td>
-    <td>${statusBadge(r.DataCompletenessStatus)}</td>
-    <td>${statusBadge(r.RegistrationStatus)}<br>${statusBadge(r.PaymentStatus)}</td>
-    <td class="actions" style="display:flex; gap:4px; flex-wrap:wrap;">
-      <button class="btn btn-soft btn-sm" title="ดูข้อมูลทั้งหมด" onclick="openRegistrationView('${esc(r.RegID)}')"><i class="fa-solid fa-eye"></i> ดู</button>
-      <button class="btn btn-blue btn-sm" title="แก้ไขข้อมูล" onclick="openRegistrationEdit('${esc(r.RegID)}')"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</button>
-      <button class="btn btn-soft btn-sm" title="ตรวจผ่าน" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_VERIFIED')">ผ่าน</button>
-      <button class="btn btn-gold btn-sm" title="ส่งคืนแก้ไข" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_RETURNED')">ส่งคืน</button>
-    </td>
-  </tr>`).join('') : '<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>';
-}
-let regSearchTimer = null;
-function filterRegistrationsClient(){
-  const q = ($('#regSearch').value||'').trim().toLowerCase();
-  const st = $('#regStatus').value;
-  const pt = $('#regType')?.value || '';
-  if(window.REG_ROWS && window.REG_ROWS.length){
-    const filtered = window.REG_ROWS.filter(r => {
-      const matchStatus = !st || r.RegistrationStatus === st || r.DataCompletenessStatus === st;
-      if(!matchStatus) return false;
-      const rType = String(r.ParticipantType || '').toUpperCase();
-      const matchType = !pt || rType === pt || (pt === 'INTERNAL' && (rType.includes('INTERNAL') || rType.includes('ภายใน'))) || (pt === 'EXTERNAL' && (rType.includes('EXTERNAL') || rType.includes('ภายนอก')));
-      if(!matchType) return false;
-      if(!q) return true;
-      const s = [r.RegID, r.FullName, r.ParticipantType, r.CID, r.Email, r.Phone, r.OrganizationGroup, r.Institution, r.OrganizationUnit, r.Position, r.ReceiptName, r.ReceiptTaxID].join(' ').toLowerCase();
-      return s.includes(q);
-    });
-    renderRegistrationsTable(filtered);
-  }
-  clearTimeout(regSearchTimer);
-  regSearchTimer = setTimeout(() => { loadRegistrations(true); }, 400);
-}
-async function loadRegistrations(silent){
-  if(!silent) show('กำลังโหลดผู้ลงทะเบียน');
-  try{
-    const rows = await rpc('adminListRegistrations',TOKEN,CID,{
-      q: $('#regSearch').value,
-      status: $('#regStatus').value,
-      participantType: $('#regType')?.value || ''
-    });
-    window.REG_ROWS = rows || [];
-    filterRegistrationsClient();
-  } finally {
-    if(!silent) hide();
-  }
-}
+async function loadRegistrations(){show('กำลังโหลดผู้ลงทะเบียน');try{const rows=await rpc('adminListRegistrations',TOKEN,CID,{q:$('#regSearch').value,status:$('#regStatus').value});$('#regRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.RegID)}</td><td><b>${esc(r.FullName)}</b></td><td>${esc(r.ParticipantType)}</td><td>${esc(r.CID)}</td><td>${esc(r.Email)}<br>${esc(r.Phone)}</td><td>${statusBadge(r.DataCompletenessStatus)}</td><td>${statusBadge(r.RegistrationStatus)}<br>${statusBadge(r.PaymentStatus)}</td><td class="actions"><button class="btn btn-blue btn-sm" onclick="openRegistrationEdit('${esc(r.RegID)}')">แก้ไข</button><button class="btn btn-soft btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_VERIFIED')">ตรวจผ่าน</button><button class="btn btn-gold btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_RETURNED')">ส่งคืน</button></td></tr>`).join(''):'<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>'}finally{hide()}}
+async function setRegStatus(id,status){const returning=status==='REGISTRATION_RETURNED';const x=await Swal.fire({icon:returning?'warning':'question',title:returning?'ส่งคืนข้อมูลให้ผู้สมัคร':'ยืนยันตรวจผ่าน',input:'textarea',inputLabel:returning?'ระบุเหตุผลที่ต้องแก้ไข':'หมายเหตุ (ถ้ามี)',inputPlaceholder:returning?'กรุณาระบุให้ชัดเจนเพื่อส่งไปทาง Email':'',inputValidator:v=>returning&&!String(v||'').trim()?'กรุณาระบุเหตุผล':undefined,showCancelButton:true,confirmButtonText:returning?'ส่งคืนและแจ้ง Email':'ตรวจผ่าน',confirmButtonColor:returning?'#C8B278':'#006D70'});if(!x.isConfirmed)return;show('กำลังอัปเดตสถานะ');try{const r=await rpc('adminUpdateRegistrationStatus',TOKEN,CID,id,status,x.value||'');hide();await Swal.fire({icon:'success',title:'ดำเนินการเรียบร้อย',html:`สถานะใหม่: <b>${esc(r.newStatus)}</b>${r.mealPass?.sent?'<br>ส่งคูปองอาหารอัตโนมัติแล้ว':''}`,confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
+async function openRegistrationEdit(id){show('กำลังเปิดข้อมูล');try{const d=await rpc('adminGetRegistration',TOKEN,CID,id);hide();const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');const html=`<div class="edit-grid"><label>ประเภทผู้สมัคร<select id="erType">${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}</select></label><label>คำนำหน้า<select id="erPrefix">${optionHtml(o.prefixes,r.Prefix)}</select></label><label>ชื่อ<input id="erFirst" value="${esc(r.FirstName)}"></label><label>นามสกุล<input id="erLast" value="${esc(r.LastName)}"></label><label>เลขบัตรประชาชน<input id="erCid" value="${esc(r.CID)}" maxlength="13"></label><label>ตำแหน่ง<input id="erPosition" list="erPositions" value="${esc(r.Position)}">${dataList('erPositions',o.positions)}</label><label>วิชาชีพ<input id="erProfession" list="erProfessions" value="${esc(r.Profession)}">${dataList('erProfessions',o.professions)}</label><label>ฝ่าย/กลุ่มงาน<input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}">${dataList('erGroups',o.organizationGroups)}</label><label>หน่วยงาน/สถาบัน<input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}">${dataList('erOrgs',o.organizations)}</label><label>เลขใบประกอบวิชาชีพ<input id="erLicense" value="${esc(r.LicenseNo)}"></label><label>โทรศัพท์<input id="erPhone" value="${esc(r.Phone)}"></label><label>Email<input id="erEmail" value="${esc(r.Email)}"></label><label>Line ID<input id="erLine" value="${esc(r.LineID)}"></label><label>ประเภทอาหาร<select id="erFood">${optionHtml(o.foodTypes,r.FoodType)}</select></label><label>รายละเอียดแพ้อาหาร<input id="erAllergy" value="${esc(r.FoodAllergyDetail)}"></label></div><div class="attendance-edit">${dates.slice(0,3).map((date,i)=>`<label><input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}</label>`).join('')}<label><input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงาน</label></div>`;const x=await Swal.fire({title:`แก้ไข ${esc(id)}`,html,customClass:{popup:'swal-wide'},showCancelButton:true,confirmButtonText:'บันทึกข้อมูล',confirmButtonColor:'#006D70',preConfirm:()=>({ParticipantType:$('#erType').value,Prefix:$('#erPrefix').value,FirstName:$('#erFirst').value,LastName:$('#erLast').value,CID:$('#erCid').value,Position:$('#erPosition').value,Profession:$('#erProfession').value,OrganizationGroup:$('#erGroup').value,OrganizationUnit:$('#erOrg').value,Institution:$('#erOrg').value,LicenseNo:$('#erLicense').value,Phone:$('#erPhone').value,Email:$('#erEmail').value,LineID:$('#erLine').value,FoodType:$('#erFood').value,FoodAllergyDetail:$('#erAllergy').value,AttendanceDay1:$('#erDay1')?.checked||false,AttendanceDay2:$('#erDay2')?.checked||false,AttendanceDay3:$('#erDay3')?.checked||false,WantsSubmitWork:$('#erWork').checked})});if(!x.isConfirmed)return;show('กำลังบันทึกข้อมูล');const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);hide();await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
 
-async function openRegistrationView(id){
-  show('กำลังโหลดข้อมูลผู้ลงทะเบียน...');
-  try {
-    const d = await rpc('adminGetRegistration', TOKEN, CID, id);
-    hide();
-    const r = d.registration || {};
-    let dates = [];
-    try {
-      dates = JSON.parse(BOOT?.settings?.EVENT_DATES_JSON || '[]');
-    } catch(e) {
-      dates = ['2026-11-25', '2026-11-26', '2026-11-27'];
-    }
-    if (!dates || !dates.length) dates = ['2026-11-25', '2026-11-26', '2026-11-27'];
 
-    const attendList = dates.slice(0,3).map((dt, i) => {
-      const ok = !!r['AttendanceDay' + (i+1)];
-      return `<span style="display:inline-block; padding:3px 8px; border-radius:4px; font-size:0.8rem; margin-right:6px; background:${ok ? '#d1fae5; color:#065f46;' : '#f1f5f9; color:#94a3b8;'}">
-        ${ok ? '✓' : '✗'} วันที่ ${i+1} (${esc(formatBeIsoDate(dt))})
-      </span>`;
-    }).join('');
-
-    const html = `
-      <div style="text-align:left; max-height:70vh; overflow-y:auto; padding:4px 8px; font-size:0.9rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; margin-bottom:14px;">
-          <div>
-            <div style="font-size:1.1rem; font-weight:700; color:var(--blue);">${esc(r.FullName || '-')}</div>
-            <div style="color:#64748b; font-size:0.85rem;">RegID: <b>${esc(r.RegID || id)}</b> | ประเภท: <b>${esc(r.ParticipantType || '-')}</b></div>
-          </div>
-          <div style="text-align:right;">
-            <div>${statusBadge(r.DataCompletenessStatus)} ${statusBadge(r.RegistrationStatus)}</div>
-            <div style="margin-top:4px;">${statusBadge(r.PaymentStatus)}</div>
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
-          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
-            <div style="font-weight:700; color:var(--teal); margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:4px;"><i class="fa-solid fa-user"></i> ข้อมูลส่วนบุคคลและการติดต่อ</div>
-            <div style="display:grid; grid-template-columns:110px 1fr; gap:4px; font-size:0.85rem;">
-              <span class="muted">คำนำหน้า-ชื่อ-สกุล:</span> <b>${esc([r.Prefix, r.FirstName, r.LastName].filter(Boolean).join(' ') || '-')}</b>
-              <span class="muted">CID / Passport:</span> <span>${esc(r.CID || '-')}</span>
-              <span class="muted">เบอร์โทรศัพท์:</span> <span>${esc(r.Phone || '-')}</span>
-              <span class="muted">อีเมล:</span> <span>${esc(r.Email || '-')}</span>
-              <span class="muted">Line ID:</span> <span>${esc(r.LineID || '-')}</span>
-            </div>
-          </div>
-
-          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
-            <div style="font-weight:700; color:var(--teal); margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:4px;"><i class="fa-solid fa-building"></i> ตำแหน่งและหน่วยงาน</div>
-            <div style="display:grid; grid-template-columns:110px 1fr; gap:4px; font-size:0.85rem;">
-              <span class="muted">ตำแหน่ง:</span> <span>${esc(r.Position || '-')}</span>
-              <span class="muted">วิชาชีพ:</span> <span>${esc(r.Profession || '-')}</span>
-              <span class="muted">เลขที่ใบอนุญาต:</span> <span>${esc(r.LicenseNo || '-')}</span>
-              <span class="muted">ฝ่าย / กลุ่มงาน:</span> <span>${esc(r.OrganizationGroup || '-')}</span>
-              <span class="muted">หน่วยงาน / สังกัด:</span> <span>${esc(r.Institution || r.OrganizationUnit || '-')}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:14px;">
-          <div style="font-weight:700; color:var(--teal); margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:4px;"><i class="fa-solid fa-calendar-check"></i> การเข้าร่วมประชุมและอาหาร</div>
-          <div style="margin-bottom:8px;">${attendList}</div>
-          <div style="display:grid; grid-template-columns:120px 1fr; gap:4px; font-size:0.85rem;">
-            <span class="muted">ประเภทอาหาร:</span> <b>${esc(r.FoodType || '-')}</b>
-            <span class="muted">ประวัติแพ้อาหาร:</span> <span>${esc(r.FoodAllergyDetail || 'ไม่มี')}</span>
-            <span class="muted">ประสงค์ส่งผลงาน:</span> <span>${r.WantsSubmitWork ? '<span style="color:#059669; font-weight:600;">✓ ประสงค์ส่งผลงาน</span>' : '<span class="muted">ไม่ประสงค์</span>'}</span>
-          </div>
-        </div>
-
-        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px; margin-bottom:14px;">
-          <div style="font-weight:700; color:#b45309; margin-bottom:8px; border-bottom:1px solid #fef3c7; padding-bottom:4px;"><i class="fa-solid fa-receipt"></i> ข้อมูลสำหรับออกใบเสร็จรับเงิน (Receipt / Tax Invoice)</div>
-          <div style="display:grid; grid-template-columns:140px 1fr; gap:6px; font-size:0.85rem;">
-            <span class="muted">ชื่อที่ระบุในใบเสร็จ:</span> <b>${esc(r.ReceiptName || '-')}</b>
-            <span class="muted">เลขประจำตัวผู้เสียภาษี:</span> <span>${esc(r.ReceiptTaxID || '-')}</span>
-            <span class="muted">ที่อยู่สำหรับออกใบเสร็จ:</span> <span>${esc(r.ReceiptAddress || '-')}</span>
-            <span class="muted">รหัสไปรษณีย์:</span> <span>${esc(r.ReceiptPostalCode || '-')}</span>
-            <span class="muted">เบอร์โทรศัพท์ใบเสร็จ:</span> <span>${esc(r.ReceiptPhone || '-')}</span>
-          </div>
-        </div>
-
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; font-size:0.8rem; color:#64748b;">
-          <span class="muted">วันที่ลงทะเบียน:</span> ${r.CreatedAt ? formatBeDateTime(r.CreatedAt) : '-'} &nbsp;|&nbsp;
-          <span class="muted">แก้ไขล่าสุด:</span> ${r.UpdatedAt ? formatBeDateTime(r.UpdatedAt) : '-'} &nbsp;|&nbsp;
-          <span class="muted">ผู้แก้ไข:</span> ${esc(r.LastModifiedBy || '-')}
-        </div>
-      </div>
-    `;
-
-    const res = await Swal.fire({
-      title: `รายละเอียดผู้ลงทะเบียน (${esc(id)})`,
-      html,
-      width: '780px',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: '<i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล',
-      denyButtonText: '<i class="fa-solid fa-print"></i> พิมพ์',
-      cancelButtonText: 'ปิด',
-      confirmButtonColor: '#006D70',
-      denyButtonColor: '#C8B278',
-      cancelButtonColor: '#64748b'
-    });
-
-    if (res.isConfirmed) {
-      openRegistrationEdit(id);
-    } else if (res.isDenied) {
-      const printWin = window.open('', '_blank');
-      if (printWin) {
-        printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>ข้อมูลผู้ลงทะเบียน ${esc(id)}</title><link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet"><style>body{font-family:Prompt,sans-serif;padding:20px;color:#111}table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}</style></head><body>${html}<script>window.onload=()=>window.print()<\/script></body></html>`);
-        printWin.document.close();
-      }
-    }
-  } catch(e) {
-    err(e);
-  }
-}
-
-async function setRegStatus(id,status){
-  const returning=status==='REGISTRATION_RETURNED';
-  const x=await Swal.fire({
-    icon:returning?'warning':'question',
-    title:returning?'ส่งคืนข้อมูลให้ผู้สมัครแก้ไข':'ยืนยันตรวจผ่านการลงทะเบียน',
-    input:'textarea',
-    inputLabel:returning?'ระบุเหตุผลและสิ่งที่ต้องแก้ไข':'หมายเหตุ (ถ้ามี)',
-    inputPlaceholder:returning?'กรุณาระบุให้ชัดเจน เพื่อส่งแจ้งเตือนทาง Email ไปยังผู้ลงทะเบียน...':'',
-    inputValidator:v=>returning&&!String(v||'').trim()?'กรุณาระบุเหตุผลในการส่งคืน':undefined,
-    showCancelButton:true,
-    confirmButtonText:returning?'ส่งคืนและแจ้ง Email':'ยืนยันตรวจผ่าน',
-    cancelButtonText:'ยกเลิก',
-    confirmButtonColor:returning?'#C8B278':'#006D70'
-  });
-  if(!x.isConfirmed)return;
-  show('กำลังอัปเดตสถานะ...');
-  try{
-    const r=await rpc('adminUpdateRegistrationStatus',TOKEN,CID,id,status,x.value||'');
-    hide();
-    await Swal.fire({
-      icon:'success',
-      title:'ดำเนินการเรียบร้อย',
-      html:`สถานะใหม่: <b>${esc(r.newStatus||status)}</b>${r.mealPass?.sent?'<br>ส่งคูปองอาหารอัตโนมัติแล้ว':''}`,
-      confirmButtonColor:'#006D70'
-    });
-    loadRegistrations();
-  }catch(e){
-    err(e);
-  }
-}
-
-async function openRegistrationEdit(id){
-  show('กำลังเปิดข้อมูลผู้ลงทะเบียน...');
-  try{
-    const d=await rpc('adminGetRegistration',TOKEN,CID,id);
-    hide();
-    const r=d.registration||{}, o=d.optionConfig||{}, types=d.registrationTypes||[];
-    let dates = [];
-    try {
-      dates = JSON.parse(BOOT?.settings?.EVENT_DATES_JSON||'[]');
-    } catch(e) {
-      dates = ['2026-11-25','2026-11-26','2026-11-27'];
-    }
-    if (!dates || !dates.length) dates = ['2026-11-25','2026-11-26','2026-11-27'];
-    
-    const html=`
-      <div style="text-align:left; max-height:68vh; overflow-y:auto; padding:8px 4px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
-          <div style="grid-column:1/-1;">
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">ประเภทผู้สมัคร / สิทธิ์ลงทะเบียน</label>
-            <select id="erType" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem; background:#fff;">
-              ${types.map(t=>`<option value="${esc(t.TypeCode)}" ${(t.TypeCode===r.ParticipantType||t.TypeNameTH===r.ParticipantType)?'selected':''}>${esc(t.TypeNameTH)} ${t.FeeAmount>0?`(${Number(t.FeeAmount).toLocaleString()} บาท)`:'(ฟรี)'}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">คำนำหน้า</label>
-            <select id="erPrefix" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem; background:#fff;">
-              ${optionHtml(o.prefixes, r.Prefix)}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">ชื่อ</label>
-            <input id="erFirst" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.FirstName||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">นามสกุล</label>
-            <input id="erLast" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.LastName||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">เลขประจำตัวประชาชน / Passport</label>
-            <input id="erCid" maxlength="20" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.CID||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">ตำแหน่ง</label>
-            <input id="erPosition" list="erPositions" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.Position||'')}">
-            ${dataList('erPositions', o.positions)}
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">วิชาชีพ</label>
-            <input id="erProfession" list="erProfessions" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.Profession||'')}">
-            ${dataList('erProfessions', o.professions)}
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">ฝ่าย / กลุ่มงาน</label>
-            <input id="erGroup" list="erGroups" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.OrganizationGroup||'')}">
-            ${dataList('erGroups', o.organizationGroups)}
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">หน่วยงาน / โรงพยาบาล / สถาบัน</label>
-            <input id="erOrg" list="erOrgs" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.Institution||r.OrganizationUnit||'')}">
-            ${dataList('erOrgs', o.organizations)}
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">เลขที่ใบอนุญาตประกอบวิชาชีพ</label>
-            <input id="erLicense" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.LicenseNo||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">โทรศัพท์มือถือ</label>
-            <input id="erPhone" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.Phone||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">อีเมล</label>
-            <input id="erEmail" type="email" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.Email||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">Line ID</label>
-            <input id="erLine" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.LineID||'')}">
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">ประเภทอาหาร</label>
-            <select id="erFood" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem; background:#fff;">
-              ${optionHtml(o.foodTypes, r.FoodType)}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:0.85rem; font-weight:600; color:#333; display:block; margin-bottom:4px;">รายละเอียดอาหารที่แพ้</label>
-            <input id="erAllergy" style="width:100%; padding:8px 12px; border:1px solid #ccd6dc; border-radius:6px; font-family:inherit; font-size:0.9rem;" value="${esc(r.FoodAllergyDetail||'')}">
-          </div>
-        </div>
-
-        <!-- Receipt / Tax Invoice Fields -->
-        <div style="margin-top:16px; padding:14px; background:#fffdf5; border-radius:8px; border:1px solid #fde68a;">
-          <div style="font-weight:700; color:#b45309; font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-receipt"></i> ข้อมูลสำหรับออกใบเสร็จรับเงิน (Receipt / Tax Invoice)</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
-            <div style="grid-column:1/-1;">
-              <label style="font-size:0.82rem; font-weight:600; color:#451a03; display:block; margin-bottom:3px;">ชื่อที่ระบุในใบเสร็จ (Receipt Name)</label>
-              <input id="erReceiptName" placeholder="เช่น ชื่อ-สกุล หรือ ชื่อหน่วยงาน/บริษัท" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-family:inherit; font-size:0.88rem;" value="${esc(r.ReceiptName||'')}">
-            </div>
-            <div>
-              <label style="font-size:0.82rem; font-weight:600; color:#451a03; display:block; margin-bottom:3px;">เลขประจำตัวผู้เสียภาษี / บัตรประชาชน (Tax ID)</label>
-              <input id="erReceiptTaxID" placeholder="13 หลัก" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-family:inherit; font-size:0.88rem;" value="${esc(r.ReceiptTaxID||'')}">
-            </div>
-            <div>
-              <label style="font-size:0.82rem; font-weight:600; color:#451a03; display:block; margin-bottom:3px;">เบอร์โทรศัพท์สำหรับใบเสร็จ (Receipt Phone)</label>
-              <input id="erReceiptPhone" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-family:inherit; font-size:0.88rem;" value="${esc(r.ReceiptPhone||'')}">
-            </div>
-            <div style="grid-column:1/-1;">
-              <label style="font-size:0.82rem; font-weight:600; color:#451a03; display:block; margin-bottom:3px;">ที่อยู่สำหรับออกใบเสร็จ (Receipt Address)</label>
-              <textarea id="erReceiptAddress" rows="2" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-family:inherit; font-size:0.88rem;">${esc(r.ReceiptAddress||'')}</textarea>
-            </div>
-            <div>
-              <label style="font-size:0.82rem; font-weight:600; color:#451a03; display:block; margin-bottom:3px;">รหัสไปรษณีย์ (Postal Code)</label>
-              <input id="erReceiptPostalCode" maxlength="10" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:6px; font-family:inherit; font-size:0.88rem;" value="${esc(r.ReceiptPostalCode||'')}">
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top:16px; padding:14px; background:#f0f5f6; border-radius:8px; border:1px solid #d9e6e8;">
-          <div style="font-weight:600; color:var(--teal); font-size:0.9rem; margin-bottom:8px;">วันเข้าร่วมประชุมและสิทธิ์ส่งผลงาน</div>
-          <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
-            ${dates.slice(0,3).map((date,i)=>`
-              <label style="display:flex; align-items:center; gap:6px; font-size:0.88rem; cursor:pointer;">
-                <input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}
-              </label>
-            `).join('')}
-            <label style="display:flex; align-items:center; gap:6px; font-size:0.88rem; cursor:pointer; font-weight:600; color:#0b6068;">
-              <input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงานวิชาการ
-            </label>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const x = await Swal.fire({
-      title: `แก้ไขข้อมูลผู้สมัคร (${esc(id)})`,
-      html,
-      width: '780px',
-      showCancelButton: true,
-      confirmButtonText: 'บันทึกการแก้ไข',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#006D70',
-      cancelButtonColor: '#758593',
-      preConfirm: () => {
-        const first = $('#erFirst').value.trim();
-        const last = $('#erLast').value.trim();
-        const cid = $('#erCid').value.trim();
-        const email = $('#erEmail').value.trim();
-        if (!first || !last) {
-          Swal.showValidationMessage('กรุณากรอกชื่อและนามสกุล');
-          return false;
-        }
-        if (!email) {
-          Swal.showValidationMessage('กรุณากรอกอีเมล');
-          return false;
-        }
-        return {
-          ParticipantType: $('#erType').value,
-          Prefix: $('#erPrefix').value,
-          FirstName: first,
-          LastName: last,
-          FullName: [$('#erPrefix').value, first, last].filter(Boolean).join(' '),
-          CID: cid,
-          Position: $('#erPosition').value.trim(),
-          Profession: $('#erProfession').value.trim(),
-          OrganizationGroup: $('#erGroup').value.trim(),
-          OrganizationUnit: $('#erOrg').value.trim(),
-          Institution: $('#erOrg').value.trim(),
-          LicenseNo: $('#erLicense').value.trim(),
-          Phone: $('#erPhone').value.trim(),
-          Email: email,
-          LineID: $('#erLine').value.trim(),
-          FoodType: $('#erFood').value,
-          FoodAllergyDetail: $('#erAllergy').value.trim(),
-          ReceiptName: $('#erReceiptName').value.trim(),
-          ReceiptTaxID: $('#erReceiptTaxID').value.trim(),
-          ReceiptAddress: $('#erReceiptAddress').value.trim(),
-          ReceiptPostalCode: $('#erReceiptPostalCode').value.trim(),
-          ReceiptPhone: $('#erReceiptPhone').value.trim(),
-          AttendanceDay1: !!$('#erDay1')?.checked,
-          AttendanceDay2: !!$('#erDay2')?.checked,
-          AttendanceDay3: !!$('#erDay3')?.checked,
-          WantsSubmitWork: !!$('#erWork')?.checked
-        };
-      }
-    });
-
-    if (!x.isConfirmed || !x.value) return;
-    show('กำลังบันทึกข้อมูล...');
-    const saved = await rpc('adminSaveRegistration', TOKEN, CID, id, x.value);
-    hide();
-    await Swal.fire({
-      icon: 'success',
-      title: 'แก้ไขข้อมูลเรียบร้อยแล้ว',
-      html: (saved.warnings && saved.warnings.length) ? saved.warnings.map(esc).join('<br>') : 'บันทึกข้อมูลลงฐานข้อมูลเรียบร้อยแล้ว',
-      confirmButtonColor: '#006D70'
-    });
-    loadRegistrations();
-  } catch(e) {
-    err(e);
-  }
-}
-
-function beDateOnly(v){
-  const d=parseStoredDate(v);
-  if(!d)return String(v||'');
-  return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()+543}`;
-}
-
+function beDateOnly(v){const d=parseStoredDate(v);if(!d)return String(v||'');return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()+543}`}
 async function openRegistrationSignSheet(){
-  const curType = $('#regType')?.value || '';
-  const curSearch = $('#regSearch')?.value || '';
-  const curStatus = $('#regStatus')?.value || '';
-
-  const html=`<div style="text-align:left; font-size:0.9rem;">
-    <div style="margin-bottom:12px; color:#475569; font-size:0.85rem;">
-      ระบบจะจัดทำใบรายชื่อเรียงตาม <b>RegID</b> เป็นตารางต่อเนื่อง โดยกรองตามเงื่อนไขที่เลือกด้านล่าง สามารถพิมพ์ออกทางเครื่องพิมพ์ (A4 แนวนอน) หรือส่งออกเป็น Excel (.xlsx) ได้ทันที
-    </div>
-    <label style="display:block;margin-bottom:8px"><b>ประเภทผู้สมัคร</b>
-      <select id="psType" class="swal2-select" style="width:100%;margin:4px 0 10px">
-        <option value="" ${curType===''?'selected':''}>ทั้งหมดทุกประเภท</option>
-        <option value="INTERNAL" ${curType==='INTERNAL'?'selected':''}>บุคลากรภายใน รพ.มธ.</option>
-        <option value="EXTERNAL" ${curType==='EXTERNAL'?'selected':''}>บุคคลภายนอก</option>
-      </select>
-    </label>
-    <label style="display:block;margin-bottom:8px"><b>วันเข้าร่วม</b>
-      <select id="psDay" class="swal2-select" style="width:100%;margin:4px 0 10px">
-        <option value="0">ทุกวันที่เลือกเข้าร่วม (วันที่ 1, 2, 3)</option>
-        <option value="1">เฉพาะวันที่ 1</option>
-        <option value="2">เฉพาะวันที่ 2</option>
-        <option value="3">เฉพาะวันที่ 3</option>
-      </select>
-    </label>
-    <label style="display:block;margin-bottom:8px"><b>ฝ่าย/หน่วยงาน หรือคำค้นหา</b>
-      <input id="psOrg" class="swal2-input" style="width:100%;margin:4px 0 10px" value="${esc(curSearch)}" placeholder="เว้นว่างเพื่อรวมทั้งหมด">
-    </label>
-    <label style="display:flex;gap:8px;align-items:center;margin-top:10px; cursor:pointer;">
-      <input type="checkbox" id="psIncomplete"> รวมสถานะที่ยังไม่ตรวจผ่าน / ส่งคืน
-    </label>
-  </div>`;
-
-  const x = await Swal.fire({
-    title: 'ใบรายชื่อผู้เข้าร่วมงาน (เรียงตาม RegID)',
-    html,
-    showCancelButton: true,
-    showDenyButton: true,
-    confirmButtonText: '<i class="fa-solid fa-print"></i> เปิดใบเซ็นชื่อ (A4 แนวนอน)',
-    denyButtonText: '<i class="fa-solid fa-file-excel"></i> ส่งออกเป็น Excel (.xlsx)',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#006D70',
-    denyButtonColor: '#C8B278',
-    preConfirm: () => ({
-      participantType: $('#psType').value,
-      dayIndex: Number($('#psDay').value || 0),
-      organization: $('#psOrg').value,
-      includeIncomplete: $('#psIncomplete').checked,
-      q: $('#psOrg').value || $('#regSearch').value,
-      status: $('#regStatus').value
-    })
-  });
-
-  if (!x.isConfirmed && !x.isDenied) return;
-  const payload = x.value;
-
-  show('กำลังดึงข้อมูลใบรายชื่อ...');
-  try {
-    const d = await rpc('adminGetRegistrationSignSheet', TOKEN, CID, payload);
-    hide();
-
-    if (x.isDenied) {
-      // Export to Excel directly
-      exportSignSheetToExcel(d, payload);
-    } else {
-      // Print window
-      const win = window.open('', '_blank');
-      if (!win) return Swal.fire({icon:'warning', title:'เบราว์เซอร์บล็อกหน้าต่างใหม่', text:'กรุณาอนุญาต Pop-up แล้วลองใหม่อีกครั้ง'});
-      renderSignSheetWindow(win, d, payload);
-    }
-  } catch(e) {
-    hide();
-    err(e);
-  }
+  const html=`<div style="text-align:left"><label>ประเภทผู้สมัคร<select id="psType" class="swal2-select" style="width:100%;margin:5px 0 10px"><option value="">ทั้งหมด</option><option value="INTERNAL">บุคลากรภายใน รพ.มธ.</option><option value="EXTERNAL">บุคคลภายนอก</option></select></label><label>วันเข้าร่วม<select id="psDay" class="swal2-select" style="width:100%;margin:5px 0 10px"><option value="0">ทุกวันที่เลือกเข้าร่วม</option><option value="1">วันที่ 1</option><option value="2">วันที่ 2</option><option value="3">วันที่ 3</option></select></label><label>ฝ่าย/หน่วยงานที่ต้องการค้นหา<input id="psOrg" class="swal2-input" style="width:100%;margin:5px 0 10px" placeholder="เว้นว่างเพื่อพิมพ์ทั้งหมด"></label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="psIncomplete"> รวมข้อมูลที่ยังไม่ครบหรือถูกส่งคืน</label></div>`;
+  const x=await Swal.fire({title:'พิมพ์ใบเซ็นชื่อหน้างาน',html,showCancelButton:true,confirmButtonText:'สร้างใบเซ็นชื่อ',confirmButtonColor:'#006D70',preConfirm:()=>({participantType:$('#psType').value,dayIndex:Number($('#psDay').value||0),organization:$('#psOrg').value,includeIncomplete:$('#psIncomplete').checked,q:$('#regSearch').value,status:$('#regStatus').value})});if(!x.isConfirmed)return;
+  const win=window.open('','_blank');if(!win)return Swal.fire({icon:'warning',title:'เบราว์เซอร์บล็อกหน้าต่างใหม่',text:'กรุณาอนุญาต Pop-up แล้วลองใหม่'});
+  win.document.write('<p style="font-family:sans-serif;padding:20px">กำลังเตรียมใบเซ็นชื่อ...</p>');
+  show('กำลังสร้างใบเซ็นชื่อ');try{const d=await rpc('adminGetRegistrationSignSheet',TOKEN,CID,x.value);hide();renderSignSheetWindow(win,d,x.value)}catch(e){win.close();err(e)}
+}
+function renderSignSheetWindow(win,d,filters){
+  const rows=d.rows||[],dates=(d.eventDates||[]).slice(0,3),groups={};rows.forEach(r=>{const key=[r.OrganizationGroup,r.Institution||r.OrganizationUnit].filter(Boolean).join(' / ')||'ไม่ระบุหน่วยงาน';(groups[key]||(groups[key]=[])).push(r)});const groupKeys=Object.keys(groups);if(!groupKeys.length)groups['ไม่พบข้อมูล']=[];
+  const dateHeads=dates.map((x,i)=>`<th colspan="2">วันที่ ${i+1}<br>${esc(beDateOnly(x))}</th>`).join('');
+  const pages=Object.keys(groups).map((g,gi)=>{const list=groups[g],body=list.map((r,i)=>`<tr><td class="c">${i+1}</td><td>${esc(r.FullName)}</td><td>${esc(r.Position||r.Profession||'')}</td><td>${esc(r.Institution||r.OrganizationUnit||r.OrganizationGroup||'')}</td>${dates.map((x,di)=>r['AttendanceDay'+(di+1)]?'<td class="sign"></td><td class="date">'+esc(beDateOnly(x))+'</td>':'<td class="na">-</td><td class="na">-</td>').join('')}</tr>`).join('')+Array.from({length:5},(_,i)=>`<tr><td class="c">${list.length+i+1}</td><td></td><td></td><td></td>${dates.map(()=>'<td class="sign"></td><td></td>').join('')}</tr>`).join('');return `<section class="sheet ${gi<groupKeys.length-1?'break':''}"><h1>${esc(d.conference.ConferenceNameTH||'ใบเซ็นชื่อผู้เข้าร่วมงาน')}</h1><h2>ใบเซ็นชื่อผู้เข้าร่วมงาน</h2><div class="meta"><b>ฝ่าย/หน่วยงาน:</b> ${esc(g)} &nbsp; <b>จำนวน:</b> ${list.length} คน</div><table><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">ชื่อ-นามสกุล</th><th rowspan="2">ตำแหน่ง</th><th rowspan="2">หน่วยงาน</th>${dateHeads}</tr><tr>${dates.map(()=>'<th>ลายมือชื่อ</th><th>วันที่</th>').join('')}</tr></thead><tbody>${body}</tbody></table><div class="foot">พิมพ์เมื่อ ${esc(formatBeDateTime(d.generatedAt))}</div></section>`}).join('');
+  win.document.open();win.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบเซ็นชื่อผู้ลงทะเบียน</title><link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet"><style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Prompt,sans-serif;color:#111;margin:0}.sheet{page-break-inside:avoid}.break{page-break-after:always}h1{font-size:15px;text-align:center;margin:0 0 2px}h2{font-size:13px;text-align:center;margin:0 0 6px}.meta{font-size:10px;margin:4px 0}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px}th,td{border:1px solid #333;padding:3px;vertical-align:middle;height:24px}th{background:#f0f3f4;text-align:center}th:nth-child(1){width:34px}th:nth-child(2){width:145px}th:nth-child(3){width:95px}th:nth-child(4){width:130px}.c,.date,.na{text-align:center}.sign{min-width:80px}.foot{text-align:right;font-size:8px;margin-top:4px}@media print{button{display:none}}</style></head><body>${pages}<script>window.onload=()=>setTimeout(()=>window.print(),350)<\/script></body></html>`);win.document.close();
 }
 
-function renderSignSheetWindow(win, d, filters){
-  const rows = (d.rows || []).slice();
-  rows.sort((a,b) => String(a.RegID||'').localeCompare(String(b.RegID||''), undefined, {numeric:true, sensitivity:'base'}));
-  const dates = (d.eventDates || []).slice(0,3);
+async function loadPayments(){show('กำลังโหลดการเงิน');try{const rows=await rpc('adminListPayments',TOKEN,CID,{q:$('#paySearch').value,status:$('#payStatus').value});$('#payRows').innerHTML=rows.length?rows.map(p=>{const canAct=!!p.PaymentID&&['PENDING_VERIFY','RETURNED'].includes(p.Status);return `<tr><td>${esc(p.RegID)}</td><td><b>${esc(p.Registration?.FullName||'')}</b><br><span class="muted">${esc(p.Registration?.Email||'')}</span></td><td>${Number(p.RequiredAmount||p.Amount||0).toLocaleString('th-TH')} บาท</td><td>${statusBadge(p.Status)}</td><td>${p.SlipFileUrl?`<a target="_blank" href="${esc(p.SlipFileUrl)}">เปิดหลักฐาน</a>`:'<span class="muted">ยังไม่ส่งหลักฐาน</span>'}</td><td class="actions">${canAct?`<button class="btn btn-primary btn-sm" onclick="verifyPay('${esc(p.PaymentID)}','APPROVE')">อนุมัติ</button><button class="btn btn-gold btn-sm" onclick="verifyPay('${esc(p.PaymentID)}','RETURN')">ส่งคืน</button>`:'-'}</td></tr>`}).join(''):'<tr><td colspan="6" class="muted">ไม่พบข้อมูล</td></tr>'}finally{hide()}}
+async function verifyPay(id,decision){const returning=decision==='RETURN';const x=await Swal.fire({title:returning?'ส่งคืนหลักฐาน':'อนุมัติการชำระเงิน',input:'textarea',inputLabel:returning?'เหตุผลที่ส่งคืน':'หมายเหตุ (ถ้ามี)',inputValidator:v=>returning&&!String(v||'').trim()?'กรุณาระบุเหตุผล':undefined,showCancelButton:true,confirmButtonText:returning?'ส่งคืน':'อนุมัติ',confirmButtonColor:returning?'#C8B278':'#006D70'});if(!x.isConfirmed)return;show('กำลังบันทึกผลการเงิน');try{const r=await rpc('adminVerifyPayment',TOKEN,CID,id,decision,x.value||'',{});hide();await Swal.fire({icon:'success',title:'บันทึกเรียบร้อย',html:`สถานะ: <b>${esc(r.status)}</b>${r.mealPass?.sent?'<br>ส่งคูปองอาหารอัตโนมัติแล้ว':''}`,confirmButtonColor:'#006D70'});loadPayments()}catch(e){err(e)}}
 
-  const dateHeads = dates.map((x,i)=>`<th colspan="2" style="border:1px solid #333; background:#f0f3f4; text-align:center; padding:4px;">วันที่ ${i+1}<br>${esc(beDateOnly(x))}</th>`).join('');
-  const subDateHeads = dates.map(()=>`<th style="border:1px solid #333; background:#f8fafc; text-align:center; font-size:8px; width:75px;">ลายมือชื่อ</th><th style="border:1px solid #333; background:#f8fafc; text-align:center; font-size:8px; width:45px;">เวลา</th>`).join('');
-
-  const bodyRows = rows.map((r, i) => `<tr>
-    <td style="border:1px solid #333; text-align:center; padding:3px; font-weight:600;">${i+1}</td>
-    <td style="border:1px solid #333; text-align:center; padding:3px; font-weight:700; white-space:nowrap;">${esc(r.RegID)}</td>
-    <td style="border:1px solid #333; padding:3px; font-weight:600;">${esc(r.FullName)}</td>
-    <td style="border:1px solid #333; padding:3px;">${esc(r.Position || r.Profession || '-')}</td>
-    <td style="border:1px solid #333; padding:3px;">${esc(r.Institution || r.OrganizationUnit || r.OrganizationGroup || '-')}</td>
-    <td style="border:1px solid #333; text-align:center; padding:3px; font-size:8px;">${esc(r.ParticipantType || '-')}</td>
-    ${dates.map((x, di) => r['AttendanceDay' + (di+1)] ? '<td style="border:1px solid #333; text-align:center; height:24px;"></td><td style="border:1px solid #333; text-align:center; font-size:8px;"></td>' : '<td style="border:1px solid #333; text-align:center; color:#94a3b8; font-size:8px; background:#fbfbfc;">-</td><td style="border:1px solid #333; text-align:center; color:#94a3b8; font-size:8px; background:#fbfbfc;">-</td>').join('')}
-  </tr>`).join('');
-
-  const filterText = [
-    filters.participantType ? `ประเภท: ${filters.participantType}` : 'ทุกประเภท',
-    filters.dayIndex ? `เฉพาะวันที่ ${filters.dayIndex}` : 'ทุกวัน',
-    filters.organization ? `คำค้น: "${filters.organization}"` : ''
-  ].filter(Boolean).join(' | ');
-
-  win.document.open();
-  win.document.write(`<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <title>ใบรายชื่อผู้เข้าร่วมงาน - เรียงตาม RegID</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    @page { size: A4 landscape; margin: 7mm; }
-    * { box-sizing: border-box; }
-    body { font-family: Prompt, sans-serif; color: #111; margin: 0; background: #fff; }
-    .header { text-align: center; margin-bottom: 8px; }
-    h1 { font-size: 15px; margin: 0 0 2px; color: #0C385B; }
-    h2 { font-size: 13px; margin: 0 0 4px; font-weight: 500; }
-    .meta { font-size: 10px; color: #475569; display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 8.5px; page-break-inside: auto; }
-    tr { page-break-inside: avoid; page-break-after: auto; }
-    thead { display: table-header-group; }
-    th, td { border: 1px solid #333; padding: 3px; vertical-align: middle; height: 22px; }
-    th { background: #f0f3f4; text-align: center; font-weight: 600; }
-    .no-print-bar { background: #f1f5f9; border-bottom: 1px solid #cbd5e1; padding: 10px 16px; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
-    .btn { background: #006D70; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; font-family: inherit; font-size: 13px; cursor: pointer; font-weight: 600; }
-    .btn-gold { background: #C8B278; color: #102A43; }
-    @media print {
-      .no-print-bar { display: none !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="no-print-bar">
-    <div>
-      <b>ใบรายชื่อผู้เข้าร่วมงาน (ต่อเนื่อง เรียงตาม RegID)</b> — จำนวนทั้งหมด <b>${rows.length}</b> รายการ (${filterText})
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> พิมพ์หน้านี้ (Print)</button>
-      <button class="btn btn-gold" onclick="window.close()">ปิดหน้าต่าง</button>
-    </div>
-  </div>
-
-  <div style="padding: 6px;">
-    <div class="header">
-      <h1>${esc(d.conference?.ConferenceNameTH || 'ใบรายชื่อผู้ลงทะเบียนเข้าร่วมงาน')}</h1>
-      <h2>ใบเซ็นชื่อผู้เข้าร่วมประชุมวิชาการ (เรียงตามลำดับ RegID)</h2>
-    </div>
-    <div class="meta">
-      <div><b>เงื่อนไข:</b> ${esc(filterText)} &nbsp;|&nbsp; <b>รวมทั้งหมด:</b> ${rows.length} คน</div>
-      <div>พิมพ์เมื่อ: ${esc(formatBeDateTime(d.generatedAt || new Date().toISOString()))}</div>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th rowspan="2" style="width:32px;">ลำดับ</th>
-          <th rowspan="2" style="width:85px;">RegID</th>
-          <th rowspan="2" style="width:145px;">ชื่อ-นามสกุล</th>
-          <th rowspan="2" style="width:105px;">ตำแหน่ง / วิชาชีพ</th>
-          <th rowspan="2" style="width:130px;">หน่วยงาน / สังกัด</th>
-          <th rowspan="2" style="width:65px;">ประเภท</th>
-          ${dateHeads}
-        </tr>
-        <tr>
-          ${subDateHeads}
-        </tr>
-      </thead>
-      <tbody>
-        ${bodyRows || '<tr><td colspan="12" style="text-align:center; padding:20px;">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}
-      </tbody>
-    </table>
-  </div>
-</body>
-</html>`);
-  win.document.close();
-}
-
-function exportSignSheetToExcel(d, filters){
-  const rows = (d.rows || []).slice();
-  rows.sort((a,b) => String(a.RegID||'').localeCompare(String(b.RegID||''), undefined, {numeric:true, sensitivity:'base'}));
-  const dates = (d.eventDates || []).slice(0,3);
-
-  const excelData = rows.map((r, i) => {
-    const item = {
-      'ลำดับ': i + 1,
-      'RegID': r.RegID || '',
-      'ชื่อ-นามสกุล': r.FullName || '',
-      'ตำแหน่ง': r.Position || '',
-      'วิชาชีพ': r.Profession || '',
-      'ฝ่าย/กลุ่มงาน': r.OrganizationGroup || '',
-      'หน่วยงาน/สถาบัน': r.Institution || r.OrganizationUnit || '',
-      'ประเภทผู้สมัคร': r.ParticipantType || '',
-      'เบอร์โทรศัพท์': r.Phone || '',
-      'อีเมล': r.Email || ''
-    };
-    dates.forEach((dt, di) => {
-      item[`เข้าร่วมวันที่ ${di+1} (${beDateOnly(dt)})`] = r['AttendanceDay' + (di+1)] ? 'เข้าร่วม' : '-';
-    });
-    return item;
-  });
-
-  exportDataToExcel('Sign_Sheet_RegID_' + (filters.participantType || 'ALL'), 'SignSheet', excelData);
-}
-
-// Global Excel Export Helpers
-function exportDataToExcel(filename, sheetName, data){
-  if (!window.XLSX) {
-    return Swal.fire({ icon: 'error', title: 'ไม่พบไลบรารี XLSX', text: 'กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง' });
-  }
-  if (!data || !data.length) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูลสำหรับส่งออก', text: 'ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก' });
-  }
-  try {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Data');
-    XLSX.writeFile(wb, (filename || 'export') + '.xlsx');
-    toast('ส่งออกไฟล์ Excel เรียบร้อยแล้ว');
-  } catch(e) {
-    err(e);
-  }
-}
-
-function exportRegistrationsToExcel(){
-  const q = ($('#regSearch')?.value || '').trim().toLowerCase();
-  const st = $('#regStatus')?.value || '';
-  const pt = $('#regType')?.value || '';
-
-  const rows = (window.REG_ROWS || []).filter(r => {
-    const matchStatus = !st || r.RegistrationStatus === st || r.DataCompletenessStatus === st;
-    if(!matchStatus) return false;
-    const rType = String(r.ParticipantType || '').toUpperCase();
-    const matchType = !pt || rType === pt || (pt === 'INTERNAL' && (rType.includes('INTERNAL') || rType.includes('ภายใน'))) || (pt === 'EXTERNAL' && (rType.includes('EXTERNAL') || rType.includes('ภายนอก')));
-    if(!matchType) return false;
-    if(!q) return true;
-    const s = [r.RegID, r.FullName, r.ParticipantType, r.CID, r.Email, r.Phone, r.OrganizationGroup, r.Institution, r.OrganizationUnit, r.Position, r.ReceiptName, r.ReceiptTaxID].join(' ').toLowerCase();
-    return s.includes(q);
-  });
-
-  if (!rows.length) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูลผู้ลงทะเบียนสำหรับส่งออก', text: 'กรุณาตรวจสอบตัวกรองข้อมูล' });
-  }
-
-  // Sort by RegID
-  rows.sort((a,b) => String(a.RegID||'').localeCompare(String(b.RegID||''), undefined, {numeric:true, sensitivity:'base'}));
-
-  const data = rows.map((r, i) => ({
-    'ลำดับ': i + 1,
-    'RegID': r.RegID || '',
-    'ประเภทผู้สมัคร': r.ParticipantType || '',
-    'คำนำหน้า': r.Prefix || '',
-    'ชื่อ': r.FirstName || '',
-    'นามสกุล': r.LastName || '',
-    'ชื่อ-สกุลเต็ม': r.FullName || '',
-    'เลขประจำตัวประชาชน': r.CID || '',
-    'ตำแหน่ง': r.Position || '',
-    'วิชาชีพ': r.Profession || '',
-    'ฝ่าย/กลุ่มงาน': r.OrganizationGroup || '',
-    'หน่วยงาน/สถาบัน': r.Institution || r.OrganizationUnit || '',
-    'เลขที่ใบอนุญาต': r.LicenseNo || '',
-    'เบอร์โทรศัพท์': r.Phone || '',
-    'อีเมล': r.Email || '',
-    'Line ID': r.LineID || '',
-    'ประเภทอาหาร': r.FoodType || '',
-    'รายละเอียดอาหารที่แพ้': r.FoodAllergyDetail || '',
-    'เข้าร่วมวันที่ 1': r.AttendanceDay1 ? 'ใช่' : 'ไม่',
-    'เข้าร่วมวันที่ 2': r.AttendanceDay2 ? 'ใช่' : 'ไม่',
-    'เข้าร่วมวันที่ 3': r.AttendanceDay3 ? 'ใช่' : 'ไม่',
-    'ประสงค์ส่งผลงาน': r.WantsSubmitWork ? 'ใช่' : 'ไม่',
-    'สถานะความครบถ้วน': r.DataCompletenessStatus || '',
-    'สถานะการลงทะเบียน': r.RegistrationStatus || '',
-    'สถานะการชำระเงิน': r.PaymentStatus || '',
-    'ชื่อในใบเสร็จ (Receipt Name)': r.ReceiptName || '',
-    'เลขประจำตัวผู้เสียภาษี (Receipt Tax ID)': r.ReceiptTaxID || '',
-    'ที่อยู่ออกใบเสร็จ (Receipt Address)': r.ReceiptAddress || '',
-    'รหัสไปรษณีย์ (Receipt Postal Code)': r.ReceiptPostalCode || '',
-    'เบอร์โทรใบเสร็จ (Receipt Phone)': r.ReceiptPhone || '',
-    'วันที่ลงทะเบียน': r.CreatedAt ? formatBeDateTime(r.CreatedAt) : '',
-    'วันที่แก้ไขล่าสุด': r.UpdatedAt ? formatBeDateTime(r.UpdatedAt) : ''
-  }));
-
-  exportDataToExcel('Registrations_' + (pt || 'ALL') + '_' + (st || 'ALL'), 'Registrations', data);
-}
-
-function exportPaymentsToExcel(){
-  const q = ($('#paySearch')?.value || '').trim().toLowerCase();
-  const st = $('#payStatus')?.value || '';
-
-  const rows = (window.PAY_ROWS || []).filter(p => {
-    const matchStatus = !st || p.Status === st;
-    if(!matchStatus) return false;
-    if(!q) return true;
-    const s = [p.RegID, p.Registration?.FullName, p.Registration?.Email, p.Registration?.Phone].join(' ').toLowerCase();
-    return s.includes(q);
-  });
-
-  if (!rows.length) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูลการชำระเงินสำหรับส่งออก' });
-  }
-
-  const data = rows.map((p, i) => ({
-    'ลำดับ': i + 1,
-    'PaymentID': p.PaymentID || '',
-    'RegID': p.RegID || '',
-    'ชื่อ-นามสกุล': p.Registration?.FullName || '',
-    'อีเมล': p.Registration?.Email || '',
-    'เบอร์โทรศัพท์': p.Registration?.Phone || '',
-    'จำนวนเงิน (บาท)': Number(p.RequiredAmount || p.Amount || 0),
-    'สถานะการเงิน': p.Status || '',
-    'ลิงก์สลิป/หลักฐาน': p.SlipFileUrl || '',
-    'วันที่ส่งหลักฐาน': p.PaidAt ? formatBeDateTime(p.PaidAt) : (p.CreatedAt ? formatBeDateTime(p.CreatedAt) : ''),
-    'ตรวจสอบโดย': p.VerifiedBy || '',
-    'หมายเหตุ': p.Remarks || p.ReturnReason || ''
-  }));
-
-  exportDataToExcel('Payments_' + (st || 'ALL'), 'Payments', data);
-}
-
-function exportReviewersToExcel(){
-  const q = ($('#revSearch')?.value || '').trim().toLowerCase();
-  const rows = (window.REV_ROWS || []).filter(r => {
-    if(!q) return true;
-    const s = [r.reviewer?.ReviewerID, r.reviewer?.FullName, r.reviewer?.Email, r.reviewer?.Institution, r.reviewer?.Phone, r.reviewer?.Specialties].join(' ').toLowerCase();
-    return s.includes(q);
-  });
-
-  if (!rows.length) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูล Reviewer สำหรับส่งออก' });
-  }
-
-  const data = rows.map((r, i) => ({
-    'ลำดับ': i + 1,
-    'ReviewerID': r.reviewer?.ReviewerID || '',
-    'ชื่อ-นามสกุล': r.reviewer?.FullName || '',
-    'อีเมล': r.reviewer?.Email || '',
-    'หน่วยงาน': r.reviewer?.Institution || '',
-    'โทรศัพท์': r.reviewer?.Phone || '',
-    'สาขาที่ประเมิน': r.reviewer?.Specialties || '',
-    'งานที่ได้รับ (Assigned)': r.CurrentAssignedCount || 0,
-    'งานที่ประเมินแล้ว (Completed)': r.CompletedCount || 0,
-    'จำนวนงานสูงสุด (Max Workload)': r.MaxWorkload || 0,
-    'สถานะ': r.reviewer?.Status || ''
-  }));
-
-  exportDataToExcel('Reviewers', 'Reviewers', data);
-}
-
-function exportUsersToExcel(){
-  const table = $('#userRows');
-  if(!table) return;
-  const rows = Array.from(table.querySelectorAll('tr'));
-  if(!rows.length || rows[0].textContent.includes('ไม่พบข้อมูล')) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูลผู้ใช้งานสำหรับส่งออก' });
-  }
-  const data = rows.map((tr, i) => {
-    const tds = tr.querySelectorAll('td');
-    return {
-      'ลำดับ': i + 1,
-      'UserID': tds[0]?.textContent?.trim() || '',
-      'ผู้ใช้งาน': tds[1]?.textContent?.trim() || '',
-      'Role': tds[2]?.textContent?.trim() || '',
-      'สถานะ': tds[3]?.textContent?.trim() || ''
-    };
-  });
-  exportDataToExcel('System_Users', 'Users', data);
-}
-
-function exportFoodToExcel(){
-  const rows = window.FOOD_ROWS || [];
-  if (!rows.length) {
-    return Swal.fire({ icon: 'info', title: 'ไม่มีข้อมูลคูปองอาหารสำหรับส่งออก' });
-  }
-  const data = rows.map((r, i) => ({
-    'ลำดับ': i + 1,
-    'RegID': r.RegID || '',
-    'ชื่อ-นามสกุล': r.FullName || '',
-    'อีเมล': r.Email || '',
-    'ประเภทผู้สมัคร': r.ParticipantTypeName || r.ParticipantType || '',
-    'สถานะข้อมูล': r.DataCompletenessStatus || '',
-    'สถานะลงทะเบียน': r.RegistrationStatus || '',
-    'สถานะการเงิน': r.PaymentStatus || '',
-    'สิทธิ์คูปอง': r.Eligible ? 'พร้อมออกคูปอง' : r.EligibilityReason || 'ไม่พร้อม',
-    'สถานะคูปอง': r.MealPassStatus || 'NOT_READY',
-    'จำนวนครั้งที่ส่ง Email': r.DispatchCount || 0,
-    'ส่งล่าสุดเมื่อ': r.LastSentAt ? formatBeDateTime(r.LastSentAt) : '-'
-  }));
-  exportDataToExcel('Meal_Passes', 'MealPasses', data);
-}
-
-window.PAY_ROWS = [];
-function renderPaymentsTable(rows){
-  $('#payRows').innerHTML = (rows && rows.length) ? rows.map(p=>{
-    const canAct = !!p.PaymentID && ['PENDING_VERIFY','RETURNED'].includes(p.Status);
-    return `<tr><td>${esc(p.RegID)}</td><td><b>${esc(p.Registration?.FullName||'')}</b><br><span class="muted">${esc(p.Registration?.Email||'')}</span></td><td>${Number(p.RequiredAmount||p.Amount||0).toLocaleString('th-TH')} บาท</td><td>${statusBadge(p.Status)}</td><td>${p.SlipFileUrl?`<a target="_blank" href="${esc(p.SlipFileUrl)}">เปิดหลักฐาน</a>`:'<span class="muted">ยังไม่ส่งหลักฐาน</span>'}</td><td class="actions">${canAct?`<button class="btn btn-primary btn-sm" onclick="verifyPay('${esc(p.PaymentID)}','APPROVE')">อนุมัติ</button><button class="btn btn-gold btn-sm" onclick="verifyPay('${esc(p.PaymentID)}','RETURN')">ส่งคืน</button>`:'-'}</td></tr>`;
-  }).join('') : '<tr><td colspan="6" class="muted">ไม่พบข้อมูล</td></tr>';
-}
-let paySearchTimer = null;
-function filterPaymentsClient(){
-  const q = ($('#paySearch').value||'').trim().toLowerCase();
-  const st = $('#payStatus').value;
-  if(window.PAY_ROWS && window.PAY_ROWS.length){
-    const filtered = window.PAY_ROWS.filter(p => {
-      const matchStatus = !st || p.Status === st;
-      if(!matchStatus) return false;
-      if(!q) return true;
-      const s = [p.RegID, p.Registration?.FullName, p.Registration?.Email, p.Registration?.Phone].join(' ').toLowerCase();
-      return s.includes(q);
-    });
-    renderPaymentsTable(filtered);
-  }
-  clearTimeout(paySearchTimer);
-  paySearchTimer = setTimeout(() => { loadPayments(true); }, 400);
-}
-async function loadPayments(silent){
-  if(!silent) show('กำลังโหลดการเงิน');
+async function loadWorks(){
+  show('กำลังโหลดผลงาน');
   try{
-    const rows = await rpc('adminListPayments',TOKEN,CID,{q:$('#paySearch').value,status:$('#payStatus').value});
-    window.PAY_ROWS = rows || [];
-    renderPaymentsTable(window.PAY_ROWS);
-  } finally {
-    if(!silent) hide();
-  }
-}
-
-async function verifyPay(id,decision){
-  const returning=decision==='RETURN';
-  const x=await Swal.fire({
-    title:returning?'ส่งคืนหลักฐานการชำระเงิน':'อนุมัติการชำระเงิน',
-    input:'textarea',
-    inputLabel:returning?'เหตุผลที่ส่งคืน':'หมายเหตุ (ถ้ามี)',
-    inputPlaceholder:returning?'กรุณาระบุเหตุผลเพื่อแจ้งเตือนทาง Email':'',
-    inputValidator:v=>returning&&!String(v||'').trim()?'กรุณาระบุเหตุผล':undefined,
-    showCancelButton:true,
-    confirmButtonText:returning?'ส่งคืน':'อนุมัติการชำระเงิน',
-    cancelButtonText:'ยกเลิก',
-    confirmButtonColor:returning?'#C8B278':'#006D70'
-  });
-  if(!x.isConfirmed)return;
-  show('กำลังบันทึกผลการตรวจสอบการเงิน...');
-  try{
-    const r=await rpc('adminVerifyPayment',TOKEN,CID,id,decision,x.value||'',{});
-    hide();
-    await Swal.fire({
-      icon:'success',
-      title:'บันทึกเรียบร้อย',
-      html:`สถานะ: <b>${esc(r.status||decision)}</b>${r.mealPass?.sent?'<br>ส่งคูปองอาหารอัตโนมัติแล้ว':''}`,
-      confirmButtonColor:'#006D70'
-    });
-    loadPayments();
-  }catch(e){
-    err(e);
-  }
-}
-
-window.WORK_ROWS = [];
-function renderWorksTable(rows){
-  $('#workRows').innerHTML = (rows && rows.length) ? rows.map(w=>`<tr>
+    const rows=await rpc('adminListWorks',TOKEN,CID,{q:$('#workSearch').value,status:$('#workStatus').value});
+    window.WORK_ROWS = rows;
+    $('#workRows').innerHTML=rows.length?rows.map(w=>`<tr>
       <td><b>${esc(w.WorkCode||w.WorkID)}</b></td>
       <td>${esc(w.ThaiTitle||w.EnglishTitle||w.TitleTH||w.TitleEN||'-')}<div class="muted" style="font-size:0.75rem">${esc(w.Theme||w.Field||'')}</div></td>
       <td>${esc(w.WorkType||'-')}</td>
@@ -1291,50 +325,23 @@ function renderWorksTable(rows){
         <button class="btn btn-blue btn-sm" title="คะแนน" onclick="openScoreSummary('${esc(w.WorkID)}')"><i class="fa-solid fa-chart-simple"></i></button>
         <button class="btn btn-gold btn-sm" title="ปรับสถานะ" onclick="openUpdateWorkStatus('${esc(w.WorkID)}', '${esc(w.Status||w.CurrentStatus)}')"><i class="fa-solid fa-pen-to-square"></i></button>
         <button class="btn btn-soft btn-sm" title="ส่งอีเมล" onclick="openEmail('${esc(w.PresenterEmail||'')}','แจ้งผลงาน ${esc(w.WorkCode||'')}','เรียน ${esc(w.PresenterName||'')}', '${esc(w.WorkID)}')"><i class="fa-solid fa-envelope"></i></button>
-        <button class="btn btn-gold btn-sm" title="จัดการไฟล์ผลงาน (ดู/ลบ/แนบไฟล์ Blind)" onclick="openUploadModal('${esc(w.WorkID)}','${esc(w.RegID||'')}')"><i class="fa-solid fa-folder-open"></i></button>
-        ${(w.files||[]).filter(f=>f.Active!==false && f.Active!=='false').sort((a,b)=>{
-          const wa = (a.FileCategory||'').includes('PRESENT') ? 3 : (a.FileCategory==='BLIND' ? 1 : 2);
-          const wb = (b.FileCategory||'').includes('PRESENT') ? 3 : (b.FileCategory==='BLIND' ? 1 : 2);
+        <button class="btn btn-gold btn-sm" title="แนบไฟล์" onclick="openUploadModal('${esc(w.WorkID)}','${esc(w.RegID||'')}')"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+        ${(w.files||[]).sort((a,b)=>{
+          const wa = (a.FileCategory||'').includes('PRESENT') ? 2 : (a.FileCategory==='BLIND' ? 1 : 0);
+          const wb = (b.FileCategory||'').includes('PRESENT') ? 2 : (b.FileCategory==='BLIND' ? 1 : 0);
           return wa - wb;
         }).map(f=>{
-          let t = f.FileCategory, i = 'fa-file-pdf', cls = 'btn-soft';
-          if(t==='BLIND'){ t='ไฟล์ปกปิดชื่อ (Blind Review)'; i='fa-user-secret'; cls='btn-gold'; }
+          let t = f.FileCategory, i = 'fa-file-pdf';
+          if(t==='BLIND'){ t='ไฟล์ปกปิดชื่อ (Blind)'; i='fa-user-secret'; }
           else if(t==='PRESENTER_BIO'){ t='ประวัติผู้นำเสนอ (Bio)'; i='fa-address-card'; }
-          else if(t==='ETHICS'){ t='เอกสารจริยธรรม (Ethics)'; i='fa-shield-halved'; }
-          else if(t==='REVISION'){ t='ไฟล์ผลงานฉบับแก้ไข (Revision)'; i='fa-file-pen'; }
-          else if((t||'').includes('PRESENT')){ t='ไฟล์นำเสนอ (Presentation)'; i='fa-display'; }
-          else if(t==='WORD'){ t='ไฟล์ผลงาน Word ต้นฉบับ'; i='fa-file-word'; }
-          else{ t='ไฟล์ผลงาน PDF ต้นฉบับ'; }
-          return `<a target="_blank" href="${esc(f.FileUrl)}" class="btn ${cls} btn-sm" title="${t}"><i class="fa-solid ${i}"></i></a>`;
+          else if((t||'').includes('PRESENT')){ t='ไฟล์นำเสนอ'; i='fa-display'; }
+          else{ t='ไฟล์ต้นฉบับ ('+t+')'; if(t==='WORD') i='fa-file-word'; }
+          return `<a target="_blank" href="${esc(f.FileUrl)}" class="btn btn-soft btn-sm" title="${t}"><i class="fa-solid ${i}"></i></a>`;
         }).join('')}
       </td>
-    </tr>`).join('') : '<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>';
-}
-let workSearchTimer = null;
-function filterWorksClient(){
-  const q = ($('#workSearch').value||'').trim().toLowerCase();
-  const st = $('#workStatus').value;
-  if(window.WORK_ROWS && window.WORK_ROWS.length){
-    const filtered = window.WORK_ROWS.filter(w => {
-      const matchStatus = !st || (w.Status||w.CurrentStatus) === st;
-      if(!matchStatus) return false;
-      if(!q) return true;
-      const s = [w.WorkCode, w.WorkID, w.ThaiTitle, w.EnglishTitle, w.TitleTH, w.TitleEN, w.PresenterName, w.PresenterEmail, w.Theme, w.Field].join(' ').toLowerCase();
-      return s.includes(q);
-    });
-    renderWorksTable(filtered);
-  }
-  clearTimeout(workSearchTimer);
-  workSearchTimer = setTimeout(() => { loadWorks(true); }, 400);
-}
-async function loadWorks(silent){
-  if(!silent) show('กำลังโหลดผลงาน');
-  try{
-    const rows = await rpc('adminListWorks',TOKEN,CID,{q:$('#workSearch').value,status:$('#workStatus').value});
-    window.WORK_ROWS = rows || [];
-    renderWorksTable(window.WORK_ROWS);
-  } finally {
-    if(!silent) hide();
+    </tr>`).join(''):'<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>';
+  }finally{
+    hide();
   }
 }
 function num(v){return Number(v)||0;}
@@ -1376,51 +383,14 @@ async function openAssignReviewerModal(wid){
   }catch(e){err(e);}
 }
 async function exportWorks(){
-  const rows = window.WORK_ROWS || [];
-  if (window.XLSX && rows.length) {
-    const q = ($('#workSearch')?.value || '').trim().toLowerCase();
-    const st = $('#workStatus')?.value || '';
-    const filtered = rows.filter(w => {
-      const matchStatus = !st || (w.Status || w.CurrentStatus) === st;
-      if(!matchStatus) return false;
-      if(!q) return true;
-      const s = [w.WorkCode, w.WorkID, w.ThaiTitle, w.EnglishTitle, w.TitleTH, w.TitleEN, w.PresenterName, w.PresenterEmail, w.Theme, w.Field].join(' ').toLowerCase();
-      return s.includes(q);
-    });
-
-    const data = filtered.map((w, i) => ({
-      'ลำดับ': i + 1,
-      'รหัสผลงาน (WorkCode)': w.WorkCode || w.WorkID || '',
-      'ชื่อผลงาน (ไทย)': w.ThaiTitle || w.TitleTH || '',
-      'ชื่อผลงาน (อังกฤษ)': w.EnglishTitle || w.TitleEN || '',
-      'กลุ่มสาขา / Theme': w.Theme || w.Field || '',
-      'ประเภทการนำเสนอ': w.WorkType || '',
-      'ผู้นำเสนอ': w.PresenterName || '',
-      'อีเมลผู้นำเสนอ': w.PresenterEmail || '',
-      'เบอร์โทรผู้นำเสนอ': w.PresenterPhone || '',
-      'คณะ/หน่วยงาน': w.Institution || w.OrganizationUnit || '',
-      'จำนวนกรรมการที่ตรวจแล้ว': num(w.ReviewerCompletedCount),
-      'จำนวนกรรมการทั้งหมด': num(w.ReviewerAssignedCount),
-      'คะแนนเฉลี่ย': w.AverageScore ? Number(w.AverageScore).toFixed(2) : '',
-      'สถานะผลงาน': w.Status || w.CurrentStatus || '',
-      'สถานะลงทะเบียน': w.RegistrationStatus || ''
-    }));
-
-    exportDataToExcel('Academic_Works_' + (st || 'ALL'), 'Works', data);
-    return;
-  }
-
   show('กำลังสร้างไฟล์ Excel...');
   try {
     const res = await rpc('exportWorksToExcel', TOKEN, CID);
     hide();
     Swal.fire({title:'สำเร็จ',text:'สร้างไฟล์ Excel สำเร็จ',icon:'success',confirmButtonText:'ดาวน์โหลด/เปิดไฟล์'}).then(()=>{
-      if (res && res.url) window.open(res.url, '_blank');
+      window.open(res.url, '_blank');
     });
-  } catch(e) { 
-    hide();
-    err(e); 
-  }
+  } catch(e) { err(e); }
 }
 async function openEmail(to, subj, msg, wid){
   const h=`<div class="field" style="text-align:left"><label>ถึง: <input id="emTo" value="${esc(to)}"></label></div><div class="field" style="text-align:left"><label>หัวข้อ: <input id="emSubj" value="${esc(subj)}"></label></div><div class="field" style="text-align:left"><label>ข้อความ: <textarea id="emMsg" style="height:150px">${esc(msg)}</textarea></label></div>`;
@@ -1535,9 +505,16 @@ async function openUpdateWorkStatus(wid, currentStatus) {
     } catch(e) { err(e); }
   }
 }
-window.ALL_REVIEWERS = [];
-function renderReviewersTable(rows){
-  $('#reviewerRows').innerHTML = (rows && rows.length) ? rows.map(x=>`<tr>
+async function loadReviewers(){
+  show('กำลังโหลด Reviewer');
+  try{
+    const rows=await rpc('adminListReviewers',TOKEN,CID);
+    const q = ($('#revSearch').value||'').toLowerCase();
+    const filtered = rows.filter(x=>{
+      const s = [x.reviewer.ReviewerID, x.reviewer.FullName, x.reviewer.Email, x.reviewer.Institution, x.reviewer.Department].join(' ').toLowerCase();
+      return !q || s.includes(q);
+    });
+    $('#reviewerRows').innerHTML=filtered.map(x=>`<tr>
       <td>${esc(x.reviewer.ReviewerID)}</td>
       <td><b>${esc(x.reviewer.Prefix||'')}${esc(x.reviewer.FirstName||'')} ${esc(x.reviewer.LastName||'')}</b><br><span class="muted">${esc(x.reviewer.Position||'')}</span></td>
       <td>${esc(x.reviewer.Email)}</td>
@@ -1551,26 +528,9 @@ function renderReviewersTable(rows){
         <button class="btn-sq" style="color:#0d6efd" title="ส่ง Username/Password" onclick="resendReviewerCreds('${esc(x.reviewer.ReviewerID)}')"><i class="fa-solid fa-key"></i></button>
         <button class="btn-sq" style="color:#198754" title="ส่งอีเมล" onclick="openEmail('${esc(x.reviewer.Email)}','','เรียน ${esc(x.reviewer.FullName||'')}', '')"><i class="fa-solid fa-envelope"></i></button>
       </td>
-    </tr>`).join('') : '<tr><td colspan="9" class="muted">ไม่พบข้อมูล Reviewer</td></tr>';
-}
-function filterReviewersClient(){
-  const q = ($('#revSearch').value||'').trim().toLowerCase();
-  if(window.ALL_REVIEWERS && window.ALL_REVIEWERS.length){
-    const filtered = window.ALL_REVIEWERS.filter(x=>{
-      const s = [x.reviewer.ReviewerID, x.reviewer.FullName, x.reviewer.FirstName, x.reviewer.LastName, x.reviewer.Email, x.reviewer.Institution, x.reviewer.Department, x.ExpertiseCategories, x.reviewer.ExpertiseCategories].join(' ').toLowerCase();
-      return !q || s.includes(q);
-    });
-    renderReviewersTable(filtered);
-  }
-}
-async function loadReviewers(silent){
-  if(!silent) show('กำลังโหลด Reviewer');
-  try{
-    const rows = await rpc('adminListReviewers',TOKEN,CID);
-    window.ALL_REVIEWERS = rows || [];
-    filterReviewersClient();
+    </tr>`).join('');
   }finally{
-    if(!silent) hide();
+    hide();
   }
 }
 async function resendReviewerCreds(id){
@@ -1632,402 +592,128 @@ async function loadReviewConfig(){const d=await rpc('adminGetReviewConfig',TOKEN
 
 function switchUploadTab(t){
   if(t==='local'){
-    document.getElementById('tbLocal')?.classList.add('active');
-    document.getElementById('tbDrive')?.classList.remove('active');
-    document.getElementById('tpLocal')?.classList.add('active');
-    document.getElementById('tpDrive')?.classList.remove('active');
+    document.getElementById('tbLocal').classList.add('active');
+    document.getElementById('tbDrive').classList.remove('active');
+    document.getElementById('tpLocal').classList.add('active');
+    document.getElementById('tpDrive').classList.remove('active');
   } else {
-    document.getElementById('tbLocal')?.classList.remove('active');
-    document.getElementById('tbDrive')?.classList.add('active');
-    document.getElementById('tpLocal')?.classList.remove('active');
-    document.getElementById('tpDrive')?.classList.add('active');
+    document.getElementById('tbLocal').classList.remove('active');
+    document.getElementById('tbDrive').classList.add('active');
+    document.getElementById('tpLocal').classList.remove('active');
+    document.getElementById('tpDrive').classList.add('active');
   }
 }
 
-async function openUploadModal(workId, regId) {
-  window.CurrentUploadWorkId = workId;
-  window.CurrentUploadRegId = regId;
-  const w = (window.WORK_ROWS || []).find(x => x.WorkID === workId) || { WorkID: workId, RegID: regId, files: [] };
-  const files = (w.files || []).filter(f => f.Active !== false && f.Active !== 'false');
-
-  const fileCategoryMeta = {
-    BLIND: { label: '🔒 ไฟล์ปกปิดชื่อ (Blind Review)', color: '#b45309', bg: '#fef3c7', icon: 'fa-user-secret', desc: 'ไฟล์ที่ตัดชื่อผู้แต่งออกแล้ว สำหรับ Reviewer ประเมินผลงาน' },
-    ORIGINAL: { label: '📄 ไฟล์ผลงาน PDF (ฉบับสมบูรณ์)', color: '#0369a1', bg: '#e0f2fe', icon: 'fa-file-pdf', desc: 'ไฟล์ผลงานต้นฉบับรูปแบบ PDF' },
-    WORD: { label: '📝 ไฟล์ Word (ต้นฉบับ)', color: '#1d4ed8', bg: '#dbeafe', icon: 'fa-file-word', desc: 'ไฟล์ผลงานต้นฉบับรูปแบบ DOCX' },
-    FINAL_PRESENTATION: { label: '🖥️ ไฟล์นำเสนอ (Presentation)', color: '#15803d', bg: '#dcfce7', icon: 'fa-display', desc: 'ไฟล์นำเสนอสำหรับรอบ Oral หรือ Poster' },
-    ETHICS: { label: '🛡️ เอกสารจริยธรรมการวิจัย', color: '#475569', bg: '#f1f5f9', icon: 'fa-shield-halved', desc: 'หนังสือรับรองหรือเอกสารจริยธรรม' },
-    PRESENTER_BIO: { label: '👤 ประวัติผู้นำเสนอ (Bio)', color: '#be185d', bg: '#fce7f3', icon: 'fa-address-card', desc: 'ประวัติและข้อมูลผู้นำเสนอผลงาน' },
-    REVISION: { label: '✏️ ไฟล์ผลงานฉบับแก้ไข', color: '#7e22ce', bg: '#f3e8ff', icon: 'fa-file-pen', desc: 'ไฟล์ผลงานที่ปรับปรุงแก้ไขตามข้อเสนอแนะ' }
-  };
-
-  const filesListHtml = files.length ? files.map((f, idx) => {
-    const meta = fileCategoryMeta[f.FileCategory] || { label: f.FileCategory, color: '#334155', bg: '#f1f5f9', icon: 'fa-file', desc: '' };
-    const dateStr = f.UploadedAt || f.CreatedAt ? new Date(f.UploadedAt || f.CreatedAt).toLocaleString('th-TH', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
-    return `
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04)">
-        <div style="flex:1; min-width:0;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
-            <span style="font-size:0.78rem; font-weight:700; background:${meta.bg}; color:${meta.color}; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:5px;">
-              <i class="fa-solid ${meta.icon}"></i> ${meta.label}
-            </span>
-            ${f.VersionNo ? `<span style="font-size:0.72rem; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; padding:2px 6px; border-radius:4px">v${f.VersionNo}</span>` : ''}
-          </div>
-          <div style="font-weight:600; font-size:0.9rem; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(f.FileName || 'ไฟล์ผลงาน')}">
-            ${esc(f.FileName || 'ไฟล์ผลงาน')}
-          </div>
-          <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
-            <span>📅 อัปโหลด: ${esc(dateStr)}</span>
-          </div>
-        </div>
-        <div style="display:flex; gap:6px; flex-shrink:0;">
-          <a href="${esc(f.FileUrl)}" target="_blank" class="btn btn-sm btn-soft" style="display:inline-flex; align-items:center; gap:4px; text-decoration:none;" title="เปิดดูไฟล์">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> เปิดไฟล์
-          </a>
-          <button class="btn btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; display:inline-flex; align-items:center; gap:4px;" onclick="deleteWorkFile('${esc(f.WorkFileID || f.FileID || f.FileId)}', '${esc(workId)}', '${esc(regId)}', '${esc(f.FileName || meta.label)}')" title="ลบไฟล์นี้">
-            <i class="fa-solid fa-trash-can"></i> ลบ
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('') : `
-    <div style="text-align:center; padding:18px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; color:#64748b; font-size:0.88rem;">
-      <i class="fa-solid fa-folder-open" style="font-size:24px; color:#94a3b8; display:block; margin-bottom:6px;"></i>
-      ยังไม่มีไฟล์แนบในระบบสำหรับผลงานนี้
-    </div>
-  `;
-
-  const h = `
-    <style>
-      .modal-tab-btns{display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:16px; gap:8px}
-      .modal-tab-btns button{flex:1; padding:10px 12px; border:none; background:none; cursor:pointer; font-weight:600; font-size:0.9rem; color:#64748b; border-bottom:3px solid transparent; transition:all 0.2s; border-radius:6px 6px 0 0}
-      .modal-tab-btns button:hover{background:#f8fafc; color:#0f172a}
-      .modal-tab-btns button.active{color:#006D70; border-bottom-color:#006D70; background:#f0fdfa}
-      .modal-tab-pane{display:none; text-align:left}
-      .modal-tab-pane.active{display:block}
-      .drop-zone{border:2px dashed #94a3b8; border-radius:12px; padding:22px; text-align:center; background:#fafafa; transition:all 0.2s; cursor:pointer}
-      .drop-zone:hover{border-color:#006D70; background:#f0fdfa}
-    </style>
-    <div style="text-align:left;">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-size:0.8rem; font-weight:700; color:#006D70; background:#e6fffa; padding:2px 8px; border-radius:4px;">
-            # ${esc(w.WorkCode || w.WorkID)}
-          </span>
-          <span style="font-size:0.8rem; color:#64748b;">
-            สถานะ: ${statusBadge(w.Status || w.CurrentStatus)}
-          </span>
-        </div>
-        <div style="font-weight:700; font-size:0.95rem; color:#0f172a; line-height:1.4;">
-          ${esc(w.ThaiTitle || w.EnglishTitle || w.TitleTH || w.TitleEN || 'ไม่มีชื่อเรื่อง')}
-        </div>
-        <div style="font-size:0.8rem; color:#475569; margin-top:4px;">
-          <b>ผู้ส่ง/ผู้นำเสนอ:</b> ${esc(w.PresenterName || ((w.authors||[]).find(a=>a.IsPresenter)?.FullName||'-'))} ${w.PresenterEmail ? `<span class="muted">(${esc(w.PresenterEmail)})</span>` : ''}
-        </div>
-      </div>
-
-      <div style="margin-bottom:18px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <b style="font-size:0.92rem; color:#0f172a;"><i class="fa-solid fa-file-lines" style="color:#006D70"></i> ไฟล์ที่แนบไว้ปัจจุบัน (${files.length} ไฟล์)</b>
-          <span style="font-size:0.75rem; color:#64748b;">(กดปุ่มลบ เพื่อนำไฟล์ออก หรืออัปโหลดใหม่เพื่อแทนที่)</span>
-        </div>
-        <div id="modalFilesList" style="max-height:220px; overflow-y:auto; padding-right:4px;">
-          ${filesListHtml}
-        </div>
-      </div>
-
-      <div style="border-top:1px solid #e2e8f0; padding-top:16px;">
-        <b style="font-size:0.92rem; color:#0f172a; display:block; margin-bottom:10px;">
-          <i class="fa-solid fa-cloud-arrow-up" style="color:#006D70"></i> แนบไฟล์ใหม่ / เพิ่มไฟล์ Blind Review / แทนที่ไฟล์เดิม
-        </b>
-
-        <div class="modal-tab-btns">
-          <button id="tbLocal" class="active" onclick="switchUploadTab('local')">
-            <i class="fa-solid fa-laptop"></i> อัปโหลดจากคอมพิวเตอร์
-          </button>
-          <button id="tbDrive" onclick="switchUploadTab('drive')">
-            <i class="fa-brands fa-google-drive"></i> เลือกจาก Google Drive / ใส่ลิงก์
-          </button>
-        </div>
-
-        <div id="tpLocal" class="modal-tab-pane active">
-          <div style="margin-bottom:10px;">
-            <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-              เลือกหมวดหมู่ไฟล์ที่ต้องการแนบ:
-            </label>
-            <select id="localType" class="field" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.88rem;">
-              <option value="BLIND" selected>🔒 ไฟล์ปกปิดชื่อผู้แต่ง (Blind Review - สำหรับ Reviewer ประเมิน)</option>
-              <option value="ORIGINAL">📄 ไฟล์ผลงาน PDF (ฉบับสมบูรณ์)</option>
-              <option value="WORD">📝 ไฟล์ผลงาน Word (ต้นฉบับ)</option>
-              <option value="FINAL_PRESENTATION">🖥️ ไฟล์นำเสนอ (Oral / Poster Presentation)</option>
-              <option value="ETHICS">🛡️ เอกสารรับรองจริยธรรมการวิจัย</option>
-              <option value="PRESENTER_BIO">👤 ประวัติผู้นำเสนอ (Bio)</option>
-              <option value="REVISION">✏️ ไฟล์ผลงานฉบับแก้ไข (Revision)</option>
-            </select>
-          </div>
-
-          <div class="drop-zone" onclick="document.getElementById('localFile').click()">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px; color:#006D70; margin-bottom:8px"></i>
-            <div style="font-weight:600; font-size:0.9rem; color:#1e293b">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</div>
-            <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">รองรับ PDF, DOC, DOCX, PPT, PPTX (ขนาดไม่เกิน 50MB)</div>
-            <input type="file" id="localFile" accept=".pdf,.doc,.docx,.ppt,.pptx" style="display:none" onchange="document.getElementById('selectedFileName').innerText = this.files[0] ? ('ไฟล์ที่เลือก: ' + this.files[0].name + ' (' + (this.files[0].size/1024/1024).toFixed(2) + ' MB)') : ''">
-            <div id="selectedFileName" style="font-size:0.82rem; font-weight:bold; color:#006D70; margin-top:6px;"></div>
-          </div>
-
-          <button class="btn btn-primary" style="margin-top:12px; width:100%; padding:10px; font-weight:600; font-size:0.9rem; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="uploadLocalFile('${workId}','${regId}')">
-            <i class="fa-solid fa-upload"></i> บันทึกและแนบไฟล์จากเครื่อง
-          </button>
-        </div>
-
-        <div id="tpDrive" class="modal-tab-pane">
-          <div style="margin-bottom:10px;">
-            <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-              เลือกหมวดหมู่ไฟล์ที่ต้องการแนบ:
-            </label>
-            <select id="driveType" class="field" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.88rem;">
-              <option value="BLIND" selected>🔒 ไฟล์ปกปิดชื่อผู้แต่ง (Blind Review - สำหรับ Reviewer ประเมิน)</option>
-              <option value="ORIGINAL">📄 ไฟล์ผลงาน PDF (ฉบับสมบูรณ์)</option>
-              <option value="WORD">📝 ไฟล์ผลงาน Word (ต้นฉบับ)</option>
-              <option value="FINAL_PRESENTATION">🖥️ ไฟล์นำเสนอ (Oral / Poster Presentation)</option>
-              <option value="ETHICS">🛡️ เอกสารรับรองจริยธรรมการวิจัย</option>
-              <option value="PRESENTER_BIO">👤 ประวัติผู้นำเสนอ (Bio)</option>
-              <option value="REVISION">✏️ ไฟล์ผลงานฉบับแก้ไข (Revision)</option>
-            </select>
-          </div>
-
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:10px;">
-            <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-              วิธีที่ 1: ค้นหาไฟล์ใน Google Drive ของงานประชุม (โฟลเดอร์ผู้แต่ง Author_file_admin_upload)
-            </label>
-            <div style="display:flex; gap:8px;">
-              <input id="driveSearch" placeholder="พิมพ์รหัสลงทะเบียน, ชื่อไฟล์ หรือรหัสงาน..." class="field" style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.85rem;" value="${esc(regId || w.WorkCode || workId)}">
-              <button class="btn btn-soft" style="padding:8px 14px; font-weight:600; font-size:0.85rem;" onclick="searchDriveFiles()">
-                <i class="fa-solid fa-search"></i> ค้นหา
-              </button>
-            </div>
-            <div id="driveRes" style="max-height:160px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; margin-top:8px; background:#fff;">
-              <div style="padding:12px; text-align:center; font-size:0.8rem; color:#94a3b8;">กดค้นหาเพื่อดูไฟล์ใน Google Drive</div>
-            </div>
-          </div>
-
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-            <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-              วิธีที่ 2: วางลิงก์ Google Drive หรือ File ID โดยตรง
-            </label>
-            <input id="directDriveUrl" placeholder="วางลิงก์ Google Drive หรือ File ID ที่นี่..." class="field" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.85rem; margin-bottom:8px;">
-            <button class="btn btn-primary" style="width:100%; padding:9px; font-weight:600; font-size:0.88rem; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="uploadDirectDriveFile('${workId}','${regId}')">
-              <i class="fa-brands fa-google-drive"></i> ดึงและแนบไฟล์จากลิงก์ Drive
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  Swal.fire({
-    title: '📁 จัดการไฟล์ผลงานวิชาการ',
-    html: h,
-    width: 680,
-    showConfirmButton: false,
-    showCloseButton: true,
-    customClass: { popup: 'swal2-custom-modal' }
-  });
-}
-
-async function deleteWorkFile(workFileId, workId, regId, fileName) {
-  if (!workFileId) return;
-  const conf = await Swal.fire({
-    title: 'ยืนยันการลบไฟล์?',
-    html: `ต้องการลบไฟล์ <b>"${esc(fileName || 'ไฟล์ผลงาน')}"</b> ออกจากระบบใช่หรือไม่?<br><span style="font-size:0.82rem; color:#64748b;">(การลบจะปิดสถานะไฟล์เดิมและบันทึกประวัติไว้)</span>`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'ใช่, ลบไฟล์ออก',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#dc2626',
-    cancelButtonColor: '#64748b'
-  });
-
-  if (!conf.isConfirmed) return;
-
-  show('กำลังลบไฟล์...');
+async function uploadLocalFile(wid, regId){
+  const file = document.getElementById('localFile').files[0];
+  const type = document.getElementById('localType').value;
+  if(!file) return Swal.fire('กรุณาเลือกไฟล์','','warning');
+  show('กำลังอัปโหลดไฟล์...');
   try {
-    await rpc('adminDeleteWorkFile', TOKEN, CID, workFileId);
-    hide();
-    Swal.fire({ icon: 'success', title: 'ลบไฟล์เรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
-    await loadWorks();
-    openUploadModal(workId, regId);
-  } catch (e) {
-    err(e);
-  }
-}
-
-async function uploadLocalFile(wid, regId) {
-  const fileInput = document.getElementById('localFile');
-  const file = fileInput ? fileInput.files[0] : null;
-  const type = document.getElementById('localType') ? document.getElementById('localType').value : 'ORIGINAL';
-  if (!file) return Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์ที่ต้องการอัปโหลด', text: 'คลิกที่กล่องอัปโหลดเพื่อเลือกไฟล์จากเครื่องของท่าน' });
-
-  const w = (window.WORK_ROWS || []).find(x => x.WorkID === wid);
-  const existingSameType = w && (w.files || []).some(f => (f.Active !== false && f.Active !== 'false') && f.FileCategory === type);
-
-  let replace = true;
-  if (existingSameType) {
-    const ask = await Swal.fire({
-      title: 'พบไฟล์หมวดหมู่นี้อยู่แล้วในระบบ',
-      html: `ผลงานนี้มีไฟล์ประเภท <b>"${esc(type)}"</b> แนบอยู่แล้ว<br>ท่านต้องการ <b>แทนที่ไฟล์เดิม</b> หรือ <b>แนบเพิ่มเป็นไฟล์ใหม่</b>?`,
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: 'แทนที่ไฟล์เดิม',
-      denyButtonText: 'แนบเพิ่ม (เก็บทั้งคู่)',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#006D70',
-      denyButtonColor: '#475569'
-    });
-    if (ask.isDismissed) return;
-    replace = ask.isConfirmed;
-  }
-
-  show('กำลังอัปโหลดและบันทึกไฟล์...');
-  try {
-    const b64 = await new Promise((res, rej) => {
+    const b64 = await new Promise((res,rej)=>{
       const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
+      r.onload = ()=>res(r.result.split(',')[1]);
       r.onerror = rej;
       r.readAsDataURL(file);
     });
-
     await rpc('adminUploadWorkFiles', TOKEN, CID, wid, regId, {
       method: 'LOCAL',
       fileName: file.name,
       mimeType: file.type || 'application/octet-stream',
-      fileSize: file.size || 0,
       base64: b64,
-      fileCategory: type,
-      replace: replace
+      fileCategory: type
     });
-
     hide();
-    await Swal.fire({ icon: 'success', title: 'แนบไฟล์สำเร็จเรียบร้อย', timer: 1500, showConfirmButton: false });
-    await loadWorks();
-    openUploadModal(wid, regId);
-  } catch (e) {
-    err(e);
-  }
+    Swal.fire('อัปโหลดไฟล์สำเร็จ','','success');
+    loadWorks();
+  } catch(e) { err(e); }
 }
 
-async function searchDriveFiles() {
-  const q = (document.getElementById('driveSearch')?.value || '').trim();
+async function searchDriveFiles(){
+  const q = document.getElementById('driveSearch').value.trim();
   const resBox = document.getElementById('driveRes');
-  if (!resBox) return;
-  resBox.innerHTML = '<div style="padding:14px; text-align:center; font-size:0.85rem; color:#006D70;"><span class="spin" style="display:inline-block; margin-right:6px"></span> กำลังค้นหาไฟล์ใน Google Drive...</div>';
+  resBox.innerHTML = '<div style="padding:15px; text-align:center">กำลังค้นหา...</div>';
   try {
     const files = await rpc('adminSearchDriveFiles', TOKEN, CID, q);
-    if (!files || !files.length) {
-      resBox.innerHTML = '<div style="padding:14px; text-align:center; font-size:0.85rem; color:#64748b;">ไม่พบไฟล์ที่ตรงกับคำค้นหา</div>';
-      return;
-    }
-    resBox.innerHTML = files.map(f =>
-      `<div style="padding:8px 10px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.85rem; color:#1e293b;" title="${esc(f.name)}">
-          <i class="fa-solid fa-file" style="color:#006D70; margin-right:5px;"></i> <b>${esc(f.name)}</b>
-          ${f.folder ? `<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; margin-left:6px;"><i class="fa-solid fa-folder" style="margin-right:2px;"></i>${esc(f.folder)}</span>` : ''}
+    if(!files.length) { resBox.innerHTML = '<div style="padding:15px; text-align:center" class="muted">ไม่พบข้อมูล</div>'; return; }
+    resBox.innerHTML = files.map(f=>
+      `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center">
+        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:10px;">
+          <b style="display:block">${esc(f.name)}</b>
         </div>
-        <button class="btn btn-sm btn-gold" style="padding:4px 10px; font-size:0.78rem; flex-shrink:0;" onclick="selectDriveFile('${esc(window.CurrentUploadWorkId)}','${esc(window.CurrentUploadRegId)}','${esc(f.id)}','${esc(f.name)}')">
-          <i class="fa-solid fa-check"></i> เลือกไฟล์นี้
-        </button>
+        <button class="btn btn-sm btn-gold" onclick="selectDriveFile('${esc(window.CurrentUploadWorkId)}','${esc(window.CurrentUploadRegId)}','${esc(f.id)}','${esc(f.name)}')">เลือก</button>
       </div>`
     ).join('');
-  } catch (e) {
-    resBox.innerHTML = `<div style="padding:14px; text-align:center; color:#dc2626; font-size:0.85rem;">ค้นหาไม่สำเร็จ: ${esc(e.message)}</div>`;
+  } catch(e) {
+    resBox.innerHTML = '<div style="padding:15px; text-align:center; color:red">${esc(e.message)}</div>';
   }
 }
 
-async function selectDriveFile(wid, regId, fileId, fileName) {
-  const type = document.getElementById('driveType') ? document.getElementById('driveType').value : 'ORIGINAL';
-  const w = (window.WORK_ROWS || []).find(x => x.WorkID === wid);
-  const existingSameType = w && (w.files || []).some(f => (f.Active !== false && f.Active !== 'false') && f.FileCategory === type);
-
-  let replace = true;
-  if (existingSameType) {
-    const ask = await Swal.fire({
-      title: 'พบไฟล์หมวดหมู่นี้อยู่แล้วในระบบ',
-      html: `ผลงานนี้มีไฟล์ประเภท <b>"${esc(type)}"</b> แนบอยู่แล้ว<br>ท่านต้องการ <b>แทนที่ไฟล์เดิม</b> หรือ <b>แนบเพิ่มเป็นไฟล์ใหม่</b>?`,
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: 'แทนที่ไฟล์เดิม',
-      denyButtonText: 'แนบเพิ่ม (เก็บทั้งคู่)',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#006D70',
-      denyButtonColor: '#475569'
-    });
-    if (ask.isDismissed) return;
-    replace = ask.isConfirmed;
-  }
-
-  show('กำลังคัดลอกและแนบไฟล์จาก Google Drive...');
+async function selectDriveFile(wid, regId, fileId, fileName){
+  const type = document.getElementById('driveType').value;
+  show('กำลังคัดลอกไฟล์จาก Drive...');
   try {
     await rpc('adminUploadWorkFiles', TOKEN, CID, wid, regId, {
       method: 'DRIVE',
       driveFileId: fileId,
       fileName: fileName,
-      fileCategory: type,
-      replace: replace
+      fileCategory: type
     });
     hide();
-    await Swal.fire({ icon: 'success', title: 'แนบไฟล์จาก Google Drive สำเร็จ', timer: 1500, showConfirmButton: false });
-    await loadWorks();
-    openUploadModal(wid, regId);
-  } catch (e) {
-    err(e);
-  }
+    Swal.fire('ดึงข้อมูลไฟล์สำเร็จ','','success');
+    loadWorks();
+  } catch(e) { err(e); }
 }
 
-async function uploadDirectDriveFile(wid, regId) {
-  const urlOrId = (document.getElementById('directDriveUrl')?.value || '').trim();
-  const type = document.getElementById('driveType') ? document.getElementById('driveType').value : 'ORIGINAL';
-  if (!urlOrId) return Swal.fire({ icon: 'warning', title: 'กรุณาระบุลิงก์ Google Drive หรือ File ID' });
-
-  const w = (window.WORK_ROWS || []).find(x => x.WorkID === wid);
-  const existingSameType = w && (w.files || []).some(f => (f.Active !== false && f.Active !== 'false') && f.FileCategory === type);
-
-  let replace = true;
-  if (existingSameType) {
-    const ask = await Swal.fire({
-      title: 'พบไฟล์หมวดหมู่นี้อยู่แล้วในระบบ',
-      html: `ผลงานนี้มีไฟล์ประเภท <b>"${esc(type)}"</b> แนบอยู่แล้ว<br>ท่านต้องการ <b>แทนที่ไฟล์เดิม</b> หรือ <b>แนบเพิ่มเป็นไฟล์ใหม่</b>?`,
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: 'แทนที่ไฟล์เดิม',
-      denyButtonText: 'แนบเพิ่ม (เก็บทั้งคู่)',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#006D70',
-      denyButtonColor: '#475569'
-    });
-    if (ask.isDismissed) return;
-    replace = ask.isConfirmed;
-  }
-
-  show('กำลังตรวจสอบและดึงไฟล์จาก Google Drive...');
-  try {
-    await rpc('adminUploadWorkFiles', TOKEN, CID, wid, regId, {
-      method: 'DRIVE',
-      driveFileId: urlOrId,
-      fileCategory: type,
-      replace: replace
-    });
-    hide();
-    await Swal.fire({ icon: 'success', title: 'แนบไฟล์จาก Google Drive สำเร็จ', timer: 1500, showConfirmButton: false });
-    await loadWorks();
-    openUploadModal(wid, regId);
-  } catch (e) {
-    err(e);
-  }
-}
-
-async function promptReplaceWorkFile(workId, regId) {
-  return openUploadModal(workId, regId);
+async function promptReplaceWorkFile(workId, regId, existingFilesHtml) {
+  window.CurrentUploadWorkId = workId;
+  window.CurrentUploadRegId = regId;
+  const h = `
+    <style>
+      .tab-btns{display:flex; border-bottom:1px solid #ccc; margin-bottom:15px}
+      .tab-btns button{flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:bold; border-bottom:3px solid transparent}
+      .tab-btns button.active{color:#006D70; border-bottom-color:#006D70}
+      .tab-pane{display:none; text-align:left}
+      .tab-pane.active{display:block}
+    </style>
+    ${existingFilesHtml}
+    <div class="tab-btns">
+      <button id="tbLocal" class="active" onclick="switchUploadTab('local')">อัปโหลดจากเครื่อง</button>
+      <button id="tbDrive" onclick="switchUploadTab('drive')">เลือกจาก Google Drive</button>
+    </div>
+    <div id="tpLocal" class="tab-pane active">
+      <div style="padding:20px; text-align:center; border:2px dashed #ccc; border-radius:10px">
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:40px; color:#006D70; margin-bottom:10px"></i>
+        <h5>อัปโหลดไฟล์</h5>
+        <p class="small muted">รองรับ PDF, DOC, DOCX</p>
+        <input type="file" id="localFile" accept=".pdf,.doc,.docx" class="field" style="width:100%">
+        <select id="localType" class="field" style="margin-top:10px">
+          <option value="PDF">ไฟล์ PDF (ฉบับสมบูรณ์)</option>
+          <option value="WORD">ไฟล์ Word (ต้นฉบับ)</option>
+          <option value="BLIND">ไฟล์ปกปิดชื่อ (Blind Review)</option>
+        </select>
+        <button class="btn btn-primary" style="margin-top:15px; width:100%" onclick="uploadLocalFile('${workId}','${regId}')">เริ่มอัปโหลด</button>
+      </div>
+    </div>
+    <div id="tpDrive" class="tab-pane">
+      <div class="field" style="display:flex; gap:10px">
+        <input id="driveSearch" placeholder="ค้นหาชื่อไฟล์..." style="flex:1" value="${workId}">
+        <button class="btn btn-soft" onclick="searchDriveFiles()"><i class="fa-solid fa-search"></i> ค้นหา</button>
+      </div>
+      <div id="driveRes" style="max-height:200px; overflow-y:auto; border:1px solid #ccc; border-radius:8px; margin-top:10px">
+        <div style="padding:15px; text-align:center" class="muted">พิมพ์ชื่อไฟล์แล้วกดค้นหา</div>
+      </div>
+      <div style="margin-top:10px">
+        <label>ประเภทไฟล์:</label>
+        <select id="driveType" class="field">
+          <option value="PDF">ไฟล์ PDF</option>
+          <option value="WORD">ไฟล์ Word</option>
+          <option value="BLIND">ไฟล์ปกปิดชื่อ (Blind Review)</option>
+        </select>
+      </div>
+    </div>
+  `;
+  Swal.fire({title:'อัปโหลดไฟล์ผลงาน', html:h, width:600, showConfirmButton:false, showCloseButton:true});
 }
 // Users Management
 async function loadUsers(){
