@@ -429,47 +429,120 @@ function normalizeEventDatesJson_(value){
 }
 function withLock_(fn){ const l=LockService.getScriptLock(); l.waitLock(30000); try{return fn();}finally{l.releaseLock();} }
 function getSheet_(name){ const sh=getSpreadsheet_().getSheetByName(name); if(!sh) throw new Error('ไม่พบแผ่นงาน '+name); return sh; }
+function normColKey_(k){ return String(k||'').trim().toLowerCase().replace(/[^a-z0-9]/g,''); }
 function headerMap_(name){
   globalThis.__TUH_HEADERS=globalThis.__TUH_HEADERS||{};
   if(globalThis.__TUH_HEADERS[name]) return globalThis.__TUH_HEADERS[name];
   const sh=getSheet_(name);
   let lastCol=sh.getLastColumn();
-  let h=lastCol>0?sh.getRange(1,1,1,lastCol).getDisplayValues()[0]:[];
+  let rawH=lastCol>0?sh.getRange(1,1,1,lastCol).getDisplayValues()[0]:[];
+  let h=rawH.map(function(x){return String(x||'').trim();});
   const schemaCols=DB_SCHEMA[name];
   if(schemaCols&&schemaCols.length){
-    const missing=schemaCols.filter(function(col){return h.indexOf(col)<0;});
+    const missing=schemaCols.filter(function(col){
+      const ncol=normColKey_(col);
+      return !h.some(function(existing){return normColKey_(existing)===ncol;});
+    });
     if(missing.length>0){
       try{
         const startCol=(lastCol>0?lastCol:0)+1;
         sh.getRange(1,startCol,1,missing.length).setValues([missing]);
         lastCol=sh.getLastColumn();
-        h=sh.getRange(1,1,1,lastCol).getDisplayValues()[0];
+        h=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(x){return String(x||'').trim();});
       }catch(e){
         Logger.log('Warning syncing headers for '+name+': '+e.message);
       }
     }
   }
-  const m={}; h.forEach(function(x,i){if(x)m[x]=i;});
-  return globalThis.__TUH_HEADERS[name]={headers:h,map:m};
+  const m={};
+  const normMap={};
+  h.forEach(function(x,i){
+    if(x){
+      m[x]=i;
+      const nk=normColKey_(x);
+      if(normMap[nk]===undefined) normMap[nk]=i;
+    }
+  });
+  return globalThis.__TUH_HEADERS[name]={headers:h,map:m,normMap:normMap};
 }
 function getRecords_(name){
   globalThis.__TUH_RECORDS=globalThis.__TUH_RECORDS||{};
   if(globalThis.__TUH_RECORDS[name]) return globalThis.__TUH_RECORDS[name];
   const sh=getSheet_(name), hm=headerMap_(name), last=sh.getLastRow(); if(last<2)return globalThis.__TUH_RECORDS[name]=[];
   const values=sh.getRange(2,1,last-1,hm.headers.length).getValues();
-  return globalThis.__TUH_RECORDS[name]=values.map(function(r,idx){ const o={__row:idx+2}; hm.headers.forEach(function(h,i){o[h]=r[i];}); return o; });
+  return globalThis.__TUH_RECORDS[name]=values.map(function(r,idx){
+    const o={__row:idx+2};
+    hm.headers.forEach(function(h,i){
+      o[h]=r[i];
+      const nk=normColKey_(h);
+      if(o[nk]===undefined) o[nk]=r[i];
+    });
+    if(o.ReceiptTaxId===undefined&&o.ReceiptTaxID!==undefined) o.ReceiptTaxId=o.ReceiptTaxID;
+    if(o.ReceiptTaxID===undefined&&o.ReceiptTaxId!==undefined) o.ReceiptTaxID=o.ReceiptTaxId;
+    return o;
+  });
 }
 function clearRequestCache_(){ globalThis.__TUH_RECORDS={}; globalThis.__TUH_HEADERS={}; }
 function findOne_(name,criteria){ return getRecords_(name).find(function(r){ return Object.keys(criteria).every(function(k){return String(r[k])===String(criteria[k]);}); })||null; }
 function findMany_(name,criteria){ return getRecords_(name).filter(function(r){ return Object.keys(criteria).every(function(k){return String(r[k])===String(criteria[k]);}); }); }
 function appendRecord_(name,obj){
-  const sh=getSheet_(name), hm=headerMap_(name), row=hm.headers.map(function(h){return obj[h]!==undefined?obj[h]:'';});
-  const next=sh.getLastRow()+1; sh.getRange(next,1,1,row.length).setValues([row]); applyPlainTextToRow_(sh,hm,next,obj); clearRequestCache_(); return next;
+  const sh=getSheet_(name), hm=headerMap_(name);
+  const row=hm.headers.map(function(h){
+    if(obj[h]!==undefined) return obj[h];
+    const nk=normColKey_(h);
+    if(obj[nk]!==undefined) return obj[nk];
+    for(let k in obj){
+      if(normColKey_(k)===nk) return obj[k];
+    }
+    return '';
+  });
+  const next=sh.getLastRow()+1;
+  sh.getRange(next,1,1,row.length).setValues([row]);
+  applyPlainTextToRow_(sh,hm,next,obj);
+  clearRequestCache_();
+  return next;
 }
 function updateRecord_(name,rowNumber,patch){
-  const sh=getSheet_(name), hm=headerMap_(name); Object.keys(patch).forEach(function(k){ if(hm.map[k]!==undefined){ const cell=sh.getRange(rowNumber,hm.map[k]+1); if(PLAIN_TEXT_FIELDS.indexOf(k)>=0)cell.setNumberFormat('@'); cell.setValue(patch[k]); }}); clearRequestCache_(); return true;
+  const sh=getSheet_(name), hm=headerMap_(name);
+  const plainNorm=PLAIN_TEXT_FIELDS.map(normColKey_);
+  Object.keys(patch).forEach(function(k){
+    let idx=hm.map[k];
+    if(idx===undefined){
+      idx=hm.normMap?hm.normMap[normColKey_(k)]:undefined;
+    }
+    if(idx!==undefined){
+      const cell=sh.getRange(rowNumber,idx+1);
+      const isPlain=PLAIN_TEXT_FIELDS.indexOf(k)>=0 || PLAIN_TEXT_FIELDS.indexOf(hm.headers[idx])>=0 || plainNorm.indexOf(normColKey_(k))>=0;
+      if(isPlain) cell.setNumberFormat('@');
+      cell.setValue(patch[k]);
+    }
+  });
+  clearRequestCache_();
+  return true;
 }
-function applyPlainTextToRow_(sh,hm,row,obj){ PLAIN_TEXT_FIELDS.forEach(function(k){ if(hm.map[k]!==undefined && obj[k]!==undefined){ const c=sh.getRange(row,hm.map[k]+1); c.setNumberFormat('@'); c.setValue(String(obj[k])); }}); }
+function applyPlainTextToRow_(sh,hm,row,obj){
+  const plainNorm=PLAIN_TEXT_FIELDS.map(normColKey_);
+  PLAIN_TEXT_FIELDS.forEach(function(k){
+    let idx=hm.map[k];
+    if(idx===undefined&&hm.normMap){
+      idx=hm.normMap[normColKey_(k)];
+    }
+    if(idx!==undefined){
+      const c=sh.getRange(row,idx+1);
+      c.setNumberFormat('@');
+      let val=obj[k];
+      if(val===undefined){
+        const nk=normColKey_(k);
+        for(let prop in obj){
+          if(normColKey_(prop)===nk){ val=obj[prop]; break; }
+        }
+      }
+      if(val!==undefined&&val!==''){
+        c.setValue(String(val));
+      }
+    }
+  });
+}
 const _seqCache = {};
 function nextId_(prefix){
   const p=PropertiesService.getScriptProperties(), key='TUH_SEQ_'+prefix;
@@ -1397,8 +1470,15 @@ function submitRegistration(conferenceId,payload){
     payload=payload||{};
     const organization=clean_(payload.OrganizationUnit||payload.Institution);
     const receiptReq=clean_(payload.ReceiptRequirement)||'NO_RECEIPT';
-    const receiptTaxId=normalizeCid_(payload.ReceiptTaxId||payload.ReceiptTaxID||'');
-    const mapped={ConferenceID:cid,SourceType:'WEB_APP',ConsentAccepted:bool_(payload.ConsentAccepted),ParticipantType:clean_(payload.ParticipantType),Region4Status:clean_(payload.Region4Status),Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:organization,Institution:clean_(payload.Institution||organization),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:normalizeCid_(payload.CID),Phone:normalizePhone_(payload.Phone),LineID:clean_(payload.LineID),Email:normalizeEmail_(payload.Email),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(payload.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:clean_(payload.ReceiptAddress),ReceiptPostalCode:clean_(payload.ReceiptPostalCode),ReceiptPhone:normalizePhone_(payload.ReceiptPhone||payload.Phone||''),Note:''};
+    const receiptTaxId=normalizeCid_(payload.ReceiptTaxID||payload.ReceiptTaxId||'');
+    const receiptAddress=clean_(payload.ReceiptAddress||'');
+    let receiptPostalCode=clean_(payload.ReceiptPostalCode||'');
+    if(!receiptPostalCode&&receiptAddress){
+      const zipMatch=String(receiptAddress).match(/\b(\d{5})\b/);
+      if(zipMatch) receiptPostalCode=zipMatch[1];
+    }
+    const receiptPhone=normalizePhone_(payload.ReceiptPhone||payload.Phone||'');
+    const mapped={ConferenceID:cid,SourceType:'WEB_APP',ConsentAccepted:bool_(payload.ConsentAccepted),ParticipantType:clean_(payload.ParticipantType),Region4Status:clean_(payload.Region4Status),Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:organization,Institution:clean_(payload.Institution||organization),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:normalizeCid_(payload.CID),Phone:normalizePhone_(payload.Phone),LineID:clean_(payload.LineID),Email:normalizeEmail_(payload.Email),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(payload.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:receiptAddress,ReceiptPostalCode:receiptPostalCode,ReceiptPhone:receiptPhone,Note:''};
     validateNewRegistration_(mapped,cid);
     const typeRow=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:mapped.ParticipantType});
     if(typeRow&&num_(typeRow.Quota)>0&&num_(typeRow.UsedQuota)>=num_(typeRow.Quota))throw new Error('ผู้สมัครประเภทนี้เต็มโควตาแล้ว');
@@ -1441,8 +1521,15 @@ function saveRegistrationEdit(conferenceId,regId,emailOrPhone,editCode,payload){
     validateNewRegistration_(Object.assign({},p,{ConsentAccepted:true}),cid,r.RegID);
     const newStatus = (r.RegistrationStatus === 'WAIT_REGISTRATION_CHECK' || r.RegistrationStatus === 'IMPORTED_INCOMPLETE' || r.RegistrationStatus === 'REGISTRATION_RETURNED') ? 'WAIT_REGISTRATION_CHECK' : r.RegistrationStatus;
     const receiptReq=clean_(incoming.ReceiptRequirement||r.ReceiptRequirement||'NO_RECEIPT');
-    const receiptTaxId=normalizeCid_(incoming.ReceiptTaxId||incoming.ReceiptTaxID||r.ReceiptTaxId||r.ReceiptTaxID||'');
-    const patch={Prefix:clean_(p.Prefix),FirstName:clean_(p.FirstName),LastName:clean_(p.LastName),FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),Position:clean_(p.Position),OrganizationGroup:clean_(p.OrganizationGroup),OrganizationUnit:p.OrganizationUnit,Institution:p.Institution,Profession:clean_(p.Profession),LicenseNo:clean_(p.LicenseNo),CID:p.CID,Phone:p.Phone,LineID:clean_(p.LineID),Email:p.Email,FoodType:clean_(p.FoodType),FoodAllergyDetail:clean_(p.FoodAllergyDetail),AttendanceDay1:bool_(p.AttendanceDay1),AttendanceDay2:bool_(p.AttendanceDay2),AttendanceDay3:bool_(p.AttendanceDay3),WantsSubmitWork:bool_(p.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(incoming.ReceiptName!==undefined?incoming.ReceiptName:r.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:clean_(incoming.ReceiptAddress!==undefined?incoming.ReceiptAddress:r.ReceiptAddress),ReceiptPostalCode:clean_(incoming.ReceiptPostalCode!==undefined?incoming.ReceiptPostalCode:r.ReceiptPostalCode),ReceiptPhone:normalizePhone_(incoming.ReceiptPhone!==undefined?incoming.ReceiptPhone:(r.ReceiptPhone||'')),DataCompletenessStatus:'COMPLETE',RegistrationStatus:newStatus,UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'};
+    const receiptTaxId=normalizeCid_(incoming.ReceiptTaxID||incoming.ReceiptTaxId||r.ReceiptTaxID||r.ReceiptTaxId||'');
+    const receiptAddress=clean_(incoming.ReceiptAddress!==undefined?incoming.ReceiptAddress:(r.ReceiptAddress||''));
+    let receiptPostalCode=clean_(incoming.ReceiptPostalCode!==undefined?incoming.ReceiptPostalCode:(r.ReceiptPostalCode||''));
+    if(!receiptPostalCode&&receiptAddress){
+      const zipMatch=String(receiptAddress).match(/\b(\d{5})\b/);
+      if(zipMatch) receiptPostalCode=zipMatch[1];
+    }
+    const receiptPhone=normalizePhone_(incoming.ReceiptPhone!==undefined?incoming.ReceiptPhone:(r.ReceiptPhone||r.Phone||''));
+    const patch={Prefix:clean_(p.Prefix),FirstName:clean_(p.FirstName),LastName:clean_(p.LastName),FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),Position:clean_(p.Position),OrganizationGroup:clean_(p.OrganizationGroup),OrganizationUnit:p.OrganizationUnit,Institution:p.Institution,Profession:clean_(p.Profession),LicenseNo:clean_(p.LicenseNo),CID:p.CID,Phone:p.Phone,LineID:clean_(p.LineID),Email:p.Email,FoodType:clean_(p.FoodType),FoodAllergyDetail:clean_(p.FoodAllergyDetail),AttendanceDay1:bool_(p.AttendanceDay1),AttendanceDay2:bool_(p.AttendanceDay2),AttendanceDay3:bool_(p.AttendanceDay3),WantsSubmitWork:bool_(p.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(incoming.ReceiptName!==undefined?incoming.ReceiptName:r.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:receiptAddress,ReceiptPostalCode:receiptPostalCode,ReceiptPhone:receiptPhone,DataCompletenessStatus:'COMPLETE',RegistrationStatus:newStatus,UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'};
     updateRecord_('Registrations',r.__row,patch);invalidateCache_(cid);
     let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(cid,r.RegID,'PARTICIPANT_EDIT');}catch(ignore){}
     return {RegID:r.RegID,warnings:duplicateWarnings_(patch,cid,r.RegID),mealPass:mealPass};
@@ -1832,8 +1919,15 @@ function adminSaveRegistration(token,conferenceId,regId,payload){
     let paymentStatus=r.PaymentStatus;if(!bool_(type.PaymentRequired))paymentStatus='NOT_REQUIRED';else if(paymentStatus==='NOT_REQUIRED')paymentStatus='UNPAID';
     const org=clean_(payload.OrganizationUnit||payload.Institution||r.OrganizationUnit||r.Institution),prefix=clean_(payload.Prefix||r.Prefix);
     const receiptReq=clean_(payload.ReceiptRequirement||r.ReceiptRequirement||'NO_RECEIPT');
-    const receiptTaxId=normalizeCid_(payload.ReceiptTaxId||payload.ReceiptTaxID||r.ReceiptTaxId||r.ReceiptTaxID||'');
-    const patch={ParticipantType:participantType,Region4Status:clean_(payload.Region4Status||r.Region4Status),Prefix:prefix,FirstName:first,LastName:last,FullName:[prefix,first,last].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:org,Institution:clean_(payload.Institution||org),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:cid,Phone:phone,LineID:clean_(payload.LineID),Email:email,FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(payload.ReceiptName!==undefined?payload.ReceiptName:r.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:clean_(payload.ReceiptAddress!==undefined?payload.ReceiptAddress:r.ReceiptAddress),ReceiptPostalCode:clean_(payload.ReceiptPostalCode!==undefined?payload.ReceiptPostalCode:r.ReceiptPostalCode),ReceiptPhone:normalizePhone_(payload.ReceiptPhone!==undefined?payload.ReceiptPhone:(r.ReceiptPhone||'')),DataCompletenessStatus:'COMPLETE',PaymentStatus:paymentStatus,UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email};
+    const receiptTaxId=normalizeCid_(payload.ReceiptTaxID||payload.ReceiptTaxId||r.ReceiptTaxID||r.ReceiptTaxId||'');
+    const receiptAddress=clean_(payload.ReceiptAddress!==undefined?payload.ReceiptAddress:(r.ReceiptAddress||''));
+    let receiptPostalCode=clean_(payload.ReceiptPostalCode!==undefined?payload.ReceiptPostalCode:(r.ReceiptPostalCode||''));
+    if(!receiptPostalCode&&receiptAddress){
+      const zipMatch=String(receiptAddress).match(/\b(\d{5})\b/);
+      if(zipMatch) receiptPostalCode=zipMatch[1];
+    }
+    const receiptPhone=normalizePhone_(payload.ReceiptPhone!==undefined?payload.ReceiptPhone:(r.ReceiptPhone||r.Phone||''));
+    const patch={ParticipantType:participantType,Region4Status:clean_(payload.Region4Status||r.Region4Status),Prefix:prefix,FirstName:first,LastName:last,FullName:[prefix,first,last].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:org,Institution:clean_(payload.Institution||org),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:cid,Phone:phone,LineID:clean_(payload.LineID),Email:email,FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),ReceiptRequirement:receiptReq,ReceiptName:clean_(payload.ReceiptName!==undefined?payload.ReceiptName:r.ReceiptName),ReceiptTaxId:receiptTaxId,ReceiptTaxID:receiptTaxId,ReceiptAddress:receiptAddress,ReceiptPostalCode:receiptPostalCode,ReceiptPhone:receiptPhone,DataCompletenessStatus:'COMPLETE',PaymentStatus:paymentStatus,UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email};
     if(!patch.AttendanceDay1&&!patch.AttendanceDay2&&!patch.AttendanceDay3)throw new Error('กรุณาเลือกวันเข้าร่วมงานอย่างน้อย 1 วัน');
     updateRecord_('Registrations',r.__row,patch);invalidateCache_(conferenceId);let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(conferenceId,regId,'ADMIN_EDIT');}catch(e){mealPass={sent:false,reason:e.message||String(e)};}
     logAudit_(conferenceId,ctx.user,ctx.role,'EDIT_REGISTRATION','Registration',regId,patch);return {registration:publicRegistration_(Object.assign({},r,patch)),warnings:duplicateWarnings_(patch,conferenceId,regId),mealPass:mealPass};

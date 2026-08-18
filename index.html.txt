@@ -196,9 +196,10 @@
         <div class="grid">
           <div class="field"><label>ความประสงค์ออกใบเสร็จ<span class="en">Receipt requirement</span></label><select name="ReceiptRequirement" id="receiptRequirementSelect"><option value="NO_RECEIPT">ไม่ออกใบเสร็จ / No receipt</option><option value="NEED_RECEIPT">ต้องการออกใบเสร็จรับเงิน / Request receipt</option></select></div>
           <div class="field"><label>ชื่อบุคคล/หน่วยงานสำหรับออกใบเสร็จ<span class="en">Receipt name / Entity name</span></label><input name="ReceiptName" placeholder="เช่น โรงพยาบาล... หรือ ชื่อ-สกุล"></div>
-          <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label><input name="ReceiptTaxId" inputmode="numeric" maxlength="13" placeholder="เลข 13 หลัก"></div>
+          <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label><input name="ReceiptTaxID" inputmode="numeric" maxlength="13" placeholder="เลข 13 หลัก"></div>
           <div class="field"><label>เบอร์โทรศัพท์สำหรับใบเสร็จ<span class="en">Receipt contact phone</span></label><input name="ReceiptPhone" inputmode="tel" placeholder="เบอร์โทรศัพท์สำหรับประสานงาน"></div>
-          <div class="field grid-full"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2" placeholder="เลขที่ อาคาร ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด รหัสไปรษณีย์"></textarea></div>
+          <div class="field"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2" placeholder="เลขที่ อาคาร ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด"></textarea></div>
+          <div class="field"><label>รหัสไปรษณีย์สำหรับใบเสร็จ<span class="en">Receipt postal code</span></label><input name="ReceiptPostalCode" inputmode="numeric" maxlength="5" placeholder="รหัสไปรษณีย์ 5 หลัก"></div>
         </div>
       </div>
 
@@ -285,7 +286,7 @@ function load(t){$('#loadingText').textContent=t||'กำลังประม�
 function done(){$('#loading').classList.remove('show')}
 function alertErr(e){done();Swal.fire({icon:'error',title:'ไม่สามารถดำเนินการได้',text:e.message||String(e),confirmButtonColor:'#006D70'})}
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('#page-'+p).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p));scrollTo({top:0,behavior:'smooth'})}
-function formObj(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);f.querySelectorAll('input[type=checkbox]').forEach(x=>o[x.name]=x.checked);return o}
+function formObj(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);f.querySelectorAll('input[type=checkbox]').forEach(x=>o[x.name]=x.checked);if(o.ReceiptTaxID&&!o.ReceiptTaxId)o.ReceiptTaxId=o.ReceiptTaxID;if(o.ReceiptTaxId&&!o.ReceiptTaxID)o.ReceiptTaxID=o.ReceiptTaxId;return o}
 function fileObj(el){return new Promise((res,rej)=>{const f=el.files[0];if(!f)return res(null);const r=new FileReader();r.onload=()=>res({name:f.name,mimeType:f.type,base64:String(r.result).split(',')[1]});r.onerror=rej;r.readAsDataURL(f)})}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 
@@ -409,9 +410,10 @@ function renderStatus(r){
           <div class="grid">
             <div class="field"><label>ความประสงค์ออกใบเสร็จ<span class="en">Receipt requirement</span></label><select name="ReceiptRequirement"><option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ / No receipt</option><option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จรับเงิน / Request receipt</option></select></div>
             <div class="field"><label>ชื่อบุคคล/หน่วยงานสำหรับออกใบเสร็จ<span class="en">Receipt name / Entity name</span></label>${input('ReceiptName',r.ReceiptName||'')}</div>
-            <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label>${input('ReceiptTaxId',r.ReceiptTaxId||'','','text','13')}</div>
+            <div class="field"><label>เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน<span class="en">Tax ID / Citizen ID</span></label>${input('ReceiptTaxID',r.ReceiptTaxID||r.ReceiptTaxId||'','','text','13')}</div>
             <div class="field"><label>เบอร์โทรศัพท์สำหรับใบเสร็จ<span class="en">Receipt contact phone</span></label>${input('ReceiptPhone',r.ReceiptPhone||'','','tel')}</div>
-            <div class="field grid-full"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2">${esc(r.ReceiptAddress||'')}</textarea></div>
+            <div class="field"><label>ที่อยู่สำหรับออกใบเสร็จ<span class="en">Receipt address</span></label><textarea name="ReceiptAddress" rows="2" placeholder="เลขที่ อาคาร ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด">${esc(r.ReceiptAddress||'')}</textarea></div>
+            <div class="field"><label>รหัสไปรษณีย์สำหรับใบเสร็จ<span class="en">Receipt postal code</span></label>${input('ReceiptPostalCode',r.ReceiptPostalCode||'','','text','5')}</div>
           </div>
         </div>
 
