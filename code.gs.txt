@@ -80,7 +80,7 @@ const DB_SCHEMA = Object.freeze({
   Sessions: ['SessionID','ConferenceID','UserID','Role','TokenHash','ExpiresAt','LastSeenAt','ClientInfo','Status'],
   RegistrationTypes: ['RegistrationTypeID','ConferenceID','TypeCode','TypeNameTH','TypeNameEN','IsInternal','FeeAmount','Quota','UsedQuota','PaymentRequired','WorkRequiresPayment','Active','SortOrder'],
   OrganizationUnits: ['UnitID','ConferenceID','ParticipantGroup','ParentUnitID','UnitLevel','UnitNameTH','UnitNameEN','Active','SortOrder'],
-  Registrations: ['RegID','ConferenceID','SourceType','SourceBatchID','SourceRowNo','SourceTimestamp','SourceRespondentEmail','ConsentAccepted','ConsentVersion','ParticipantType','Region4Status','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Passport','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','ReceiptRequirement','ReceiptName','ReceiptTaxId','ReceiptAddress','ReceiptPhone','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','EditAccessCodeHash','Note','CreatedAt','UpdatedAt','LastModifiedBy'],
+  Registrations: ['RegID','ConferenceID','SourceType','SourceBatchID','SourceRowNo','SourceTimestamp','SourceRespondentEmail','ConsentAccepted','ConsentVersion','ParticipantType','Region4Status','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Passport','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','EditAccessCodeHash','Note','CreatedAt','UpdatedAt','LastModifiedBy'],
   Consents: ['ConsentID','ConferenceID','RegID','ConsentVersion','ConsentAccepted','AcceptedAt','ClientInfo'],
   Payments: ['PaymentID','ConferenceID','RegID','Amount','Currency','PaymentChannelID','SlipFileId','SlipFileUrl','SlipFileName','Status','SubmittedAt','VerifiedBy','VerifiedAt','FinanceNote','ReceiptNo','ReceiptDate','ReceiptFileId','ReceiptFileUrl','CreatedAt','UpdatedAt'],
   PaymentChannels: ['PaymentChannelID','ConferenceID','BankName','AccountName','AccountNumber','PromptPay','QRFileId','QRFileUrl','InstructionTH','InstructionEN','Active','SortOrder'],
@@ -117,7 +117,7 @@ const DB_SCHEMA = Object.freeze({
   DashboardSnapshots: ['SnapshotID','ConferenceID','Timestamp','TotalRegistrations','InternalCount','ExternalCount','PaidCount','PendingPaymentCount','TotalRevenue','TotalWorks','UnderReviewCount','AcceptedOralCount','AcceptedPosterCount','MealRedeemedCount','JsonDetail']
 });
 
-const PLAIN_TEXT_FIELDS = Object.freeze(['CID','Passport','Phone','LicenseNo','AccountNumber','PromptPay','ReceiptNo','RegID','WorkCode','Postcode','ReceiptTaxId','ReceiptPhone']);
+const PLAIN_TEXT_FIELDS = Object.freeze(['CID','Passport','Phone','LicenseNo','AccountNumber','PromptPay','ReceiptNo','RegID','WorkCode','Postcode']);
 
 function getSpreadsheet_() {
   if (globalThis.__TUH_SS) return globalThis.__TUH_SS;
@@ -239,8 +239,8 @@ function defaultSettings_(){ return {
 function seedRegistrationTypes_(cid){
   const rows = [
     ['INTERNAL','บุคลากรโรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ','TUH Staff',true,0,400,false,false,1],
-    ['EXTERNAL_2500','บุคคลทั่วไป / ภาคเอกชน / สถาบันการศึกษา / สสจ. / รพศ. / รพท. (2,500 บาท)','General public / Private sector / Academic / Provincial health / Regional & General hospital',false,2500,200,true,true,2],
-    ['EXTERNAL_1500','โรงพยาบาลชุมชน / สาธารณสุขอำเภอ / รพ.สต. (1,500 บาท)','Community hospital / District public health / Health promoting hospital',false,1500,200,true,true,3]
+    ['EXTERNAL_2500','สาธารณสุขจังหวัด / โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป','Provincial public health / Regional or General hospital',false,2500,200,true,true,2],
+    ['EXTERNAL_1500','โรงพยาบาลชุมชน / สาธารณสุขอำเภอ / รพ.สต.','Community hospital / District public health / Health promoting hospital',false,1500,200,true,true,3]
   ];
   rows.forEach(function(r){
     if(!findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:r[0]})) appendRecord_('RegistrationTypes',{
@@ -567,29 +567,7 @@ function getPublicBootstrap(conferenceId){
     publicConference.LogoUrl=clean_(publicConference.LogoUrl)||APP.DEFAULT_LOGO_URL;
     let eventDates=[];
     try{eventDates=JSON.parse(normalizeEventDatesJson_(settings.EVENT_DATES_JSON||'[]'));}catch(e){eventDates=[];}
-    const activeRegs=findMany_('Registrations',{ConferenceID:cid}).filter(function(x){return upper_(x.RegistrationStatus)!=='CANCELLED';});
-    const typesMap=registrationTypeMap_(cid);
-    const internalLimit=num_(getSetting_(cid,'INTERNAL_QUOTA','400'),400);
-    const externalLimit=num_(getSetting_(cid,'EXTERNAL_QUOTA','200'),200);
-    const internalCounts=[1,2,3].map(function(d){
-      return activeRegs.filter(function(r){
-        if(!bool_(r['AttendanceDay'+d]))return false;
-        const t=typesMap[r.ParticipantType];
-        return t?bool_(t.IsInternal):(r.ParticipantType==='INTERNAL');
-      }).length;
-    });
-    const externalCounts=[1,2,3].map(function(d){
-      return activeRegs.filter(function(r){
-        if(!bool_(r['AttendanceDay'+d]))return false;
-        const t=typesMap[r.ParticipantType];
-        return t?!bool_(t.IsInternal):(r.ParticipantType!=='INTERNAL');
-      }).length;
-    });
-    const dailyQuotas={
-      internal:{limit:internalLimit,counts:internalCounts,remaining:internalCounts.map(function(c){return Math.max(0,internalLimit-c);}),isFull:internalCounts.map(function(c){return c>=internalLimit;})},
-      external:{limit:externalLimit,counts:externalCounts,remaining:externalCounts.map(function(c){return Math.max(0,externalLimit-c);}),isFull:externalCounts.map(function(c){return c>=externalLimit;})}
-    };
-    const out={conference:publicConference,settings:settings,eventDates:eventDates,registrationTypes:serialize_(types),organizationUnits:serialize_(units),workCategories:serialize_(categories),presentationTypes:serialize_(presentations),dailyQuotas:dailyQuotas};
+    const out={conference:publicConference,settings:settings,eventDates:eventDates,registrationTypes:serialize_(types),organizationUnits:serialize_(units),workCategories:serialize_(categories),presentationTypes:serialize_(presentations)};
     cache.put(key,JSON.stringify(out),APP.CACHE_SECONDS); return out;
   });
 }
@@ -1401,64 +1379,10 @@ function submitRegistration(conferenceId,payload){
     assertConferenceWindow_(cid,'RegistrationOpenAt','RegistrationCloseAt','การลงทะเบียน');
     payload=payload||{};
     const organization=clean_(payload.OrganizationUnit||payload.Institution);
-    const mapped={
-      ConferenceID:cid,
-      SourceType:'WEB_APP',
-      ConsentAccepted:bool_(payload.ConsentAccepted),
-      ParticipantType:clean_(payload.ParticipantType),
-      Region4Status:clean_(payload.Region4Status),
-      Prefix:clean_(payload.Prefix),
-      FirstName:clean_(payload.FirstName),
-      LastName:clean_(payload.LastName),
-      FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),
-      Position:clean_(payload.Position),
-      OrganizationGroup:clean_(payload.OrganizationGroup),
-      OrganizationUnit:organization,
-      Institution:clean_(payload.Institution||organization),
-      Profession:clean_(payload.Profession),
-      LicenseNo:clean_(payload.LicenseNo),
-      CID:normalizeCid_(payload.CID),
-      Phone:normalizePhone_(payload.Phone),
-      LineID:clean_(payload.LineID),
-      Email:normalizeEmail_(payload.Email),
-      FoodType:clean_(payload.FoodType),
-      FoodAllergyDetail:clean_(payload.FoodAllergyDetail),
-      AttendanceDay1:bool_(payload.AttendanceDay1),
-      AttendanceDay2:bool_(payload.AttendanceDay2),
-      AttendanceDay3:bool_(payload.AttendanceDay3),
-      WantsSubmitWork:bool_(payload.WantsSubmitWork),
-      ReceiptRequirement:clean_(payload.ReceiptRequirement||'NO_RECEIPT'),
-      ReceiptName:clean_(payload.ReceiptName),
-      ReceiptTaxId:clean_(payload.ReceiptTaxId),
-      ReceiptAddress:clean_(payload.ReceiptAddress),
-      ReceiptPhone:clean_(payload.ReceiptPhone),
-      Note:''
-    };
+    const mapped={ConferenceID:cid,SourceType:'WEB_APP',ConsentAccepted:bool_(payload.ConsentAccepted),ParticipantType:clean_(payload.ParticipantType),Region4Status:clean_(payload.Region4Status),Prefix:clean_(payload.Prefix),FirstName:clean_(payload.FirstName),LastName:clean_(payload.LastName),FullName:[payload.Prefix,payload.FirstName,payload.LastName].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:organization,Institution:clean_(payload.Institution||organization),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:normalizeCid_(payload.CID),Phone:normalizePhone_(payload.Phone),LineID:clean_(payload.LineID),Email:normalizeEmail_(payload.Email),FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),Note:''};
     validateNewRegistration_(mapped,cid);
     const typeRow=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:mapped.ParticipantType});
     if(typeRow&&num_(typeRow.Quota)>0&&num_(typeRow.UsedQuota)>=num_(typeRow.Quota))throw new Error('ผู้สมัครประเภทนี้เต็มโควตาแล้ว');
-
-    // Check Daily Quotas
-    const isInternal=typeRow?bool_(typeRow.IsInternal):(mapped.ParticipantType==='INTERNAL');
-    const internalLimit=num_(getSetting_(cid,'INTERNAL_QUOTA','400'),400);
-    const externalLimit=num_(getSetting_(cid,'EXTERNAL_QUOTA','200'),200);
-    const activeRegs=findMany_('Registrations',{ConferenceID:cid}).filter(function(x){return upper_(x.RegistrationStatus)!=='CANCELLED';});
-    const typesMap=registrationTypeMap_(cid);
-
-    [1,2,3].forEach(function(dayNum){
-      if(mapped['AttendanceDay'+dayNum]){
-        const currentDayCount=activeRegs.filter(function(r){
-          if(!bool_(r['AttendanceDay'+dayNum]))return false;
-          const t=typesMap[r.ParticipantType];
-          return isInternal ? (t?bool_(t.IsInternal):r.ParticipantType==='INTERNAL') : (t?!bool_(t.IsInternal):r.ParticipantType!=='INTERNAL');
-        }).length;
-        const maxQuota=isInternal?internalLimit:externalLimit;
-        if(currentDayCount>=maxQuota){
-          throw new Error((isInternal?'บุคลากรภายใน':'บุคคลภายนอก')+' สำหรับวันที่ '+dayNum+' เต็มโควตาแล้ว ('+maxQuota+' คน/วัน)');
-        }
-      }
-    });
-
     const reg=withLock_(function(){return createRegistrationRecord_(mapped,'PUBLIC',false,'READY');});
     invalidateCache_(cid);
     sendRegistrationEmail_(reg);
@@ -1467,7 +1391,7 @@ function submitRegistration(conferenceId,payload){
     return {RegID:reg.RegID,EditCode:reg.EditCode,warnings:duplicateWarnings_(mapped,cid,reg.RegID),mealPass:mealPass};
   });
 }
-function validateNewRegistration_(m,cid,excludeRegId){ if(!m.ConsentAccepted)throw new Error('กรุณายินยอมการเก็บและใช้ข้อมูลส่วนบุคคล'); if(!m.ParticipantType)throw new Error('กรุณาเลือกประเภทผู้สมัคร'); if(!m.FirstName||!m.LastName)throw new Error('กรุณากรอกชื่อและนามสกุล'); if(!validateThaiCid_(m.CID))throw new Error('เลขบัตรประชาชนไม่ถูกต้อง'); const dup=findMany_('Registrations',{ConferenceID:cid,CID:m.CID}).find(function(x){return x.RegID!==excludeRegId&&upper_(x.RegistrationStatus)!=='CANCELLED';}); if(dup)throw new Error('เลขบัตรประชาชนนี้ลงทะเบียนแล้ว'); if(!m.Email)throw new Error('กรุณากรอก Email'); if(!m.Phone)throw new Error('กรุณากรอกโทรศัพท์'); if(!m.AttendanceDay1&&!m.AttendanceDay2&&!m.AttendanceDay3)throw new Error('กรุณาเลือกวันเข้าร่วมงานอย่างน้อย 1 วัน'); }
+function validateNewRegistration_(m,cid,excludeRegId){ if(!m.ConsentAccepted)throw new Error('กรุณายินยอมการเก็บและใช้ข้อมูลส่วนบุคคล'); if(!m.ParticipantType)throw new Error('กรุณาเลือกประเภทผู้สมัคร'); if(!m.FirstName||!m.LastName)throw new Error('กรุณากรอกชื่อและนามสกุล'); if(!validateThaiCid_(m.CID))throw new Error('เลขบัตรประชาชนไม่ถูกต้อง'); const dup=findMany_('Registrations',{ConferenceID:cid,CID:m.CID}).find(function(x){return x.RegID!==excludeRegId&&upper_(x.RegistrationStatus)!=='CANCELLED';}); if(dup)throw new Error('เลขบัตรประชาชนนี้ลงทะเบียนแล้ว'); if(!m.Email)throw new Error('กรุณากรอก Email'); if(!m.Phone)throw new Error('กรุณากรอกโทรศัพท์'); }
 function duplicateWarnings_(m,cid,exclude){ const w=[]; const emails=findMany_('Registrations',{ConferenceID:cid,Email:m.Email}).filter(function(x){return x.RegID!==exclude;}); if(emails.length)w.push('Email นี้ถูกใช้กับผู้ลงทะเบียนอื่น '+emails.length+' ราย'); const phones=findMany_('Registrations',{ConferenceID:cid,Phone:m.Phone}).filter(function(x){return x.RegID!==exclude;}); if(phones.length)w.push('เบอร์โทรนี้ถูกใช้กับผู้ลงทะเบียนอื่น '+phones.length+' ราย'); return w; }
 function createRegistrationRecord_(m,userEmail,isImport,validationStatus){
   const cid=m.ConferenceID||APP.DEFAULT_CONFERENCE_ID, regId=nextId_('REG'), editCode=String(Math.floor(100000+Math.random()*900000)), type=findOne_('RegistrationTypes',{ConferenceID:cid,TypeCode:m.ParticipantType})||{};
@@ -1497,44 +1421,14 @@ function saveRegistrationEdit(conferenceId,regId,emailOrPhone,editCode,payload){
     const providedOrg=clean_(incoming.OrganizationUnit||incoming.Institution);if(providedOrg){p.OrganizationUnit=providedOrg;p.Institution=providedOrg;}else{p.OrganizationUnit=clean_(p.OrganizationUnit||p.Institution);p.Institution=clean_(p.Institution||p.OrganizationUnit);}
     validateNewRegistration_(Object.assign({},p,{ConsentAccepted:true}),cid,r.RegID);
     const newStatus = (r.RegistrationStatus === 'WAIT_REGISTRATION_CHECK' || r.RegistrationStatus === 'IMPORTED_INCOMPLETE' || r.RegistrationStatus === 'REGISTRATION_RETURNED') ? 'WAIT_REGISTRATION_CHECK' : r.RegistrationStatus;
-    const patch={
-      Prefix:clean_(p.Prefix),
-      FirstName:clean_(p.FirstName),
-      LastName:clean_(p.LastName),
-      FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),
-      Position:clean_(p.Position),
-      OrganizationGroup:clean_(p.OrganizationGroup),
-      OrganizationUnit:p.OrganizationUnit,
-      Institution:p.Institution,
-      Profession:clean_(p.Profession),
-      LicenseNo:clean_(p.LicenseNo),
-      CID:p.CID,
-      Phone:p.Phone,
-      LineID:clean_(p.LineID),
-      Email:p.Email,
-      FoodType:clean_(p.FoodType),
-      FoodAllergyDetail:clean_(p.FoodAllergyDetail),
-      AttendanceDay1:bool_(p.AttendanceDay1),
-      AttendanceDay2:bool_(p.AttendanceDay2),
-      AttendanceDay3:bool_(p.AttendanceDay3),
-      WantsSubmitWork:bool_(p.WantsSubmitWork),
-      ReceiptRequirement:clean_(p.ReceiptRequirement||r.ReceiptRequirement||'NO_RECEIPT'),
-      ReceiptName:clean_(p.ReceiptName||r.ReceiptName),
-      ReceiptTaxId:clean_(p.ReceiptTaxId||r.ReceiptTaxId),
-      ReceiptAddress:clean_(p.ReceiptAddress||r.ReceiptAddress),
-      ReceiptPhone:clean_(p.ReceiptPhone||r.ReceiptPhone),
-      DataCompletenessStatus:'COMPLETE',
-      RegistrationStatus:newStatus,
-      UpdatedAt:new Date(),
-      LastModifiedBy:'PARTICIPANT'
-    };
+    const patch={Prefix:clean_(p.Prefix),FirstName:clean_(p.FirstName),LastName:clean_(p.LastName),FullName:[p.Prefix,p.FirstName,p.LastName].filter(Boolean).join(' '),Position:clean_(p.Position),OrganizationGroup:clean_(p.OrganizationGroup),OrganizationUnit:p.OrganizationUnit,Institution:p.Institution,Profession:clean_(p.Profession),LicenseNo:clean_(p.LicenseNo),CID:p.CID,Phone:p.Phone,LineID:clean_(p.LineID),Email:p.Email,FoodType:clean_(p.FoodType),FoodAllergyDetail:clean_(p.FoodAllergyDetail),AttendanceDay1:bool_(p.AttendanceDay1),AttendanceDay2:bool_(p.AttendanceDay2),AttendanceDay3:bool_(p.AttendanceDay3),WantsSubmitWork:bool_(p.WantsSubmitWork),DataCompletenessStatus:'COMPLETE',RegistrationStatus:newStatus,UpdatedAt:new Date(),LastModifiedBy:'PARTICIPANT'};
     updateRecord_('Registrations',r.__row,patch);invalidateCache_(cid);
     let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(cid,r.RegID,'PARTICIPANT_EDIT');}catch(ignore){}
     return {RegID:r.RegID,warnings:duplicateWarnings_(patch,cid,r.RegID),mealPass:mealPass};
   });
 }
 function getRegistrationStatus(conferenceId,regId,emailOrPhone){return runSafely_('getRegistrationStatus',function(){return publicRegistration_(requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,''));});}
-function publicRegistration_(r){const out={};['RegID','ParticipantType','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','ReceiptRequirement','ReceiptName','ReceiptTaxId','ReceiptAddress','ReceiptPhone','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','CreatedAt','UpdatedAt'].forEach(function(k){out[k]=r[k];});return serialize_(out);}
+function publicRegistration_(r){const out={};['RegID','ParticipantType','Prefix','FirstName','LastName','FullName','Position','OrganizationGroup','OrganizationUnit','Institution','Profession','LicenseNo','CID','Phone','LineID','Email','FoodType','FoodAllergyDetail','AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork','DataCompletenessStatus','RegistrationStatus','PaymentStatus','MealPassStatus','CreatedAt','UpdatedAt'].forEach(function(k){out[k]=r[k];});return serialize_(out);}
 function sendRegistrationEmail_(reg){try{const r=reg.record||reg;sendEmailLogged_(r.ConferenceID,r.Email,'ยืนยันการลงทะเบียน '+reg.RegID,'<div style="font-family:Prompt,sans-serif"><h2>ลงทะเบียนสำเร็จ</h2><p>เลขลงทะเบียน <b>'+reg.RegID+'</b></p><p>กรุณาเก็บเลขลงทะเบียนเพื่อแก้ไขข้อมูลและตรวจสอบสถานะ</p></div>','REGISTRATION',reg.RegID,null);}catch(ignore){} }
 
 
@@ -1614,34 +1508,7 @@ function submitWork(conferenceId,regId,emailOrPhone,payload,files){
 }
 function saveWorkFile_(cid,workId,regId,category,file,folder){const up=uploadBase64File_(file,folder,workId+'_'+category),old=findMany_('WorkFiles',{ConferenceID:cid,WorkID:workId}).filter(function(x){return x.FileCategory===category&&bool_(x.Active);});old.forEach(function(x){updateRecord_('WorkFiles',x.__row,{Active:false});});const version=old.length+1;appendRecord_('WorkFiles',{WorkFileID:nextId_('WF'),ConferenceID:cid,WorkID:workId,RegID:regId,FileCategory:category,VersionNo:version,FileName:up.fileName,FileId:up.fileId,FileUrl:up.fileUrl,MimeType:up.mimeType,FileSize:up.fileSize,UploadedBy:regId,UploadedAt:new Date(),Active:true,ReplacedFileID:old.length?old[old.length-1].WorkFileID:'',Note:''});return up;}
 function getAuthorPortal(conferenceId,regId,emailOrPhone){return runSafely_('getAuthorPortal',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const works=findMany_('Works',{ConferenceID:r.ConferenceID,RegID:r.RegID}).map(function(w){return Object.assign({},w,{authors:findMany_('WorkAuthors',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}),files:findMany_('WorkFiles',{ConferenceID:r.ConferenceID,WorkID:w.WorkID}).filter(function(f){return bool_(f.Active);})});});return {registration:publicRegistration_(r),works:serialize_(works)};});}
-function replaceWorkFile(conferenceId,regId,emailOrPhone,workId,category,file){
-  return runSafely_('replaceWorkFile',function(){
-    const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');
-    const w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId,RegID:regId});
-    if(!w)throw new Error('ไม่พบผลงาน');
-    const st=upper_(w.Status);
-    const canOriginal=['DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT'].indexOf(st)>=0;
-    const canRevise=['REVISION_REQUIRED','REVISION_SUBMITTED'].indexOf(st)>=0;
-    const canPresent=['ACCEPTED_ORAL','ACCEPTED_POSTER','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED'].indexOf(st)>=0;
-    
-    if((category==='ORIGINAL'||category==='ETHICS'||category==='PRESENTER_BIO')&&!canOriginal){
-      throw new Error('ไม่สามารถแก้ไขไฟล์ผลงานในสถานะนี้ได้ (กรุณาติดต่อผู้ดูแลระบบ)');
-    }
-    if(category==='REVISION'&&!canRevise){
-      throw new Error('ไม่สามารถอัปโหลดไฟล์แก้ไขในสถานะนี้ได้');
-    }
-    if(category==='FINAL_PRESENTATION'){
-      if(!canPresent)throw new Error('ไม่สามารถอัปโหลดไฟล์นำเสนอในสถานะนี้ได้');
-      if(APP.PRESENTATION_DEADLINE&&new Date()>new Date(APP.PRESENTATION_DEADLINE))throw new Error('ระบบปิดรับไฟล์นำเสนอแล้ว');
-    }
-    const folder={ORIGINAL:'04_Work_Original',ETHICS:'06_Work_Ethics',PRESENTER_BIO:'08_Presenter_Bio',REVISION:'07_Work_Revisions',FINAL_PRESENTATION:'09_Final_Presentation'}[category];
-    if(!folder)throw new Error('ประเภทไฟล์ไม่ถูกต้อง');
-    const up=saveWorkFile_(conferenceId,workId,regId,category,file,folder);
-    if(category==='REVISION')updateRecord_('Works',w.__row,{Status:'REVISION_SUBMITTED',UpdatedAt:new Date()});
-    if(category==='FINAL_PRESENTATION')updateRecord_('Works',w.__row,{PresentationUploadStatus:'SUBMITTED',Status:'PRESENTATION_FILE_SUBMITTED',UpdatedAt:new Date()});
-    return up;
-  });
-}
+function replaceWorkFile(conferenceId,regId,emailOrPhone,workId,category,file){return runSafely_('replaceWorkFile',function(){const r=requireRegistrationAccess_(conferenceId||APP.DEFAULT_CONFERENCE_ID,regId,emailOrPhone,'');const w=findOne_('Works',{ConferenceID:conferenceId,WorkID:workId,RegID:regId});if(!w)throw new Error('ไม่พบผลงาน');const st=upper_(w.Status);const canOriginal=['DRAFT','SUBMITTED','ACADEMIC_SCREENING','RETURNED_FOR_EDIT'].indexOf(st)>=0;const canRevise=['REVISION_REQUIRED','REVISION_SUBMITTED'].indexOf(st)>=0;const canPresent=['ACCEPTED_ORAL','ACCEPTED_POSTER','WAITING_PRESENTATION_FILE','PRESENTATION_FILE_SUBMITTED'].indexOf(st)>=0;if(category==='ORIGINAL'&&!canOriginal)throw new Error('ไม่สามารถอัปโหลดไฟล์ผลงานเดิมในสถานะนี้ได้');if(category==='REVISION'&&!canRevise)throw new Error('ไม่สามารถอัปโหลดไฟล์แก้ไขในสถานะนี้ได้');if(category==='FINAL_PRESENTATION'){if(!canPresent)throw new Error('ไม่สามารถอัปโหลดไฟล์นำเสนอในสถานะนี้ได้');if(APP.PRESENTATION_DEADLINE&&new Date()>new Date(APP.PRESENTATION_DEADLINE))throw new Error('ระบบปิดรับไฟล์นำเสนอแล้ว');}const folder={ORIGINAL:'04_Work_Original',ETHICS:'06_Work_Ethics',PRESENTER_BIO:'08_Presenter_Bio',REVISION:'07_Work_Revisions',FINAL_PRESENTATION:'09_Final_Presentation'}[category];if(!folder)throw new Error('ประเภทไฟล์ไม่ถูกต้อง');const up=saveWorkFile_(conferenceId,workId,regId,category,file,folder);if(category==='REVISION')updateRecord_('Works',w.__row,{Status:'REVISION_SUBMITTED',UpdatedAt:new Date()});if(category==='FINAL_PRESENTATION')updateRecord_('Works',w.__row,{PresentationUploadStatus:'SUBMITTED',Status:'PRESENTATION_FILE_SUBMITTED',UpdatedAt:new Date()});return up;});}
 
 
 /** ===== 05_ReviewerFoodAdmin.gs ===== **/
@@ -1942,39 +1809,7 @@ function adminSaveRegistration(token,conferenceId,regId,payload){
     const participantType=clean_(payload.ParticipantType||r.ParticipantType),type=registrationTypeMap_(conferenceId)[participantType]||{};
     let paymentStatus=r.PaymentStatus;if(!bool_(type.PaymentRequired))paymentStatus='NOT_REQUIRED';else if(paymentStatus==='NOT_REQUIRED')paymentStatus='UNPAID';
     const org=clean_(payload.OrganizationUnit||payload.Institution||r.OrganizationUnit||r.Institution),prefix=clean_(payload.Prefix||r.Prefix);
-    const patch={
-      ParticipantType:participantType,
-      Region4Status:clean_(payload.Region4Status||r.Region4Status),
-      Prefix:prefix,
-      FirstName:first,
-      LastName:last,
-      FullName:[prefix,first,last].filter(Boolean).join(' '),
-      Position:clean_(payload.Position),
-      OrganizationGroup:clean_(payload.OrganizationGroup),
-      OrganizationUnit:org,
-      Institution:clean_(payload.Institution||org),
-      Profession:clean_(payload.Profession),
-      LicenseNo:clean_(payload.LicenseNo),
-      CID:cid,
-      Phone:phone,
-      LineID:clean_(payload.LineID),
-      Email:email,
-      FoodType:clean_(payload.FoodType),
-      FoodAllergyDetail:clean_(payload.FoodAllergyDetail),
-      AttendanceDay1:bool_(payload.AttendanceDay1),
-      AttendanceDay2:bool_(payload.AttendanceDay2),
-      AttendanceDay3:bool_(payload.AttendanceDay3),
-      WantsSubmitWork:bool_(payload.WantsSubmitWork),
-      ReceiptRequirement:clean_(payload.ReceiptRequirement||r.ReceiptRequirement||'NO_RECEIPT'),
-      ReceiptName:clean_(payload.ReceiptName||r.ReceiptName),
-      ReceiptTaxId:clean_(payload.ReceiptTaxId||r.ReceiptTaxId),
-      ReceiptAddress:clean_(payload.ReceiptAddress||r.ReceiptAddress),
-      ReceiptPhone:clean_(payload.ReceiptPhone||r.ReceiptPhone),
-      DataCompletenessStatus:'COMPLETE',
-      PaymentStatus:paymentStatus,
-      UpdatedAt:new Date(),
-      LastModifiedBy:ctx.user.Email
-    };
+    const patch={ParticipantType:participantType,Region4Status:clean_(payload.Region4Status||r.Region4Status),Prefix:prefix,FirstName:first,LastName:last,FullName:[prefix,first,last].filter(Boolean).join(' '),Position:clean_(payload.Position),OrganizationGroup:clean_(payload.OrganizationGroup),OrganizationUnit:org,Institution:clean_(payload.Institution||org),Profession:clean_(payload.Profession),LicenseNo:clean_(payload.LicenseNo),CID:cid,Phone:phone,LineID:clean_(payload.LineID),Email:email,FoodType:clean_(payload.FoodType),FoodAllergyDetail:clean_(payload.FoodAllergyDetail),AttendanceDay1:bool_(payload.AttendanceDay1),AttendanceDay2:bool_(payload.AttendanceDay2),AttendanceDay3:bool_(payload.AttendanceDay3),WantsSubmitWork:bool_(payload.WantsSubmitWork),DataCompletenessStatus:'COMPLETE',PaymentStatus:paymentStatus,UpdatedAt:new Date(),LastModifiedBy:ctx.user.Email};
     if(!patch.AttendanceDay1&&!patch.AttendanceDay2&&!patch.AttendanceDay3)throw new Error('กรุณาเลือกวันเข้าร่วมงานอย่างน้อย 1 วัน');
     updateRecord_('Registrations',r.__row,patch);invalidateCache_(conferenceId);let mealPass={sent:false,reason:''};try{mealPass=maybeAutoIssueMealPass_(conferenceId,regId,'ADMIN_EDIT');}catch(e){mealPass={sent:false,reason:e.message||String(e)};}
     logAudit_(conferenceId,ctx.user,ctx.role,'EDIT_REGISTRATION','Registration',regId,patch);return {registration:publicRegistration_(Object.assign({},r,patch)),warnings:duplicateWarnings_(patch,conferenceId,regId),mealPass:mealPass};
