@@ -287,9 +287,82 @@ $('#settingsForm').onsubmit=async e=>{e.preventDefault();try{const o=formObj(e.t
 
 async function previewImport(){show('กำลังอ่านไฟล์ Excel');try{const f=await fileObj($('#importFile'));if(!f)throw new Error('กรุณาเลือกไฟล์');const r=await rpc('uploadExcelForImport',TOKEN,CID,f);hide();$('#importResult').innerHTML=`<div class="card"><h3>ผลตรวจสอบไฟล์</h3><p>ทั้งหมด ${r.stats.totalRows} | พร้อม ${r.stats.readyRows} | ข้อมูลไม่ครบ ${r.stats.incompleteRows} | คำเตือน ${r.stats.warningRows}</p><button class="btn btn-primary" onclick="commitImport('${esc(r.batchId)}')">นำเข้าข้อมูลจริง</button></div>`}catch(e){err(e)}}
 async function commitImport(id){if(!(await Swal.fire({icon:'question',title:'ยืนยันนำเข้าข้อมูล?',showCancelButton:true,confirmButtonText:'นำเข้า'})).isConfirmed)return;show('กำลังนำเข้าข้อมูล');try{const r=await rpc('commitImportBatch',TOKEN,CID,id);hide();Swal.fire({icon:'success',title:'นำเข้าเรียบร้อย',html:`นำเข้า ${r.imported} ราย<br>ข้อมูลไม่ครบ ${r.importedIncomplete||0} ราย<br>ข้าม ${r.skipped} ราย`,confirmButtonColor:'#006D70'})}catch(e){err(e)}}
-async function loadRegistrations(){show('กำลังโหลดผู้ลงทะเบียน');try{const rows=await rpc('adminListRegistrations',TOKEN,CID,{q:$('#regSearch').value,status:$('#regStatus').value});$('#regRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.RegID)}</td><td><b>${esc(r.FullName)}</b></td><td>${esc(r.ParticipantType)}</td><td>${esc(r.CID)}</td><td>${esc(r.Email)}<br>${esc(r.Phone)}</td><td>${statusBadge(r.DataCompletenessStatus)}</td><td>${statusBadge(r.RegistrationStatus)}<br>${statusBadge(r.PaymentStatus)}</td><td class="actions"><button class="btn btn-blue btn-sm" onclick="openRegistrationEdit('${esc(r.RegID)}')">แก้ไข</button><button class="btn btn-soft btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_VERIFIED')">ตรวจผ่าน</button><button class="btn btn-gold btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_RETURNED')">ส่งคืน</button></td></tr>`).join(''):'<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>'}finally{hide()}}
+async function loadRegistrations(){show('กำลังโหลดผู้ลงทะเบียน');try{const rows=await rpc('adminListRegistrations',TOKEN,CID,{q:$('#regSearch').value,status:$('#regStatus').value});$('#regRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.RegID)}</td><td><b>${esc(r.FullName)}</b></td><td>${esc(r.ParticipantType)}</td><td>${esc(r.CID)}</td><td>${esc(r.Email)}<br>${esc(r.Phone)}</td><td>${statusBadge(r.DataCompletenessStatus)}</td><td>${statusBadge(r.RegistrationStatus)}<br>${statusBadge(r.PaymentStatus)}</td><td class="actions"><button class="btn btn-primary btn-sm" onclick="openRegistrationView('${esc(r.RegID)}')">ดู</button><button class="btn btn-blue btn-sm" onclick="openRegistrationEdit('${esc(r.RegID)}')">แก้ไข</button><button class="btn btn-soft btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_VERIFIED')">ตรวจผ่าน</button><button class="btn btn-gold btn-sm" onclick="setRegStatus('${esc(r.RegID)}','REGISTRATION_RETURNED')">ส่งคืน</button></td></tr>`).join(''):'<tr><td colspan="8" class="muted">ไม่พบข้อมูล</td></tr>'}finally{hide()}}
 async function setRegStatus(id,status){const returning=status==='REGISTRATION_RETURNED';const x=await Swal.fire({icon:returning?'warning':'question',title:returning?'ส่งคืนข้อมูลให้ผู้สมัคร':'ยืนยันตรวจผ่าน',input:'textarea',inputLabel:returning?'ระบุเหตุผลที่ต้องแก้ไข':'หมายเหตุ (ถ้ามี)',inputPlaceholder:returning?'กรุณาระบุให้ชัดเจนเพื่อส่งไปทาง Email':'',inputValidator:v=>returning&&!String(v||'').trim()?'กรุณาระบุเหตุผล':undefined,showCancelButton:true,confirmButtonText:returning?'ส่งคืนและแจ้ง Email':'ตรวจผ่าน',confirmButtonColor:returning?'#C8B278':'#006D70'});if(!x.isConfirmed)return;show('กำลังอัปเดตสถานะ');try{const r=await rpc('adminUpdateRegistrationStatus',TOKEN,CID,id,status,x.value||'');hide();await Swal.fire({icon:'success',title:'ดำเนินการเรียบร้อย',html:`สถานะใหม่: <b>${esc(r.newStatus)}</b>${r.mealPass?.sent?'<br>ส่งคูปองอาหารอัตโนมัติแล้ว':''}`,confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
-async function openRegistrationEdit(id){show('กำลังเปิดข้อมูล');try{const d=await rpc('adminGetRegistration',TOKEN,CID,id);hide();const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');const html=`<div class="edit-grid"><label>ประเภทผู้สมัคร<select id="erType">${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}</select></label><label>คำนำหน้า<select id="erPrefix">${optionHtml(o.prefixes,r.Prefix)}</select></label><label>ชื่อ<input id="erFirst" value="${esc(r.FirstName)}"></label><label>นามสกุล<input id="erLast" value="${esc(r.LastName)}"></label><label>เลขบัตรประชาชน<input id="erCid" value="${esc(r.CID)}" maxlength="13"></label><label>ตำแหน่ง<input id="erPosition" list="erPositions" value="${esc(r.Position)}">${dataList('erPositions',o.positions)}</label><label>วิชาชีพ<input id="erProfession" list="erProfessions" value="${esc(r.Profession)}">${dataList('erProfessions',o.professions)}</label><label>ฝ่าย/กลุ่มงาน<input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}">${dataList('erGroups',o.organizationGroups)}</label><label>หน่วยงาน/สถาบัน<input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}">${dataList('erOrgs',o.organizations)}</label><label>เลขใบประกอบวิชาชีพ<input id="erLicense" value="${esc(r.LicenseNo)}"></label><label>โทรศัพท์<input id="erPhone" value="${esc(r.Phone)}"></label><label>Email<input id="erEmail" value="${esc(r.Email)}"></label><label>Line ID<input id="erLine" value="${esc(r.LineID)}"></label><label>ประเภทอาหาร<select id="erFood">${optionHtml(o.foodTypes,r.FoodType)}</select></label><label>รายละเอียดแพ้อาหาร<input id="erAllergy" value="${esc(r.FoodAllergyDetail)}"></label></div><div class="attendance-edit">${dates.slice(0,3).map((date,i)=>`<label><input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}</label>`).join('')}<label><input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงาน</label></div>`;const x=await Swal.fire({title:`แก้ไข ${esc(id)}`,html,customClass:{popup:'swal-wide'},showCancelButton:true,confirmButtonText:'บันทึกข้อมูล',confirmButtonColor:'#006D70',preConfirm:()=>({ParticipantType:$('#erType').value,Prefix:$('#erPrefix').value,FirstName:$('#erFirst').value,LastName:$('#erLast').value,CID:$('#erCid').value,Position:$('#erPosition').value,Profession:$('#erProfession').value,OrganizationGroup:$('#erGroup').value,OrganizationUnit:$('#erOrg').value,Institution:$('#erOrg').value,LicenseNo:$('#erLicense').value,Phone:$('#erPhone').value,Email:$('#erEmail').value,LineID:$('#erLine').value,FoodType:$('#erFood').value,FoodAllergyDetail:$('#erAllergy').value,AttendanceDay1:$('#erDay1')?.checked||false,AttendanceDay2:$('#erDay2')?.checked||false,AttendanceDay3:$('#erDay3')?.checked||false,WantsSubmitWork:$('#erWork').checked})});if(!x.isConfirmed)return;show('กำลังบันทึกข้อมูล');const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);hide();await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
+async function openRegistrationView(id){
+  show('กำลังเปิดข้อมูล');
+  try{
+    const d=await rpc('adminGetRegistration',TOKEN,CID,id);
+    hide();
+    const r=d.registration;
+    const types=d.registrationTypes||[];
+    const typeObj=types.find(t=>t.TypeCode===r.ParticipantType)||{};
+    const dates=JSON.parse(BOOT.settings?.EVENT_DATES_JSON||'[]');
+    const attendances=[];
+    for(let i=1;i<=3;i++){
+      if(r['AttendanceDay'+i]){
+        const dateStr=dates[i-1]?formatBeIsoDate(dates[i-1]):('วันที่ '+i);
+        attendances.push(`วันที่ ${i} (${dateStr})`);
+      }
+    }
+    const html=`<div style="text-align:left;font-size:0.92rem;line-height:1.6;max-height:70vh;overflow-y:auto;padding-right:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:12px">
+        <div>
+          <h3 style="margin:0;color:#006D70;font-size:1.15rem">${esc(r.FullName||'-')}</h3>
+          <span class="muted" style="font-size:0.85rem">รหัส: <b>${esc(r.RegID)}</b> | ประเภท: <b>${esc(typeObj.TypeNameTH||r.ParticipantType||'-')}</b></span>
+        </div>
+        <div>
+          ${statusBadge(r.RegistrationStatus)} ${statusBadge(r.PaymentStatus)}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><b>เลขบัตร ปชช. / CID:</b> ${esc(r.CID||'-')}</div>
+        <div><b>เบอร์โทรศัพท์:</b> ${esc(r.Phone||'-')}</div>
+        <div><b>Email:</b> ${esc(r.Email||'-')}</div>
+        <div><b>Line ID:</b> ${esc(r.LineID||'-')}</div>
+        <div><b>ตำแหน่ง:</b> ${esc(r.Position||'-')}</div>
+        <div><b>วิชาชีพ:</b> ${esc(r.Profession||'-')}</div>
+        <div><b>ฝ่าย / กลุ่มงาน:</b> ${esc(r.OrganizationGroup||'-')}</div>
+        <div><b>หน่วยงาน / สถาบัน:</b> ${esc(r.Institution||r.OrganizationUnit||'-')}</div>
+        <div><b>เลขใบประกอบวิชาชีพ:</b> ${esc(r.LicenseNo||'-')}</div>
+        <div><b>ประเภทอาหาร:</b> ${esc(r.FoodType||'-')}</div>
+        <div style="grid-column:span 2"><b>รายละเอียดแพ้อาหาร:</b> ${esc(r.FoodAllergyDetail||'-')}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:12px;border:1px solid #e2e8f0">
+        <div style="font-weight:600;color:#334155;margin-bottom:6px">🗓️ วันที่เข้าร่วมงาน & ผลงาน</div>
+        <div><b>วันเข้าร่วม:</b> ${attendances.length?attendances.join(', '):'<span style="color:#ef4444">ไม่ระบุ</span>'}</div>
+        <div><b>ความประสงค์ส่งผลงาน:</b> ${r.WantsSubmitWork?'<span style="color:#006D70;font-weight:bold">ประสงค์ส่งผลงาน</span>':'ไม่ประสงค์ส่งผลงาน'}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:12px;border:1px solid #e2e8f0">
+        <div style="font-weight:600;color:#334155;margin-bottom:6px">🧾 ข้อมูลการออกใบเสร็จรับเงิน</div>
+        <div><b>ความประสงค์:</b> ${r.ReceiptRequirement==='NEED_RECEIPT'?'<span style="color:#006D70;font-weight:bold">ต้องการออกใบเสร็จ</span>':'ไม่ออกใบเสร็จ'}</div>
+        ${r.ReceiptRequirement==='NEED_RECEIPT'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <div><b>ชื่อออกใบเสร็จ:</b> ${esc(r.ReceiptName||'-')}</div>
+          <div><b>เลขประจำตัวผู้เสียภาษี:</b> ${esc(r.ReceiptTaxID||r.ReceiptTaxId||'-')}</div>
+          <div><b>เบอร์โทรศัพท์ใบเสร็จ:</b> ${esc(r.ReceiptPhone||'-')}</div>
+          <div><b>รหัสไปรษณีย์:</b> ${esc(r.ReceiptPostalCode||'-')}</div>
+          <div style="grid-column:span 2"><b>ที่อยู่ออกใบเสร็จ:</b> ${esc(r.ReceiptAddress||'-')}</div>
+        </div>`:''}
+      </div>
+      <div style="font-size:0.8rem;color:#64748b;display:flex;justify-content:space-between">
+        <span>ลงทะเบียนเมื่อ: ${esc(formatBeDateTime(r.CreatedAt))}</span>
+        <span>แก้ไขล่าสุด: ${esc(formatBeDateTime(r.UpdatedAt))} (${esc(r.LastModifiedBy||'-')})</span>
+      </div>
+    </div>`;
+    const res=await Swal.fire({
+      title:`รายละเอียดผู้ลงทะเบียน ${esc(id)}`,
+      html,
+      customClass:{popup:'swal-wide'},
+      confirmButtonText:'ปิด',
+      confirmButtonColor:'#006D70',
+      showDenyButton:true,
+      denyButtonText:'แก้ไขข้อมูล',
+      denyButtonColor:'#1976D2'
+    });
+    if(res.isDenied) openRegistrationEdit(id);
+  }catch(e){err(e)}
+}
+async function openRegistrationEdit(id){show('กำลังเปิดข้อมูล');try{const d=await rpc('adminGetRegistration',TOKEN,CID,id);hide();const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');const html=`<div class="edit-grid"><label>ประเภทผู้สมัคร<select id="erType">${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}</select></label><label>คำนำหน้า<select id="erPrefix">${optionHtml(o.prefixes,r.Prefix)}</select></label><label>ชื่อ<input id="erFirst" value="${esc(r.FirstName)}"></label><label>นามสกุล<input id="erLast" value="${esc(r.LastName)}"></label><label>เลขบัตรประชาชน<input id="erCid" value="${esc(r.CID)}" maxlength="13"></label><label>ตำแหน่ง<input id="erPosition" list="erPositions" value="${esc(r.Position)}">${dataList('erPositions',o.positions)}</label><label>วิชาชีพ<input id="erProfession" list="erProfessions" value="${esc(r.Profession)}">${dataList('erProfessions',o.professions)}</label><label>ฝ่าย/กลุ่มงาน<input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}">${dataList('erGroups',o.organizationGroups)}</label><label>หน่วยงาน/สถาบัน<input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}">${dataList('erOrgs',o.organizations)}</label><label>เลขใบประกอบวิชาชีพ<input id="erLicense" value="${esc(r.LicenseNo)}"></label><label>โทรศัพท์<input id="erPhone" value="${esc(r.Phone)}"></label><label>Email<input id="erEmail" value="${esc(r.Email)}"></label><label>Line ID<input id="erLine" value="${esc(r.LineID)}"></label><label>ประเภทอาหาร<select id="erFood">${optionHtml(o.foodTypes,r.FoodType)}</select></label><label>รายละเอียดแพ้อาหาร<input id="erAllergy" value="${esc(r.FoodAllergyDetail)}"></label></div><div class="attendance-edit">${dates.slice(0,3).map((date,i)=>`<label><input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}</label>`).join('')}<label><input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงาน</label></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid #ddd"><div style="font-weight:bold;margin-bottom:8px">ข้อมูลใบเสร็จรับเงิน</div><div class="edit-grid"><label>ความต้องการใบเสร็จ<select id="erReceiptReq"><option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ</option><option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จ</option></select></label><label>ชื่อออกใบเสร็จ<input id="erReceiptName" value="${esc(r.ReceiptName||'')}"></label><label>เลขผู้เสียภาษี / บัตร ปชช.<input id="erReceiptTaxId" value="${esc(r.ReceiptTaxID||r.ReceiptTaxId||'')}" maxlength="13"></label><label>เบอร์โทรศัพท์ใบเสร็จ<input id="erReceiptPhone" value="${esc(r.ReceiptPhone||'')}"></label><label style="grid-column:span 2">ที่อยู่ออกใบเสร็จ<textarea id="erReceiptAddress" rows="2">${esc(r.ReceiptAddress||'')}</textarea></label><label>รหัสไปรษณีย์<input id="erReceiptPostalCode" value="${esc(r.ReceiptPostalCode||'')}" maxlength="5"></label></div></div>`;const x=await Swal.fire({title:`แก้ไข ${esc(id)}`,html,customClass:{popup:'swal-wide'},showCancelButton:true,confirmButtonText:'บันทึกข้อมูล',confirmButtonColor:'#006D70',preConfirm:()=>({ParticipantType:$('#erType').value,Prefix:$('#erPrefix').value,FirstName:$('#erFirst').value,LastName:$('#erLast').value,CID:$('#erCid').value,Position:$('#erPosition').value,Profession:$('#erProfession').value,OrganizationGroup:$('#erGroup').value,OrganizationUnit:$('#erOrg').value,Institution:$('#erOrg').value,LicenseNo:$('#erLicense').value,Phone:$('#erPhone').value,Email:$('#erEmail').value,LineID:$('#erLine').value,FoodType:$('#erFood').value,FoodAllergyDetail:$('#erAllergy').value,AttendanceDay1:$('#erDay1')?.checked||false,AttendanceDay2:$('#erDay2')?.checked||false,AttendanceDay3:$('#erDay3')?.checked||false,WantsSubmitWork:$('#erWork').checked,ReceiptRequirement:$('#erReceiptReq').value,ReceiptName:$('#erReceiptName').value,ReceiptTaxID:$('#erReceiptTaxId').value,ReceiptPhone:$('#erReceiptPhone').value,ReceiptAddress:$('#erReceiptAddress').value,ReceiptPostalCode:$('#erReceiptPostalCode').value})});if(!x.isConfirmed)return;show('กำลังบันทึกข้อมูล');const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);hide();await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
 
 
 function beDateOnly(v){const d=parseStoredDate(v);if(!d)return String(v||'');return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()+543}`}
