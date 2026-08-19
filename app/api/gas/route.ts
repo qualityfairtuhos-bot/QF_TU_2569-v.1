@@ -11,8 +11,9 @@ const buckets=new Map<string,{count:number;reset:number}>();
 
 // Fast in-memory cache for read-heavy public responses
 const memoryCache=new Map<string,{data:ApiResponse<unknown>;expiresAt:number}>();
+const lastKnownGood=new Map<string,ApiResponse<unknown>>();
 const CACHEABLE_ACTIONS=new Set(["getPublicBootstrap","getPublicAnnouncement"]);
-const CACHE_TTL_MS=60_000; // 60 seconds
+const CACHE_TTL_MS=300_000; // 5 minutes
 
 function getCachedResponse(action:string,args:unknown[]){
   if(!CACHEABLE_ACTIONS.has(action))return null;
@@ -29,6 +30,7 @@ function setCachedResponse(action:string,args:unknown[],data:ApiResponse<unknown
   if(!CACHEABLE_ACTIONS.has(action)||!data.success)return;
   const key=`${action}:${JSON.stringify(args)}`;
   memoryCache.set(key,{data,expiresAt:Date.now()+CACHE_TTL_MS});
+  lastKnownGood.set(key,data);
 }
 
 function invalidateServerCache(action:string){
@@ -50,6 +52,9 @@ async function callGas(payload:RpcRequest&{secret:string},attempts:number){
   const url=process.env.GAS_WEB_APP_URL;
   if(!url||!/\/exec(?:\?|$)/.test(url))throw new Error("GAS_NOT_CONFIGURED");
   for(let attempt=0;attempt<attempts;attempt+=1){
+    if(attempt>0){
+      await new Promise((r)=>setTimeout(r,attempt*700+Math.floor(Math.random()*200)));
+    }
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),GAS_TIMEOUT_MS);
     try{
       const response=await fetch(url,{
@@ -82,6 +87,8 @@ export async function POST(request:NextRequest){
   const args=Array.isArray(input.args)?[...input.args]:[];
   if(args.length>20)return failure("จำนวนพารามิเตอร์ไม่ถูกต้อง","VALIDATION_ERROR",400,requestId);
 
+  const cacheKey=`${action}:${JSON.stringify(args)}`;
+
   // Check in-memory cache for fast read actions
   const cached=getCachedResponse(action,args);
   if(cached){
@@ -97,7 +104,7 @@ export async function POST(request:NextRequest){
   if(!secret)return failure("ยังไม่ได้ตั้งค่าการเชื่อมต่อ Backend","SERVER_NOT_CONFIGURED",503,requestId);
   const outbound={action,args,requestId:typeof input.requestId==="string"?input.requestId:requestId,timestamp:Date.now(),secret};
   try{
-    const result=await callGas(outbound,READ_ACTIONS.has(action)?2:1);
+    const result=await callGas(outbound,READ_ACTIONS.has(action)?3:2);
     if(result.success){
       setCachedResponse(action,args,result);
       invalidateServerCache(action);
@@ -111,5 +118,12 @@ export async function POST(request:NextRequest){
     const response=NextResponse.json(result,{status:result.success?200:400});
     if(action==="logoutUser")clearSessionCookie(response);
     return response;
-  }catch{return failure("ไม่สามารถเชื่อมต่อระบบส่วนกลางได้ กรุณาลองใหม่","UPSTREAM_ERROR",502,requestId)}
+  }catch{
+    // If upstream call fails, check if we have a last known good cached response for read actions
+    if(lastKnownGood.has(cacheKey)){
+      const fallback=lastKnownGood.get(cacheKey)!;
+      return NextResponse.json(fallback,{status:200,headers:{"X-Fallback":"true"}});
+    }
+    return failure("ไม่สามารถเชื่อมต่อระบบส่วนกลางได้ กรุณาลองใหม่","UPSTREAM_ERROR",502,requestId);
+  }
 }

@@ -161,7 +161,9 @@
   <section class="page active" id="page-home"><div class="card"><div class="section-title"><b>ระบบบริการผู้เข้าร่วมงาน</b><span class="en">Participant services</span></div><div class="grid3"><button class="btn btn-primary" onclick="go('register')">ลงทะเบียน<span class="en">Registration</span></button><button class="btn btn-blue" onclick="go('status')">แก้ไขข้อมูล / ตรวจสอบสถานะ<span class="en">Edit profile / Check status</span></button><button class="btn btn-gold" onclick="go('work')">ส่งผลงาน<span class="en">Submit work</span></button></div></div></section>
 
   <section class="page" id="page-register"><div class="card"><div class="section-title"><b>ลงทะเบียนเข้าร่วมงาน</b><span class="en">Conference registration</span></div>
+    <div id="regBootStatus" class="notice" style="display:none;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;margin-bottom:15px;align-items:center;gap:10px;font-size:0.95rem;padding:12px 16px;border-radius:10px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:1.1rem"></i> <span>กำลังโหลดข้อมูลตัวเลือกและวันจัดงาน กรุณารอสักครู่...</span></div>
     <form id="regForm">
+      <fieldset id="regFieldSet" style="border:none;padding:0;margin:0">
       <!-- ส่วนที่ 1: ข้อมูลผู้สมัครและสังกัดหน่วยงาน -->
       <div class="form-section">
         <div class="form-section-header"><span class="sec-badge">1</span><span>ข้อมูลผู้สมัครและสังกัดหน่วยงาน</span><span class="en" style="margin-left:auto;font-size:0.85rem;color:#718797">Participant & Organization</span></div>
@@ -231,6 +233,7 @@
       </div>
 
       <div class="actions" style="margin-top:18px"><button class="btn btn-primary" type="submit" style="padding:13px 28px;font-size:1.05rem">บันทึกการลงทะเบียน<span class="en">Submit registration</span></button></div>
+      </fieldset>
     </form>
   </div></section>
 
@@ -278,7 +281,7 @@ const HACC_LOGO='/images/hacc-logo.png';
 let BOOT=null;
 let HERO_INDEX=0,HERO_TIMER=null,PDPA_READ=false;
 const $=s=>document.querySelector(s);
-async function rpc(n,...a){const response=await fetch('/api/gas',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({action:n,args:a,requestId:crypto.randomUUID(),timestamp:Date.now()})});let result;try{result=await response.json()}catch(e){throw new Error('การตอบกลับจากระบบไม่ถูกต้อง')}if(!response.ok||!result.success)throw new Error(result.message||'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ');return result.data}
+async function rpc(n,...a){const maxRetries=/^(get|lookup|inspect|adminList|adminGet|reviewerGet)/.test(n)?3:1;let lastErr=null;for(let attempt=0;attempt<maxRetries;attempt++){if(attempt>0){await new Promise(r=>setTimeout(r,attempt*700+Math.floor(Math.random()*200)))}try{const response=await fetch('/api/gas',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({action:n,args:a,requestId:crypto.randomUUID(),timestamp:Date.now()})});let result;try{result=await response.json()}catch(e){throw new Error('การตอบกลับจากระบบไม่ถูกต้อง')}if(!response.ok||!result.success){throw new Error(result.message||'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ')}return result.data}catch(err){lastErr=err;if(attempt+1>=maxRetries)throw err}}throw lastErr||new Error('เกิดข้อผิดพลาดในการเชื่อมต่อระบบ')}
 function load(t){$('#loadingText').textContent=t||'กำลังประมวลผล';$('#loading').classList.add('show')}
 function done(){$('#loading').classList.remove('show')}
 function alertErr(e){done();Swal.fire({icon:'error',title:'ไม่สามารถดำเนินการได้',text:e.message||String(e),confirmButtonColor:'#006D70'})}
@@ -335,25 +338,72 @@ function renderConfiguredRegistrationOptions(){
   fillSelect($('#prefixSelect'),prefixes,'-- เลือกคำนำหน้า --');fillSelect($('#foodTypeSelect'),foods,'-- เลือกประเภทอาหาร --');
   $('#positionList').innerHTML=optionTags(positions);$('#professionList').innerHTML=optionTags(professions);$('#groupList').innerHTML=optionTags(configuredGroups.length?configuredGroups:sheetGroups);$('#unitList').innerHTML=optionTags(configuredOrgs.length?configuredOrgs:sheetOrgs);
 }
-async function init(){try{
-  renderCurrentDate();
-  setHeroSlide(0);startHeroCarousel();resetConsentState();
-  BOOT=await rpc('getPublicBootstrap',CID);
-  $('#heroLeftLogo').src=BOOT.conference.LogoUrl||DEFAULT_LOGO;
-  $('#heroRightLogo').src=HACC_LOGO;
+function applyBootData(data){
+  if(!data||!data.conference)return;
+  BOOT=data;
+  const leftLogo=$('#heroLeftLogo');if(leftLogo)leftLogo.src=BOOT.conference.LogoUrl||DEFAULT_LOGO;
+  const rightLogo=$('#heroRightLogo');if(rightLogo)rightLogo.src=HACC_LOGO;
   renderConferenceTitle(BOOT.conference.ConferenceNameTH||'');
-  $('#confDesc').textContent=BOOT.conference.DescriptionTH||'';
+  const desc=$('#confDesc');if(desc)desc.textContent=BOOT.conference.DescriptionTH||'';
   const dates=getEventDates();
   renderAnnouncement();
-  $('#confMeta').innerHTML='<span class="pill">'+esc(BOOT.conference.Venue||'กำหนดสถานที่ภายหลัง')+'</span>'+eventRangeHtml(dates);
+  const meta=$('#confMeta');if(meta)meta.innerHTML='<span class="pill">'+esc(BOOT.conference.Venue||'กำหนดสถานที่ภายหลัง')+'</span>'+eventRangeHtml(dates);
   document.documentElement.style.setProperty('--blue',BOOT.conference.PrimaryColor||'#0C385B');
   document.documentElement.style.setProperty('--teal',BOOT.conference.SecondaryColor||'#006D70');
   const pages=[['home','หน้าหลัก','Home'],['register','ลงทะเบียน','Registration'],['status','แก้ไข/สถานะ','Edit/Status'],['payment','ชำระเงิน','Payment'],['work','ส่งผลงาน','Submit work'],['author-status','สถานะผลงาน','Work Status'],['pass','คูปองอาหาร','Meal pass']];
-  $('#nav').innerHTML=pages.map((p,i)=>`<button data-page="${p[0]}" class="${i===0?'active':''}" onclick="go('${p[0]}')">${p[1]}<span class="en">${p[2]}</span></button>`).join('');
-  $('#participantType').innerHTML='<option value="">-- เลือก --</option>'+BOOT.registrationTypes.map(x=>`<option value="${esc(x.TypeCode)}">${esc(x.TypeNameTH)} (${Number(x.FeeAmount||0).toLocaleString('th-TH')} บาท)</option>`).join('');
+  const nav=$('#nav');if(nav)nav.innerHTML=pages.map((p,i)=>`<button data-page="${p[0]}" class="${i===0?'active':''}" onclick="go('${p[0]}')">${p[1]}<span class="en">${p[2]}</span></button>`).join('');
+  const pType=$('#participantType');
+  if(pType&&Array.isArray(BOOT.registrationTypes)&&BOOT.registrationTypes.length){
+    pType.innerHTML='<option value="">-- เลือกประเภทผู้สมัคร --</option>'+BOOT.registrationTypes.map(x=>`<option value="${esc(x.TypeCode)}">${esc(x.TypeNameTH)} (${Number(x.FeeAmount||0).toLocaleString('th-TH')} บาท)</option>`).join('');
+  }
   renderConfiguredRegistrationOptions();
   renderAttendanceDates();
-}catch(e){alertErr(e)}}
+
+  const fs=$('#regFieldSet');if(fs)fs.disabled=false;
+  const statusEl=$('#regBootStatus');if(statusEl)statusEl.style.display='none';
+}
+
+async function init(){
+  renderCurrentDate();
+  setHeroSlide(0);startHeroCarousel();resetConsentState();
+
+  let hasCachedBoot=false;
+  try{
+    const rawCache=localStorage.getItem('TUH_BOOT_CACHE_'+CID);
+    if(rawCache){
+      const parsed=JSON.parse(rawCache);
+      if(parsed&&parsed.conference){
+        applyBootData(parsed);
+        hasCachedBoot=true;
+      }
+    }
+  }catch(e){}
+
+  if(!hasCachedBoot){
+    const fs=$('#regFieldSet');if(fs)fs.disabled=true;
+    const statusEl=$('#regBootStatus');if(statusEl)statusEl.style.display='flex';
+  }
+
+  try{
+    const freshBoot=await rpc('getPublicBootstrap',CID);
+    if(freshBoot&&freshBoot.conference){
+      try{localStorage.setItem('TUH_BOOT_CACHE_'+CID,JSON.stringify(freshBoot))}catch(e){}
+      applyBootData(freshBoot);
+    }
+  }catch(e){
+    if(!hasCachedBoot){
+      const statusEl=$('#regBootStatus');
+      if(statusEl){
+        statusEl.style.display='flex';
+        statusEl.style.background='#fef2f2';
+        statusEl.style.color='#991b1b';
+        statusEl.style.borderColor='#fecaca';
+        statusEl.innerHTML=`<i class="fa-solid fa-triangle-exclamation"></i> <span>ไม่สามารถเชื่อมต่อข้อมูลตัวเลือกได้ในขณะนี้ <button type="button" class="btn btn-sm btn-soft" style="margin-left:10px;padding:4px 10px;" onclick="init()">ลองใหม่</button></span>`;
+      }
+      alertErr(e);
+    }
+  }
+}
 
 $('#regForm').addEventListener('submit',async e=>{e.preventDefault();const consent=$('#consentAccepted');if(!PDPA_READ||!consent||!consent.checked)return Swal.fire({icon:'warning',title:'กรุณาอ่านและให้ความยินยอม',text:'โปรดกดเปิดอ่านข้อความขอความยินยอม อ่านรายละเอียด แล้วเลือกช่องให้ความยินยอมก่อนบันทึก',confirmButtonColor:'#006D70'});const selected=[...e.target.querySelectorAll('#attendanceDates input[type=checkbox]')].some(x=>x.checked);if(!selected)return Swal.fire({icon:'warning',title:'กรุณาเลือกวันเข้าร่วมงาน',confirmButtonColor:'#006D70'});load('กำลังบันทึกการลงทะเบียน');try{const r=await rpc('submitRegistration',CID,formObj(e.target));done();await Swal.fire({icon:'success',title:'ลงทะเบียนสำเร็จ',html:`เลขลงทะเบียน <b>${esc(r.RegID)}</b><br>รหัสแก้ไข <b>${esc(r.EditCode)}</b>${r.warnings?.length?'<br><small>'+r.warnings.map(esc).join('<br>')+'</small>':''}`,confirmButtonColor:'#006D70'});e.target.reset();renderAttendanceDates();resetConsentState();go('status');$('#statusRegId').value=r.RegID}catch(x){alertErr(x)}});
 async function lookupStatus(){load('กำลังค้นหาข้อมูล');try{const r=await rpc('lookupRegistrationForEdit',CID,$('#statusRegId').value,$('#statusKey').value,$('#statusCode').value);done();renderStatus(r)}catch(e){alertErr(e)}}
