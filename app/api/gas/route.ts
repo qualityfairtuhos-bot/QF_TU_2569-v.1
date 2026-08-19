@@ -9,14 +9,20 @@ export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const buckets=new Map<string,{count:number;reset:number}>();
 
-// Fast in-memory cache for read-heavy public responses
+// Fast in-memory cache for read-heavy responses
 const memoryCache=new Map<string,{data:ApiResponse<unknown>;expiresAt:number}>();
 const lastKnownGood=new Map<string,ApiResponse<unknown>>();
-const CACHEABLE_ACTIONS=new Set(["getPublicBootstrap","getPublicAnnouncement"]);
-const CACHE_TTL_MS=300_000; // 5 minutes
+const CACHE_TTLS:Record<string,number>={
+  getPublicBootstrap: 300_000,
+  getPublicAnnouncement: 300_000,
+  adminBootstrap: 180_000,
+  adminDashboard: 45_000,
+  getAdminSettings: 120_000
+};
 
 function getCachedResponse(action:string,args:unknown[]){
-  if(!CACHEABLE_ACTIONS.has(action))return null;
+  const ttl=CACHE_TTLS[action];
+  if(!ttl)return null;
   const key=`${action}:${JSON.stringify(args)}`;
   const item=memoryCache.get(key);
   if(item&&item.expiresAt>Date.now()){
@@ -27,15 +33,16 @@ function getCachedResponse(action:string,args:unknown[]){
 }
 
 function setCachedResponse(action:string,args:unknown[],data:ApiResponse<unknown>){
-  if(!CACHEABLE_ACTIONS.has(action)||!data.success)return;
+  const ttl=CACHE_TTLS[action];
+  if(!ttl||!data.success)return;
   const key=`${action}:${JSON.stringify(args)}`;
-  memoryCache.set(key,{data,expiresAt:Date.now()+CACHE_TTL_MS});
+  memoryCache.set(key,{data,expiresAt:Date.now()+ttl});
   lastKnownGood.set(key,data);
 }
 
 function invalidateServerCache(action:string){
-  // If a write occurs that affects public data or settings, clear memory cache
-  if(/saveAdminSettings|submitRegistration|update|import|seed|init/i.test(action)){
+  // If a write occurs, clear memory cache
+  if(/save|submit|update|import|seed|init|add|revoke|delete|upload|replace|send/i.test(action)){
     memoryCache.clear();
   }
 }

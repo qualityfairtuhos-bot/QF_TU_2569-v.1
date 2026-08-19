@@ -633,7 +633,17 @@ function loginUser(username,password,conferenceId,clientInfo){
     appendRecord_('Sessions',sessionRec);
     updateRecord_('Users',user.__row,{LastLogin:new Date(),UpdatedAt:new Date()});
     cacheSessionContext_(tokenHash,{session:sessionRec,user:user,role:resolvedRole,conferenceId:cid});
-    return {token:token,conferenceId:cid,role:resolvedRole,user:{UserID:user.UserID,FullName:user.FullName,Email:user.Email,Role:resolvedRole}};
+    const conf = findOne_('Conferences', {ConferenceID: cid});
+    const settings = settingsMap_(cid);
+    return {
+      token: token,
+      conferenceId: cid,
+      role: resolvedRole,
+      user: {UserID: user.UserID, FullName: user.FullName, Email: user.Email, Role: resolvedRole},
+      conference: serialize_(conf),
+      settings: settings,
+      optionConfig: getRegistrationOptionMap_(cid)
+    };
   });
 }
 function requireSession_(token,roles,conferenceId){
@@ -2032,56 +2042,65 @@ function normalizePublicWebAppUrl_(value){
   if(!url)return '';
   try{url=decodeURIComponent(url);}catch(ignore){}
   url=url.replace(/\s+/g,'').replace(/\/u\/\d+\//g,'/');
-  url=url.split('#')[0].split('?')[0].replace(/\/$/,'');
+  url=url.split('#')[0].split('?')[0].replace(/\/+$/,'');
   url=url.replace(/\/dev$/i,'/exec');
-  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/i.test(url))return '';
+  if(!/^https?:\/\/[A-Za-z0-9_.\-]+(?::\d+)?(?:\/[^\s]*)?$/i.test(url))return '';
   return url;
 }
 function getCanonicalWebAppUrl_(){
   const props=PropertiesService.getScriptProperties();
   const saved=normalizePublicWebAppUrl_(props.getProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL)||'');
   if(saved)return saved;
-  let deployed='';
-  try{deployed=normalizePublicWebAppUrl_(ScriptApp.getService().getUrl()||'');}catch(ignore){}
-  return deployed;
+  return 'https://qf-2569.vercel.app';
 }
 function setPublicWebAppUrl(url){
   return runSafely_('setPublicWebAppUrl',function(){
     const normalized=normalizePublicWebAppUrl_(url);
-    if(!normalized)throw new Error('กรุณาใส่ URL Web App ที่ลงท้ายด้วย /exec เท่านั้น');
+    if(!normalized)throw new Error('กรุณาระบุ URL ที่ถูกต้อง');
     PropertiesService.getScriptProperties().setProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL,normalized);
     return {url:normalized,public:buildWebAppRouteUrl_('public',APP.DEFAULT_CONFERENCE_ID,normalized),admin:buildWebAppRouteUrl_('admin',APP.DEFAULT_CONFERENCE_ID,normalized),reviewer:buildWebAppRouteUrl_('reviewer',APP.DEFAULT_CONFERENCE_ID,normalized),scanner:buildWebAppRouteUrl_('scanner',APP.DEFAULT_CONFERENCE_ID,normalized),launcher:buildWebAppRouteUrl_('launcher',APP.DEFAULT_CONFERENCE_ID,normalized)};
   });
 }
 function buildWebAppRouteUrl_(page,conferenceId,baseUrl,extra){
-  const base=normalizePublicWebAppUrl_(baseUrl||getCanonicalWebAppUrl_());
-  if(!base)return '';
-  const params=[];
+  let base=normalizePublicWebAppUrl_(baseUrl||getCanonicalWebAppUrl_());
+  if(!base) base = 'https://qf-2569.vercel.app';
+  const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID;
   const p=clean_(page||'public').toLowerCase();
-  if(p&&p!=='public')params.push('page='+encodeURIComponent(p));
-  params.push('conferenceId='+encodeURIComponent(conferenceId||APP.DEFAULT_CONFERENCE_ID));
+  const isGasExec=/script\.google\.com\/macros\/s\/[^\/]+\/exec/i.test(base);
+  let targetUrl=base;
+  const params=[];
+  if(isGasExec){
+    if(p&&p!=='public')params.push('page='+encodeURIComponent(p));
+  }else{
+    if(p&&p!=='public'){
+      targetUrl=base.replace(/\/+$/,'')+'/'+encodeURIComponent(p);
+    }else{
+      targetUrl=base.replace(/\/+$/,'');
+    }
+  }
+  params.push('conferenceId='+encodeURIComponent(cid));
   Object.keys(extra||{}).forEach(function(k){
     const v=extra[k];if(v!==undefined&&v!==null&&String(v)!=='')params.push(encodeURIComponent(k)+'='+encodeURIComponent(String(v)));
   });
-  return base+'?'+params.join('&');
+  return targetUrl+(params.length?(targetUrl.indexOf('?')>=0?'&':'?')+params.join('&'):'');
 }
 function getExternalAccessLinks(conferenceId){
   return runSafely_('getExternalAccessLinks',function(){
     const cid=conferenceId||APP.DEFAULT_CONFERENCE_ID,base=getCanonicalWebAppUrl_();
-    if(!base)throw new Error('ยังไม่ได้กำหนด PUBLIC_WEB_APP_URL กรุณารัน setPublicWebAppUrl ด้วย URL /exec');
+    if(!base)throw new Error('ยังไม่ได้กำหนด PUBLIC_WEB_APP_URL กรุณารัน setPublicWebAppUrl');
     return {base:base,public:buildWebAppRouteUrl_('public',cid,base),admin:buildWebAppRouteUrl_('admin',cid,base),reviewer:buildWebAppRouteUrl_('reviewer',cid,base),scanner:buildWebAppRouteUrl_('scanner',cid,base),launcher:buildWebAppRouteUrl_('launcher',cid,base)};
   });
 }
 function testExternalBrowserAccessV21(){
   return runSafely_('testExternalBrowserAccessV21',function(){
     const base=getCanonicalWebAppUrl_(),links=base?getExternalAccessLinks(APP.DEFAULT_CONFERENCE_ID).data:null;
-    return {success:!!base,version:APP.VERSION,canonicalUrl:base,links:links,requirements:['Deploy เป็น Web app','Execute as: Me','Who has access: Anyone','ใช้ URL /exec โดยตรง','Google Sites ใช้ปุ่มลิงก์หรือ Embed URL /exec เท่านั้น']};
+    return {success:!!base,version:APP.VERSION,canonicalUrl:base,links:links,requirements:['ใช้ https://qf-2569.vercel.app เป็น Web App หลัก','หรือกำหนด PUBLIC_WEB_APP_URL ใน Script Properties']};
   });
 }
 function upgradeTuhExternalBrowserAccessV21(publicExecUrl){
   return runSafely_('upgradeTuhExternalBrowserAccessV21',function(){
     const normalized=normalizePublicWebAppUrl_(publicExecUrl||getCanonicalWebAppUrl_());
-    if(!normalized)throw new Error('หลัง Deploy ให้คัดลอก URL ที่ลงท้าย /exec แล้วรัน upgradeTuhExternalBrowserAccessV21(URL)');
+    if(!normalized)throw new Error('กรุณาระบุ URL ที่ถูกต้อง');
     PropertiesService.getScriptProperties().setProperty(APP.PROPERTY_KEYS.PUBLIC_WEB_APP_URL,normalized);
     return {version:APP.VERSION,url:normalized,links:getExternalAccessLinks(APP.DEFAULT_CONFERENCE_ID).data};
   });
@@ -2092,14 +2111,28 @@ function doGet(e){
   const p=(e&&e.parameter)||{},page=String(p.page||'public').toLowerCase(),cid=p.conferenceId||APP.DEFAULT_CONFERENCE_ID;
   const file=page==='admin'?'admin':page==='reviewer'?'reviewer':page==='scanner'?'scanner':page==='launcher'?'launcher':'index';
   const base=getCanonicalWebAppUrl_();
-  const t=HtmlService.createTemplateFromFile(file);
-  t.conferenceId=cid;t.appName=APP.NAME_TH;t.version=APP.VERSION;t.appUrl=base;t.pageName=page;
-  t.directUrl=buildWebAppRouteUrl_(page,cid,base);
-  return t.evaluate()
-    .setTitle(APP.NAME_TH)
-    .addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover')
-    .addMetaTag('mobile-web-app-capable','yes')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  const directUrl=buildWebAppRouteUrl_(page,cid,base);
+  try {
+    const t=HtmlService.createTemplateFromFile(file);
+    t.conferenceId=cid;t.appName=APP.NAME_TH;t.version=APP.VERSION;t.appUrl=base;t.pageName=page;
+    t.directUrl=directUrl;
+    return t.evaluate()
+      .setTitle(APP.NAME_TH)
+      .addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover')
+      .addMetaTag('mobile-web-app-capable','yes')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch(err) {
+    const redirectHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<meta http-equiv="refresh" content="0;url=' + directUrl + '">' +
+      '<script>window.location.href=' + JSON.stringify(directUrl) + ';</script>' +
+      '</head><body style="font-family:sans-serif;text-align:center;padding:50px">' +
+      '<h3>กำลังนำท่านไปยังระบบ ' + htmlEscape_(APP.NAME_TH) + '...</h3>' +
+      '<p><a href="' + directUrl + '">คลิกที่นี่หากระบบไม่นำทางอัตโนมัติ</a></p>' +
+      '</body></html>';
+    return HtmlService.createHtmlOutput(redirectHtml)
+      .setTitle(APP.NAME_TH)
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
 }
 
 /** ===== 08_EventScanner_v1_8.gs ===== **/
