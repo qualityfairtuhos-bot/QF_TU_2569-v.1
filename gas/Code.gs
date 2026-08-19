@@ -2975,32 +2975,98 @@ function adminSendDirectEmail(token,conferenceId,to,subj,msg){
 function adminListUsers(token,conferenceId){
   return runSafely_('adminListUsers',function(){
     requireSession_(token,['SUPERADMIN'],conferenceId);
-    const roles = findMany_('UserConferenceRoles',{ConferenceID:conferenceId});
     const users = findMany_('Users',{});
-    const map = {}; users.forEach(u=>map[u.UserID]=u);
-    return serialize_(roles.map(r=>({UserID:r.UserID,Email:map[r.UserID]?map[r.UserID].Email:'',FullName:map[r.UserID]?map[r.UserID].FullName:'',Role:r.Role,Status:bool_(map[r.UserID]?map[r.UserID].IsActive:false)?'ACTIVE':'INACTIVE'})));
+    const roles = findMany_('UserConferenceRoles',{ConferenceID:conferenceId});
+    const roleMap = {};
+    roles.forEach(function(r){ if(r.UserID) roleMap[r.UserID] = r; });
+    
+    return serialize_(users.map(function(u){
+      const r = roleMap[u.UserID];
+      const role = r ? (r.Role || u.Role) : (u.Role || 'USER');
+      
+      let status = 'ACTIVE';
+      if (u.Status !== undefined && u.Status !== null && String(u.Status).trim() !== '') {
+        status = String(u.Status).toUpperCase().trim();
+      } else if (u.IsActive !== undefined && u.IsActive !== null && String(u.IsActive).trim() !== '') {
+        status = bool_(u.IsActive) ? 'ACTIVE' : 'INACTIVE';
+      }
+      
+      const fullName = u.FullName || [u.Prefix, u.FirstName, u.LastName].filter(Boolean).join(' ') || u.Username || u.Email || '-';
+      
+      return {
+        UserID: u.UserID,
+        Username: u.Username || '',
+        Email: u.Email || u.Username || '',
+        FullName: fullName,
+        Role: canonicalRole_(role),
+        Status: status
+      };
+    }));
   });
 }
 function adminAddUser(token,conferenceId,email,role){
   return runSafely_('adminAddUser',function(){
     requireSession_(token,['SUPERADMIN'],conferenceId);
     email=clean_(email).toLowerCase();
+    role = canonicalRole_(role || 'USER');
     let u = findOne_('Users',{Email:email});
     if(!u) {
-       u = {UserID:nextId_('USR'),Email:email,PasswordHash:hashPassword_(email),FullName:email.split('@')[0],IsActive:true,CreatedAt:new Date(),UpdatedAt:new Date()};
+       u = {UserID:nextId_('USR'),Email:email,Username:email,PasswordHash:hashPassword_(email),FullName:email.split('@')[0],Role:role,Status:'ACTIVE',IsActive:true,CreatedAt:new Date(),UpdatedAt:new Date()};
        appendRecord_('Users',u);
+    } else {
+       updateRecord_('Users',u.__row,{Role:role,Status:'ACTIVE',IsActive:true,UpdatedAt:new Date()});
     }
-    let r = findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID,Role:role});
-    if(!r) appendRecord_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID,Role:role,PermissionsJson:'{}',CreatedAt:new Date()});
+    let r = findOne_('UserConferenceRoles',{ConferenceID:conferenceId,UserID:u.UserID});
+    if(r) {
+      updateRecord_('UserConferenceRoles',r.__row,{Role:role,Status:'ACTIVE',UpdatedAt:new Date()});
+    } else {
+      appendRecord_('UserConferenceRoles',{UserConferenceRoleID:nextId_('UCR'),ConferenceID:conferenceId,UserID:u.UserID,Role:role,Status:'ACTIVE',PermissionsJson:'{}',CreatedAt:new Date(),UpdatedAt:new Date()});
+    }
     return {success:true};
   });
 }
-function adminUpdateUserStatus(token,conferenceId,userId,status){
+function adminUpdateUserStatus(token,conferenceId,userId,status,newRole){
   return runSafely_('adminUpdateUserStatus',function(){
     requireSession_(token,['SUPERADMIN'],conferenceId);
     let u = findOne_('Users',{UserID:userId});
-    if(u) updateRecord_('Users',u.__row,{IsActive:status==='ACTIVE',UpdatedAt:new Date()});
-    return {success:true};
+    if(!u) throw new Error('ไม่พบผู้ใช้งาน ' + userId);
+    
+    const updates = { UpdatedAt: new Date() };
+    if(status) {
+      status = String(status).toUpperCase().trim();
+      updates.Status = status;
+      updates.IsActive = (status === 'ACTIVE');
+    }
+    if(newRole) {
+      newRole = canonicalRole_(newRole);
+      updates.Role = newRole;
+    }
+    
+    updateRecord_('Users', u.__row, updates);
+    
+    let r = findOne_('UserConferenceRoles',{ConferenceID:conferenceId, UserID:userId});
+    const targetRole = updates.Role || (r ? r.Role : u.Role) || 'USER';
+    const targetStatus = updates.Status || (r ? r.Status : u.Status) || 'ACTIVE';
+    if(r) {
+      updateRecord_('UserConferenceRoles', r.__row, {
+        Role: targetRole,
+        Status: targetStatus,
+        UpdatedAt: new Date()
+      });
+    } else {
+      appendRecord_('UserConferenceRoles', {
+        UserConferenceRoleID: nextId_('UCR'),
+        ConferenceID: conferenceId,
+        UserID: userId,
+        Role: targetRole,
+        Status: targetStatus,
+        PermissionsJson: '{}',
+        CreatedAt: new Date(),
+        UpdatedAt: new Date()
+      });
+    }
+    
+    return {success:true, status: targetStatus, role: targetRole};
   });
 }
 function exportWorksToExcel(token,conferenceId){
