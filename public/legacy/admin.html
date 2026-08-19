@@ -308,8 +308,9 @@ async function openRegistrationView(id){
           <h3 style="margin:0;color:#006D70;font-size:1.15rem">${esc(r.FullName||'-')}</h3>
           <span class="muted" style="font-size:0.85rem">รหัส: <b>${esc(r.RegID)}</b> | ประเภท: <b>${esc(typeObj.TypeNameTH||r.ParticipantType||'-')}</b></span>
         </div>
-        <div>
+        <div style="display:flex;gap:6px;align-items:center">
           ${statusBadge(r.RegistrationStatus)} ${statusBadge(r.PaymentStatus)}
+          <button type="button" class="btn btn-primary btn-sm" onclick="printRegistrationSheet(LAST_VIEWED_REG_DATA)" style="padding:4px 10px;font-size:0.8rem;margin-left:4px">🖨️ พิมพ์ (A4)</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
@@ -346,18 +347,370 @@ async function openRegistrationView(id){
         <span>แก้ไขล่าสุด: ${esc(formatBeDateTime(r.UpdatedAt))} (${esc(r.LastModifiedBy||'-')})</span>
       </div>
     </div>`;
+    window.LAST_VIEWED_REG_DATA = d;
     const res=await Swal.fire({
       title:`รายละเอียดผู้ลงทะเบียน ${esc(id)}`,
       html,
       customClass:{popup:'swal-wide'},
-      confirmButtonText:'ปิด',
-      confirmButtonColor:'#006D70',
+      showCloseButton:true,
+      showCancelButton:true,
+      cancelButtonText:'🖨️ พิมพ์ (A4)',
+      cancelButtonColor:'#006D70',
       showDenyButton:true,
-      denyButtonText:'แก้ไขข้อมูล',
-      denyButtonColor:'#1976D2'
+      denyButtonText:'✏️ แก้ไขข้อมูล',
+      denyButtonColor:'#1976D2',
+      confirmButtonText:'ปิด',
+      confirmButtonColor:'#64748b'
     });
-    if(res.isDenied) openRegistrationEdit(id);
+    if(res.isDenied) {
+      openRegistrationEdit(id);
+    } else if(res.dismiss === Swal.DismissReason.cancel) {
+      printRegistrationSheet(d);
+    }
   }catch(e){err(e)}
+}
+
+function printRegistrationSheet(d){
+  if(!d||!d.registration) return Swal.fire({icon:'warning',title:'ไม่พบข้อมูลสำหรับพิมพ์'});
+  const win = window.open('', '_blank');
+  if(!win) return Swal.fire({icon:'warning', title:'เบราว์เซอร์บล็อกหน้าต่างใหม่', text:'กรุณาอนุญาต Pop-up แล้วลองใหม่อีกครั้ง'});
+  win.document.write('<p style="font-family:sans-serif;padding:20px">กำลังเตรียมเอกสารสำหรับพิมพ์...</p>');
+  renderRegistrationPrintWindow(win, d);
+}
+
+function renderRegistrationPrintWindow(win, d){
+  const r = d.registration || {};
+  const types = d.registrationTypes || [];
+  const typeObj = types.find(t => t.TypeCode === r.ParticipantType) || {};
+  const dates = JSON.parse(BOOT.settings?.EVENT_DATES_JSON || '[]');
+  const attendances = [];
+  for(let i = 1; i <= 3; i++){
+    if(r['AttendanceDay' + i]){
+      const dateStr = dates[i-1] ? formatBeIsoDate(dates[i-1]) : ('วันที่ ' + i);
+      attendances.push(`วันที่ ${i} (${dateStr})`);
+    }
+  }
+
+  const confNameTH = BOOT.conference?.ConferenceNameTH || 'การประชุมวิชาการ TUH Quality Fair';
+  const confNameEN = BOOT.conference?.ConferenceNameEN || 'TUH Quality Fair & HA-Regional Forum';
+  const shortName = BOOT.conference?.ShortName || 'TUH 19 & HA-Regional 1';
+  const fee = typeObj.PaymentRequired ? (Number(typeObj.FeeAmount || 0).toLocaleString('th-TH') + ' บาท') : 'ไม่เสียค่าลงทะเบียน';
+
+  const html = `<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>ใบสรุปข้อมูลการลงทะเบียน - ${esc(r.RegID)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 14mm 10mm 14mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Sarabun', 'Prompt', sans-serif;
+      color: #1e293b;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .print-container {
+      width: 100%;
+      max-width: 186mm;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #006D70;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .header-logos {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logos img {
+      height: 46px;
+      object-fit: contain;
+    }
+    .header-title {
+      text-align: right;
+    }
+    .header-title h1 {
+      margin: 0;
+      font-size: 14px;
+      color: #006D70;
+      font-weight: 700;
+    }
+    .header-title p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .doc-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 12px;
+      margin-bottom: 10px;
+    }
+    .doc-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .reg-badge {
+      font-size: 14px;
+      font-weight: 700;
+      color: #006D70;
+      background: #e6fffa;
+      padding: 2px 10px;
+      border-radius: 4px;
+      border: 1px solid #006D70;
+    }
+    .section {
+      margin-bottom: 9px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .section-head {
+      background: #f8fafc;
+      padding: 4px 10px;
+      font-weight: 700;
+      font-size: 12.5px;
+      color: #006D70;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .section-body {
+      padding: 6px 10px;
+    }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 14px;
+      row-gap: 5px;
+    }
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      column-gap: 10px;
+      row-gap: 5px;
+    }
+    .span2 { grid-column: span 2; }
+    .span3 { grid-column: span 3; }
+    .label {
+      font-weight: 600;
+      color: #475569;
+    }
+    .val {
+      color: #0f172a;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 4px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+    }
+    .official-box {
+      margin-top: 10px;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #fafafa;
+    }
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 18px;
+      text-align: center;
+    }
+    .sig-line {
+      border-bottom: 1px dotted #475569;
+      margin: 20px 20px 4px;
+    }
+    .footer-note {
+      text-align: right;
+      font-size: 9.5px;
+      color: #94a3b8;
+      margin-top: 8px;
+    }
+    .print-actions {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #fff;
+      padding: 8px 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      gap: 8px;
+      z-index: 999;
+    }
+    .btn-print {
+      background: #006D70;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-close {
+      background: #e2e8f0;
+      color: #334155;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    @media print {
+      .print-actions { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button class="btn-print" onclick="window.print()">🖨️ พิมพ์เอกสาร</button>
+    <button class="btn-close" onclick="window.close()">ปิดหน้าต่าง</button>
+  </div>
+
+  <div class="print-container">
+    <div class="header">
+      <div class="header-logos">
+        <img src="/images/tuh-logo.png" alt="TUH">
+        <img src="/images/hacc-logo.png" alt="HACC">
+      </div>
+      <div class="header-title">
+        <h1>${esc(confNameTH)}</h1>
+        <p>${esc(confNameEN)} (${esc(shortName)})</p>
+      </div>
+    </div>
+
+    <div class="doc-title-bar">
+      <div class="doc-title">ใบสรุปข้อมูลการลงทะเบียน (Registration Summary Sheet)</div>
+      <div class="reg-badge">RegID: ${esc(r.RegID)}</div>
+    </div>
+
+    <!-- 1. ข้อมูลส่วนตัวและสังกัด -->
+    <div class="section">
+      <div class="section-head">1. ข้อมูลผู้ลงทะเบียนและสังกัด</div>
+      <div class="section-body grid2">
+        <div><span class="label">ชื่อ-นามสกุล:</span> <span class="val"><b>${esc(r.FullName || ((r.Prefix||'')+' '+(r.FirstName||'')+' '+(r.LastName||'')).trim() || '-')}</b></span></div>
+        <div><span class="label">เลขประจำตัวประชาชน (CID):</span> <span class="val">${esc(r.CID || '-')}</span></div>
+        <div><span class="label">ประเภทผู้สมัคร:</span> <span class="val">${esc(typeObj.TypeNameTH || r.ParticipantType || '-')}</span></div>
+        <div><span class="label">ตำแหน่ง:</span> <span class="val">${esc(r.Position || '-')}</span></div>
+        <div><span class="label">วิชาชีพ:</span> <span class="val">${esc(r.Profession || '-')}</span></div>
+        <div><span class="label">เลขใบประกอบวิชาชีพ:</span> <span class="val">${esc(r.LicenseNo || '-')}</span></div>
+        <div><span class="label">ฝ่าย / กลุ่มงาน:</span> <span class="val">${esc(r.OrganizationGroup || '-')}</span></div>
+        <div><span class="label">หน่วยงาน / สถาบัน:</span> <span class="val">${esc(r.Institution || r.OrganizationUnit || '-')}</span></div>
+      </div>
+    </div>
+
+    <!-- 2. ข้อมูลการติดต่อและอาหาร -->
+    <div class="section">
+      <div class="section-head">2. ข้อมูลการติดต่อและอาหาร</div>
+      <div class="section-body grid3">
+        <div><span class="label">เบอร์โทรศัพท์:</span> <span class="val">${esc(r.Phone || '-')}</span></div>
+        <div><span class="label">อีเมล:</span> <span class="val">${esc(r.Email || '-')}</span></div>
+        <div><span class="label">Line ID:</span> <span class="val">${esc(r.LineID || '-')}</span></div>
+        <div><span class="label">ประเภทอาหาร:</span> <span class="val">${esc(r.FoodType || 'ทั่วไป')}</span></div>
+        <div class="span2"><span class="label">รายละเอียดแพ้อาหาร:</span> <span class="val">${esc(r.FoodAllergyDetail || 'ไม่มี')}</span></div>
+      </div>
+    </div>
+
+    <!-- 3. วันเข้าร่วมงาน & ผลงาน -->
+    <div class="section">
+      <div class="section-head">3. การเข้าร่วมงานและความประสงค์ส่งผลงาน</div>
+      <div class="section-body grid2">
+        <div><span class="label">วันที่เลือกเข้าร่วม:</span> <span class="val">${attendances.length ? attendances.join(', ') : '-'}</span></div>
+        <div><span class="label">ความประสงค์ส่งผลงาน:</span> <span class="val"><b>${r.WantsSubmitWork ? 'ประสงค์ส่งผลงาน' : 'ไม่ประสงค์ส่งผลงาน'}</b></span></div>
+      </div>
+    </div>
+
+    <!-- 4. ข้อมูลการออกใบเสร็จรับเงิน -->
+    <div class="section">
+      <div class="section-head">4. ข้อมูลการออกใบเสร็จรับเงิน (Receipt Details)</div>
+      <div class="section-body grid2">
+        <div><span class="label">ความประสงค์:</span> <span class="val"><b>${r.ReceiptRequirement === 'NEED_RECEIPT' ? 'ต้องการออกใบเสร็จ' : 'ไม่ออกใบเสร็จ'}</b></span></div>
+        <div><span class="label">ค่าธรรมเนียมลงทะเบียน:</span> <span class="val">${esc(fee)}</span></div>
+        ${r.ReceiptRequirement === 'NEED_RECEIPT' ? `
+          <div><span class="label">ชื่อออกใบเสร็จ:</span> <span class="val">${esc(r.ReceiptName || '-')}</span></div>
+          <div><span class="label">เลขประจำตัวผู้เสียภาษี:</span> <span class="val">${esc(r.ReceiptTaxID || r.ReceiptTaxId || '-')}</span></div>
+          <div><span class="label">เบอร์โทรศัพท์ใบเสร็จ:</span> <span class="val">${esc(r.ReceiptPhone || '-')}</span></div>
+          <div><span class="label">รหัสไปรษณีย์:</span> <span class="val">${esc(r.ReceiptPostalCode || '-')}</span></div>
+          <div class="span2"><span class="label">ที่อยู่ออกใบเสร็จ:</span> <span class="val">${esc(r.ReceiptAddress || '-')}</span></div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- 5. สถานะระบบ -->
+    <div class="section">
+      <div class="section-head">5. สถานะในระบบและประวัติเวลา</div>
+      <div class="section-body grid3">
+        <div><span class="label">ความสมบูรณ์ข้อมูล:</span> <span class="val status-pill">${esc(r.DataCompletenessStatus || '-')}</span></div>
+        <div><span class="label">สถานะการลงทะเบียน:</span> <span class="val status-pill">${esc(r.RegistrationStatus || '-')}</span></div>
+        <div><span class="label">สถานะการชำระเงิน:</span> <span class="val status-pill">${esc(r.PaymentStatus || '-')}</span></div>
+        <div><span class="label">วันที่ลงทะเบียน:</span> <span class="val">${esc(formatBeDateTime(r.CreatedAt))}</span></div>
+        <div class="span2"><span class="label">แก้ไขล่าสุด:</span> <span class="val">${esc(formatBeDateTime(r.UpdatedAt))} (${esc(r.LastModifiedBy || '-')})</span></div>
+      </div>
+    </div>
+
+    <!-- 6. ส่วนสำหรับเจ้าหน้าที่ฝ่ายทะเบียน -->
+    <div class="official-box">
+      <div style="font-weight:700; font-size:11.5px; color:#475569; margin-bottom:2px;">สำหรับเจ้าหน้าที่ฝ่ายทะเบียน / การเงิน (Official Use Only)</div>
+      <div class="signatures">
+        <div>
+          <div class="sig-line"></div>
+          <div>(.......................................................................)</div>
+          <div style="font-size:10.5px; margin-top:2px; color:#64748b;">เจ้าหน้าที่ผู้ตรวจสอบข้อมูลฝ่ายทะเบียน</div>
+          <div style="font-size:10.5px; color:#64748b;">วันที่ ........ / ........ / ................</div>
+        </div>
+        <div>
+          <div class="sig-line"></div>
+          <div>(.......................................................................)</div>
+          <div style="font-size:10.5px; margin-top:2px; color:#64748b;">เจ้าหน้าที่ฝ่ายการเงิน / ตรวจสอบสลิป</div>
+          <div style="font-size:10.5px; color:#64748b;">วันที่ ........ / ........ / ................</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      เอกสารพิมพ์จากระบบ TUH Conference Management เมื่อ ${esc(formatBeDateTime(new Date().toISOString()))}
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 400);
+    };
+  <\/script>
+</body>
+</html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 async function openRegistrationEdit(id){show('กำลังเปิดข้อมูล');try{const d=await rpc('adminGetRegistration',TOKEN,CID,id);hide();const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');const html=`<div class="edit-grid"><label>ประเภทผู้สมัคร<select id="erType">${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}</select></label><label>คำนำหน้า<select id="erPrefix">${optionHtml(o.prefixes,r.Prefix)}</select></label><label>ชื่อ<input id="erFirst" value="${esc(r.FirstName)}"></label><label>นามสกุล<input id="erLast" value="${esc(r.LastName)}"></label><label>เลขบัตรประชาชน<input id="erCid" value="${esc(r.CID)}" maxlength="13"></label><label>ตำแหน่ง<input id="erPosition" list="erPositions" value="${esc(r.Position)}">${dataList('erPositions',o.positions)}</label><label>วิชาชีพ<input id="erProfession" list="erProfessions" value="${esc(r.Profession)}">${dataList('erProfessions',o.professions)}</label><label>ฝ่าย/กลุ่มงาน<input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}">${dataList('erGroups',o.organizationGroups)}</label><label>หน่วยงาน/สถาบัน<input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}">${dataList('erOrgs',o.organizations)}</label><label>เลขใบประกอบวิชาชีพ<input id="erLicense" value="${esc(r.LicenseNo)}"></label><label>โทรศัพท์<input id="erPhone" value="${esc(r.Phone)}"></label><label>Email<input id="erEmail" value="${esc(r.Email)}"></label><label>Line ID<input id="erLine" value="${esc(r.LineID)}"></label><label>ประเภทอาหาร<select id="erFood">${optionHtml(o.foodTypes,r.FoodType)}</select></label><label>รายละเอียดแพ้อาหาร<input id="erAllergy" value="${esc(r.FoodAllergyDetail)}"></label></div><div class="attendance-edit">${dates.slice(0,3).map((date,i)=>`<label><input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}</label>`).join('')}<label><input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงาน</label></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid #ddd"><div style="font-weight:bold;margin-bottom:8px">ข้อมูลใบเสร็จรับเงิน</div><div class="edit-grid"><label>ความต้องการใบเสร็จ<select id="erReceiptReq"><option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ</option><option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จ</option></select></label><label>ชื่อออกใบเสร็จ<input id="erReceiptName" value="${esc(r.ReceiptName||'')}"></label><label>เลขผู้เสียภาษี / บัตร ปชช.<input id="erReceiptTaxId" value="${esc(r.ReceiptTaxID||r.ReceiptTaxId||'')}" maxlength="13"></label><label>เบอร์โทรศัพท์ใบเสร็จ<input id="erReceiptPhone" value="${esc(r.ReceiptPhone||'')}"></label><label style="grid-column:span 2">ที่อยู่ออกใบเสร็จ<textarea id="erReceiptAddress" rows="2">${esc(r.ReceiptAddress||'')}</textarea></label><label>รหัสไปรษณีย์<input id="erReceiptPostalCode" value="${esc(r.ReceiptPostalCode||'')}" maxlength="5"></label></div></div>`;const x=await Swal.fire({title:`แก้ไข ${esc(id)}`,html,customClass:{popup:'swal-wide'},showCancelButton:true,confirmButtonText:'บันทึกข้อมูล',confirmButtonColor:'#006D70',preConfirm:()=>({ParticipantType:$('#erType').value,Prefix:$('#erPrefix').value,FirstName:$('#erFirst').value,LastName:$('#erLast').value,CID:$('#erCid').value,Position:$('#erPosition').value,Profession:$('#erProfession').value,OrganizationGroup:$('#erGroup').value,OrganizationUnit:$('#erOrg').value,Institution:$('#erOrg').value,LicenseNo:$('#erLicense').value,Phone:$('#erPhone').value,Email:$('#erEmail').value,LineID:$('#erLine').value,FoodType:$('#erFood').value,FoodAllergyDetail:$('#erAllergy').value,AttendanceDay1:$('#erDay1')?.checked||false,AttendanceDay2:$('#erDay2')?.checked||false,AttendanceDay3:$('#erDay3')?.checked||false,WantsSubmitWork:$('#erWork').checked,ReceiptRequirement:$('#erReceiptReq').value,ReceiptName:$('#erReceiptName').value,ReceiptTaxID:$('#erReceiptTaxId').value,ReceiptPhone:$('#erReceiptPhone').value,ReceiptAddress:$('#erReceiptAddress').value,ReceiptPostalCode:$('#erReceiptPostalCode').value})});if(!x.isConfirmed)return;show('กำลังบันทึกข้อมูล');const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);hide();await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
 
