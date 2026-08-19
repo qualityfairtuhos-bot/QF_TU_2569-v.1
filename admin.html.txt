@@ -715,7 +715,215 @@ function renderRegistrationPrintWindow(win, d){
   win.document.write(html);
   win.document.close();
 }
-async function openRegistrationEdit(id){show('กำลังเปิดข้อมูล');try{const d=await rpc('adminGetRegistration',TOKEN,CID,id);hide();const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');const html=`<div class="edit-grid"><label>ประเภทผู้สมัคร<select id="erType">${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}</select></label><label>คำนำหน้า<select id="erPrefix">${optionHtml(o.prefixes,r.Prefix)}</select></label><label>ชื่อ<input id="erFirst" value="${esc(r.FirstName)}"></label><label>นามสกุล<input id="erLast" value="${esc(r.LastName)}"></label><label>เลขบัตรประชาชน<input id="erCid" value="${esc(r.CID)}" maxlength="13"></label><label>ตำแหน่ง<input id="erPosition" list="erPositions" value="${esc(r.Position)}">${dataList('erPositions',o.positions)}</label><label>วิชาชีพ<input id="erProfession" list="erProfessions" value="${esc(r.Profession)}">${dataList('erProfessions',o.professions)}</label><label>ฝ่าย/กลุ่มงาน<input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}">${dataList('erGroups',o.organizationGroups)}</label><label>หน่วยงาน/สถาบัน<input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}">${dataList('erOrgs',o.organizations)}</label><label>เลขใบประกอบวิชาชีพ<input id="erLicense" value="${esc(r.LicenseNo)}"></label><label>โทรศัพท์<input id="erPhone" value="${esc(r.Phone)}"></label><label>Email<input id="erEmail" value="${esc(r.Email)}"></label><label>Line ID<input id="erLine" value="${esc(r.LineID)}"></label><label>ประเภทอาหาร<select id="erFood">${optionHtml(o.foodTypes,r.FoodType)}</select></label><label>รายละเอียดแพ้อาหาร<input id="erAllergy" value="${esc(r.FoodAllergyDetail)}"></label></div><div class="attendance-edit">${dates.slice(0,3).map((date,i)=>`<label><input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''}> วันที่ ${i+1}: ${esc(formatBeIsoDate(date))}</label>`).join('')}<label><input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''}> ประสงค์ส่งผลงาน</label></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid #ddd"><div style="font-weight:bold;margin-bottom:8px">ข้อมูลใบเสร็จรับเงิน</div><div class="edit-grid"><label>ความต้องการใบเสร็จ<select id="erReceiptReq"><option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ</option><option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จ</option></select></label><label>ชื่อออกใบเสร็จ<input id="erReceiptName" value="${esc(r.ReceiptName||'')}"></label><label>เลขผู้เสียภาษี / บัตร ปชช.<input id="erReceiptTaxId" value="${esc(r.ReceiptTaxID||r.ReceiptTaxId||'')}" maxlength="13"></label><label>เบอร์โทรศัพท์ใบเสร็จ<input id="erReceiptPhone" value="${esc(r.ReceiptPhone||'')}"></label><label style="grid-column:span 2">ที่อยู่ออกใบเสร็จ<textarea id="erReceiptAddress" rows="2">${esc(r.ReceiptAddress||'')}</textarea></label><label>รหัสไปรษณีย์<input id="erReceiptPostalCode" value="${esc(r.ReceiptPostalCode||'')}" maxlength="5"></label></div></div>`;const x=await Swal.fire({title:`แก้ไข ${esc(id)}`,html,customClass:{popup:'swal-wide'},showCancelButton:true,confirmButtonText:'บันทึกข้อมูล',confirmButtonColor:'#006D70',preConfirm:()=>({ParticipantType:$('#erType').value,Prefix:$('#erPrefix').value,FirstName:$('#erFirst').value,LastName:$('#erLast').value,CID:$('#erCid').value,Position:$('#erPosition').value,Profession:$('#erProfession').value,OrganizationGroup:$('#erGroup').value,OrganizationUnit:$('#erOrg').value,Institution:$('#erOrg').value,LicenseNo:$('#erLicense').value,Phone:$('#erPhone').value,Email:$('#erEmail').value,LineID:$('#erLine').value,FoodType:$('#erFood').value,FoodAllergyDetail:$('#erAllergy').value,AttendanceDay1:$('#erDay1')?.checked||false,AttendanceDay2:$('#erDay2')?.checked||false,AttendanceDay3:$('#erDay3')?.checked||false,WantsSubmitWork:$('#erWork').checked,ReceiptRequirement:$('#erReceiptReq').value,ReceiptName:$('#erReceiptName').value,ReceiptTaxID:$('#erReceiptTaxId').value,ReceiptPhone:$('#erReceiptPhone').value,ReceiptAddress:$('#erReceiptAddress').value,ReceiptPostalCode:$('#erReceiptPostalCode').value})});if(!x.isConfirmed)return;show('กำลังบันทึกข้อมูล');const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);hide();await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});loadRegistrations()}catch(e){err(e)}}
+function toggleReceiptFormFields(val){
+  const el = document.getElementById('erReceiptBlock');
+  if(el){
+    el.style.display = (val === 'NEED_RECEIPT') ? 'grid' : 'none';
+  }
+}
+
+async function openRegistrationEdit(id){
+  show('กำลังเปิดข้อมูล');
+  try{
+    const d=await rpc('adminGetRegistration',TOKEN,CID,id);
+    hide();
+    const r=d.registration,o=d.optionConfig||{},types=d.registrationTypes||[],dates=JSON.parse(BOOT.settings.EVENT_DATES_JSON||'[]');
+    const html=`<div style="text-align:left;max-height:75vh;overflow-y:auto;padding-right:6px;font-size:0.9rem">
+      <!-- 1. ข้อมูลผู้ลงทะเบียนและสังกัด -->
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+        <div style="background:#f8fafc;padding:9px 14px;font-weight:700;color:#006D70;font-size:0.95rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px">
+          <span>👤 1. ข้อมูลผู้ลงทะเบียนและสังกัด</span>
+        </div>
+        <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px">
+          <div style="grid-column:1/-1">
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ประเภทผู้สมัคร <span style="color:#ef4444">*</span></label>
+            <select id="erType" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+              ${types.map(t=>`<option value="${esc(t.TypeCode)}" ${t.TypeCode===r.ParticipantType?'selected':''}>${esc(t.TypeNameTH)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">คำนำหน้า</label>
+            <select id="erPrefix" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+              ${optionHtml(o.prefixes,r.Prefix)}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ชื่อ <span style="color:#ef4444">*</span></label>
+            <input id="erFirst" value="${esc(r.FirstName)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">นามสกุล <span style="color:#ef4444">*</span></label>
+            <input id="erLast" value="${esc(r.LastName)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">เลขบัตรประจำตัวประชาชน (13 หลัก) <span style="color:#ef4444">*</span></label>
+            <input id="erCid" value="${esc(r.CID)}" maxlength="13" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ตำแหน่ง</label>
+            <input id="erPosition" list="erPositions" value="${esc(r.Position)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            ${dataList('erPositions',o.positions)}
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">วิชาชีพ</label>
+            <input id="erProfession" list="erProfessions" value="${esc(r.Profession)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            ${dataList('erProfessions',o.professions)}
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">เลขใบประกอบวิชาชีพ (ถ้ามี)</label>
+            <input id="erLicense" value="${esc(r.LicenseNo)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ฝ่าย / กลุ่มงาน</label>
+            <input id="erGroup" list="erGroups" value="${esc(r.OrganizationGroup)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            ${dataList('erGroups',o.organizationGroups)}
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">หน่วยงาน / สถาบัน</label>
+            <input id="erOrg" list="erOrgs" value="${esc(r.Institution||r.OrganizationUnit)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            ${dataList('erOrgs',o.organizations)}
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. ข้อมูลการติดต่อและอาหาร -->
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+        <div style="background:#f8fafc;padding:9px 14px;font-weight:700;color:#006D70;font-size:0.95rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px">
+          <span>📞 2. ข้อมูลการติดต่อและอาหาร</span>
+        </div>
+        <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px">
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">เบอร์โทรศัพท์ <span style="color:#ef4444">*</span></label>
+            <input id="erPhone" value="${esc(r.Phone)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">อีเมล (Email) <span style="color:#ef4444">*</span></label>
+            <input id="erEmail" value="${esc(r.Email)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">Line ID</label>
+            <input id="erLine" value="${esc(r.LineID)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ประเภทอาหาร</label>
+            <select id="erFood" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+              ${optionHtml(o.foodTypes,r.FoodType)}
+            </select>
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">รายละเอียดแพ้อาหาร (ถ้ามี)</label>
+            <input id="erAllergy" value="${esc(r.FoodAllergyDetail)}" placeholder="เช่น ไม่ทานเนื้อวัว, แพ้อาหารทะเล" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. วันที่เข้าร่วมงาน & ผลงาน -->
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+        <div style="background:#f8fafc;padding:9px 14px;font-weight:700;color:#006D70;font-size:0.95rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px">
+          <span>🗓️ 3. วันที่เข้าร่วมงานและความประสงค์ส่งผลงาน</span>
+        </div>
+        <div style="padding:14px">
+          <div style="font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:8px">เลือกวันที่เข้าร่วมงาน:</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+            ${dates.slice(0,3).map((date,i)=>`
+              <label style="display:flex;align-items:center;gap:7px;background:#f8fafc;padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;cursor:pointer">
+                <input type="checkbox" id="erDay${i+1}" ${r['AttendanceDay'+(i+1)]?'checked':''} style="width:16px;height:16px;cursor:pointer">
+                <span style="font-size:0.88rem;color:#1e293b">วันที่ ${i+1}: <b>${esc(formatBeIsoDate(date))}</b></span>
+              </label>
+            `).join('')}
+          </div>
+          <div style="border-top:1px dashed #cbd5e1;padding-top:10px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="erWork" ${r.WantsSubmitWork?'checked':''} style="width:16px;height:16px;cursor:pointer">
+              <span style="font-size:0.9rem;font-weight:600;color:#006D70">มีความประสงค์ส่งผลงานวิชาการ</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ข้อมูลการออกใบเสร็จรับเงิน -->
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+        <div style="background:#f8fafc;padding:9px 14px;font-weight:700;color:#006D70;font-size:0.95rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px">
+          <span>🧾 4. ข้อมูลการออกใบเสร็จรับเงิน</span>
+        </div>
+        <div style="padding:14px">
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ความต้องการใบเสร็จ</label>
+            <select id="erReceiptReq" onchange="toggleReceiptFormFields(this.value)" style="width:100%;max-width:300px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+              <option value="NO_RECEIPT" ${r.ReceiptRequirement==='NO_RECEIPT'?'selected':''}>ไม่ออกใบเสร็จ</option>
+              <option value="NEED_RECEIPT" ${r.ReceiptRequirement==='NEED_RECEIPT'?'selected':''}>ต้องการออกใบเสร็จ</option>
+            </select>
+          </div>
+          <div id="erReceiptBlock" style="display:${r.ReceiptRequirement==='NEED_RECEIPT'?'grid':'none'};grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
+            <div>
+              <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ชื่อออกใบเสร็จ</label>
+              <input id="erReceiptName" value="${esc(r.ReceiptName||'')}" placeholder="ชื่อบุคคล หรือ หน่วยงาน" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">เลขผู้เสียภาษี / บัตร ปชช. (13 หลัก)</label>
+              <input id="erReceiptTaxId" value="${esc(r.ReceiptTaxID||r.ReceiptTaxId||'')}" maxlength="13" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">เบอร์โทรศัพท์สำหรับใบเสร็จ</label>
+              <input id="erReceiptPhone" value="${esc(r.ReceiptPhone||'')}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">รหัสไปรษณีย์</label>
+              <input id="erReceiptPostalCode" value="${esc(r.ReceiptPostalCode||'')}" maxlength="5" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem">
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="display:block;font-size:0.83rem;font-weight:600;color:#475569;margin-bottom:4px">ที่อยู่ออกใบเสร็จ</label>
+              <textarea id="erReceiptAddress" rows="2" placeholder="ที่อยู่ออกใบเสร็จรับเงิน" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;box-sizing:border-box">${esc(r.ReceiptAddress||'')}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    const x=await Swal.fire({
+      title:`แก้ไขข้อมูล ${esc(id)}`,
+      html,
+      customClass:{popup:'swal-wide'},
+      showCancelButton:true,
+      confirmButtonText:'บันทึกข้อมูล',
+      confirmButtonColor:'#006D70',
+      cancelButtonText:'ยกเลิก',
+      preConfirm:()=>({
+        ParticipantType:$('#erType').value,
+        Prefix:$('#erPrefix').value,
+        FirstName:$('#erFirst').value,
+        LastName:$('#erLast').value,
+        CID:$('#erCid').value,
+        Position:$('#erPosition').value,
+        Profession:$('#erProfession').value,
+        OrganizationGroup:$('#erGroup').value,
+        OrganizationUnit:$('#erOrg').value,
+        Institution:$('#erOrg').value,
+        LicenseNo:$('#erLicense').value,
+        Phone:$('#erPhone').value,
+        Email:$('#erEmail').value,
+        LineID:$('#erLine').value,
+        FoodType:$('#erFood').value,
+        FoodAllergyDetail:$('#erAllergy').value,
+        AttendanceDay1:$('#erDay1')?.checked||false,
+        AttendanceDay2:$('#erDay2')?.checked||false,
+        AttendanceDay3:$('#erDay3')?.checked||false,
+        WantsSubmitWork:$('#erWork').checked,
+        ReceiptRequirement:$('#erReceiptReq').value,
+        ReceiptName:$('#erReceiptName').value,
+        ReceiptTaxID:$('#erReceiptTaxId').value,
+        ReceiptPhone:$('#erReceiptPhone').value,
+        ReceiptAddress:$('#erReceiptAddress').value,
+        ReceiptPostalCode:$('#erReceiptPostalCode').value
+      })
+    });
+    if(!x.isConfirmed)return;
+    show('กำลังบันทึกข้อมูล');
+    const saved=await rpc('adminSaveRegistration',TOKEN,CID,id,x.value);
+    hide();
+    await Swal.fire({icon:'success',title:'แก้ไขข้อมูลแล้ว',html:(saved.warnings||[]).map(esc).join('<br>'),confirmButtonColor:'#006D70'});
+    loadRegistrations();
+  }catch(e){err(e)}
+}
 
 
 function beDateOnly(v){const d=parseStoredDate(v);if(!d)return String(v||'');return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()+543}`}
@@ -1149,22 +1357,92 @@ async function loadUsers(){
   show('กำลังโหลดผู้ใช้งาน');
   try{
     const rows=await rpc('adminListUsers',TOKEN,CID);
-    $('#userRows').innerHTML=rows.map(x=>`<tr>
-      <td>${esc(x.UserID)}</td>
+    window.USERS_LIST_CACHE = rows || [];
+    $('#userRows').innerHTML=rows.length ? rows.map(x=>`<tr>
+      <td><b>${esc(x.UserID)}</b></td>
       <td><b>${esc(x.FullName)}</b><br><span class="muted">${esc(x.Email)}</span></td>
-      <td>${esc(x.Role)}</td>
+      <td><span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:600">${esc(x.Role)}</span></td>
       <td>${statusBadge(x.Status)}</td>
-      <td class="actions">
-        ${x.Role!=='SUPERADMIN' ? `<button class="btn btn-blue btn-sm" onclick="adminApproveUser('${esc(x.UserID)}')">อนุมัติ</button>
-        <button class="btn btn-gold btn-sm" onclick="adminRevokeUser('${esc(x.UserID)}')">ยกเลิกสิทธิ์</button>` : '<span class="muted">Superadmin</span>'}
+      <td class="actions" style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-soft btn-sm" onclick="openUserEditModal('${esc(x.UserID)}')" title="แก้ไขสิทธิ์และบทบาท"><i class="fa-solid fa-pen-to-square"></i> แก้ไขสิทธิ์</button>
+        ${x.Status !== 'ACTIVE' ? `<button class="btn btn-blue btn-sm" onclick="adminApproveUser('${esc(x.UserID)}')"><i class="fa-solid fa-check"></i> อนุมัติ</button>` : ''}
+        ${x.Status === 'ACTIVE' && x.Role !== 'SUPERADMIN' ? `<button class="btn btn-gold btn-sm" onclick="adminRevokeUser('${esc(x.UserID)}')"><i class="fa-solid fa-ban"></i> พักสิทธิ์</button>` : ''}
       </td>
-    </tr>`).join('');
+    </tr>`).join('') : '<tr><td colspan="5" class="muted">ไม่พบข้อมูลผู้ใช้งาน</td></tr>';
   }finally{
     hide();
   }
 }
+
+async function openUserEditModal(uid){
+  const u = (window.USERS_LIST_CACHE || []).find(x => x.UserID === uid);
+  if(!u) return;
+  const roles = [
+    { value: 'SUPERADMIN', label: 'ผู้ดูแลระบบสูงสุด (SUPERADMIN)' },
+    { value: 'CONFERENCE_ADMIN', label: 'ผู้ดูแลโครงการ (CONFERENCE_ADMIN)' },
+    { value: 'ACADEMIC_STAFF', label: 'เจ้าหน้าที่ฝ่ายวิชาการ (ACADEMIC_STAFF)' },
+    { value: 'REGISTRATION_STAFF', label: 'เจ้าหน้าที่ฝ่ายทะเบียน (REGISTRATION_STAFF)' },
+    { value: 'FINANCE_STAFF', label: 'เจ้าหน้าที่ฝ่ายการเงิน (FINANCE_STAFF)' },
+    { value: 'FOOD_STAFF', label: 'เจ้าหน้าที่ฝ่ายอาหาร/สแกน (FOOD_STAFF)' },
+    { value: 'REVIEWER', label: 'ผู้ทรงคุณวุฒิตรวจผลงาน (REVIEWER)' },
+    { value: 'VIEWER', label: 'ผู้เข้าชมข้อมูล (VIEWER)' },
+    { value: 'USER', label: 'ผู้ใช้งานทั่วไป (USER)' }
+  ];
+  const statuses = [
+    { value: 'ACTIVE', label: 'อนุมัติ / ใช้งานได้ปกติ (ACTIVE)' },
+    { value: 'PENDING', label: 'รออนุมัติสิทธิ์ (PENDING)' },
+    { value: 'INACTIVE', label: 'ปิดใช้งานชั่วคราว (INACTIVE)' },
+    { value: 'REVOKED', label: 'ยกเลิกสิทธิ์การเข้าถึง (REVOKED)' }
+  ];
+  
+  const h = `<div style="text-align:left;line-height:1.6">
+    <div style="background:#f8fafc;padding:12px;border-radius:8px;margin-bottom:14px;border:1px solid #e2e8f0;font-size:0.9rem">
+      <div><b>รหัสผู้ใช้:</b> ${esc(u.UserID)}</div>
+      <div><b>ชื่อ-นามสกุล:</b> ${esc(u.FullName)}</div>
+      <div><b>อีเมล:</b> ${esc(u.Email)}</div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label style="display:block;font-weight:600;margin-bottom:4px;color:#334155">บทบาท (Role):</label>
+      <select id="euRole" class="swal2-select" style="width:100%;margin:0;box-sizing:border-box;padding:8px 10px;font-size:0.9rem">
+        ${roles.map(r => `<option value="${r.value}" ${r.value === u.Role ? 'selected' : ''}>${r.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label style="display:block;font-weight:600;margin-bottom:4px;color:#334155">สถานะการใช้งาน (Status):</label>
+      <select id="euStatus" class="swal2-select" style="width:100%;margin:0;box-sizing:border-box;padding:8px 10px;font-size:0.9rem">
+        ${statuses.map(s => `<option value="${s.value}" ${s.value === u.Status ? 'selected' : ''}>${s.label}</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+  
+  const res = await Swal.fire({
+    title: `จัดการสิทธิ์ผู้ใช้งาน`,
+    html: h,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึกข้อมูล',
+    confirmButtonColor: '#006D70',
+    cancelButtonText: 'ยกเลิก',
+    preConfirm: () => ({
+      role: $('#euRole').value,
+      status: $('#euStatus').value
+    })
+  });
+  
+  if(res.isConfirmed){
+    show('กำลังบันทึกสิทธิ์ผู้ใช้งาน');
+    try{
+      await rpc('adminUpdateUserStatus', TOKEN, CID, uid, res.value.status, res.value.role);
+      hide();
+      toast('บันทึกสิทธิ์สำเร็จ');
+      loadUsers();
+    }catch(e){
+      err(e);
+    }
+  }
+}
+
 async function openUserForm(){
-  const h=`<div class="field" style="text-align:left"><label>Email ของผู้ใช้งานใหม่: <input id="nuEmail"></label></div><div class="field" style="text-align:left"><label>บทบาท (Role): <select id="nuRole"><option value="CONFERENCE_ADMIN">Admin โครงการ</option><option value="ACADEMIC_STAFF">เจ้าหน้าที่วิชาการ</option><option value="REGISTRATION_STAFF">เจ้าหน้าที่ลงทะเบียน</option><option value="FINANCE_STAFF">เจ้าหน้าที่การเงิน</option><option value="FOOD_STAFF">เจ้าหน้าที่อาหาร</option><option value="VIEWER">ผู้เยี่ยมชม</option></select></label></div>`;
+  const h=`<div class="field" style="text-align:left"><label>Email ของผู้ใช้งานใหม่: <input id="nuEmail"></label></div><div class="field" style="text-align:left"><label>บทบาท (Role): <select id="nuRole"><option value="CONFERENCE_ADMIN">Admin โครงการ</option><option value="ACADEMIC_STAFF">เจ้าหน้าที่วิชาการ</option><option value="REGISTRATION_STAFF">เจ้าหน้าที่ลงทะเบียน</option><option value="FINANCE_STAFF">เจ้าหน้าที่การเงิน</option><option value="FOOD_STAFF">เจ้าหน้าที่อาหาร</option><option value="REVIEWER">ผู้ทรงคุณวุฒิ</option><option value="VIEWER">ผู้เยี่ยมชม</option></select></label></div>`;
   const x=await Swal.fire({title:'เพิ่มสิทธิ์ผู้ใช้งาน',html:h,showCancelButton:true,confirmButtonText:'เพิ่มสิทธิ์',preConfirm:()=>({email:$('#nuEmail').value, role:$('#nuRole').value})});
   if(x.isConfirmed){
     show('กำลังเพิ่มสิทธิ์');
