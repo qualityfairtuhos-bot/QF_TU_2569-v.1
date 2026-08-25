@@ -100,9 +100,9 @@
 
     <section class="page" id="page-import"><div class="card"><h3>นำเข้าข้อมูล Excel จาก Google Form<span class="en">Import Excel from Google Form</span></h3><p>รองรับไฟล์ .xlsx ระบบจะแสดง Preview ก่อนนำเข้าจริง</p><div class="field"><input type="file" id="importFile" accept=".xlsx,.xls"></div><button class="btn btn-primary" onclick="previewImport()">อัปโหลดและตรวจสอบ</button></div><div id="importResult"></div></section>
 
-    <section class="page" id="page-registrations"><div class="card"><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="regSearch" placeholder="RegID ชื่อ Email โทรศัพท์ CID"></div><div><label class="muted">สถานะ</label><select id="regStatus"><option value="">ทั้งหมด</option><option>IMPORTED_INCOMPLETE</option><option>WAIT_REGISTRATION_CHECK</option><option>REGISTRATION_RETURNED</option><option>REGISTRATION_VERIFIED</option><option>COMPLETED</option></select></div><div><button class="btn btn-primary" onclick="loadRegistrations()">ค้นหา</button></div><div><button class="btn btn-gold" onclick="openRegistrationSignSheet()">พิมพ์ใบเซ็นชื่อ</button></div></div><div class="print-note">พิมพ์แบบ A4 แนวนอน แยกตามฝ่าย/หน่วยงาน พร้อมช่องลายมือชื่อรายวัน</div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>ประเภท</th><th>CID</th><th>Email / Phone</th><th>ข้อมูล</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="regRows"></tbody></table></div></div></section>
+    <section class="page" id="page-registrations"><div class="card"><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="regSearch" placeholder="RegID ชื่อ Email โทรศัพท์ CID"></div><div><label class="muted">สถานะ</label><select id="regStatus"><option value="">ทั้งหมด</option><option>IMPORTED_INCOMPLETE</option><option>WAIT_REGISTRATION_CHECK</option><option>REGISTRATION_RETURNED</option><option>REGISTRATION_VERIFIED</option><option>COMPLETED</option></select></div><div><button class="btn btn-primary" onclick="loadRegistrations()">ค้นหา</button></div><div><button class="btn btn-gold" onclick="openRegistrationSignSheet()">พิมพ์ใบเซ็นชื่อ</button></div><div><button class="btn btn-gold" onclick="exportRegistrations()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div></div><div class="print-note">พิมพ์แบบ A4 แนวนอน แยกตามฝ่าย/หน่วยงาน พร้อมช่องลายมือชื่อรายวัน</div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>ประเภท</th><th>CID</th><th>Email / Phone</th><th>ข้อมูล</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="regRows"></tbody></table></div></div></section>
 
-    <section class="page" id="page-payments"><div class="card"><div class="info-box"><b>ข้อมูลจะแสดงตั้งแต่ผู้สมัครประเภทที่ต้องชำระเงินลงทะเบียนเข้าระบบ</b> โดยสถานะ UNPAID หมายถึงยังไม่ส่งหลักฐาน และ PENDING_VERIFY หมายถึงส่งหลักฐานแล้วรอฝ่ายการเงินตรวจสอบ</div><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="paySearch" placeholder="RegID ชื่อ Email"></div><div><label class="muted">สถานะ</label><select id="payStatus"><option value="">ทั้งหมด</option><option>UNPAID</option><option>PENDING_VERIFY</option><option>APPROVED</option><option>RETURNED</option><option>REJECTED</option></select></div><div><button class="btn btn-primary" onclick="loadPayments()">ค้นหา</button></div></div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>จำนวน</th><th>สถานะ</th><th>หลักฐาน</th><th>จัดการ</th></tr></thead><tbody id="payRows"></tbody></table></div></div></section>
+    <section class="page" id="page-payments"><div class="card"><div class="info-box"><b>ข้อมูลจะแสดงตั้งแต่ผู้สมัครประเภทที่ต้องชำระเงินลงทะเบียนเข้าระบบ</b> โดยสถานะ UNPAID หมายถึงยังไม่ส่งหลักฐาน และ PENDING_VERIFY หมายถึงส่งหลักฐานแล้วรอฝ่ายการเงินตรวจสอบ</div><div class="toolbar"><div class="wide"><label class="muted">ค้นหา</label><input id="paySearch" placeholder="RegID ชื่อ Email"></div><div><label class="muted">สถานะ</label><select id="payStatus"><option value="">ทั้งหมด</option><option>UNPAID</option><option>PENDING_VERIFY</option><option>APPROVED</option><option>RETURNED</option><option>REJECTED</option></select></div><div><button class="btn btn-primary" onclick="loadPayments()">ค้นหา</button></div><div><button class="btn btn-gold" onclick="exportPayments()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div></div><div class="table-wrap"><table class="table"><thead><tr><th>RegID</th><th>ชื่อ</th><th>จำนวน</th><th>สถานะ</th><th>หลักฐาน</th><th>จัดการ</th></tr></thead><tbody id="payRows"></tbody></table></div></div></section>
 
     <section class="page" id="page-works">
       <div class="card">
@@ -1091,6 +1091,26 @@ async function exportWorks(){
     const res = await rpc('exportWorksToExcel', TOKEN, CID);
     hide();
     Swal.fire({title:'สำเร็จ',text:'สร้างไฟล์ Excel สำเร็จ',icon:'success',confirmButtonText:'ดาวน์โหลด/เปิดไฟล์'}).then(()=>{
+      window.open(res.url, '_blank');
+    });
+  } catch(e) { err(e); }
+}
+async function exportRegistrations(){
+  show('กำลังสร้างไฟล์ Excel ผู้ลงทะเบียน...');
+  try {
+    const res = await rpc('exportRegistrationsToExcel', TOKEN, CID);
+    hide();
+    Swal.fire({title:'สำเร็จ',text:'สร้างไฟล์ Excel ผู้ลงทะเบียนสำเร็จ',icon:'success',confirmButtonText:'ดาวน์โหลด/เปิดไฟล์'}).then(()=>{
+      window.open(res.url, '_blank');
+    });
+  } catch(e) { err(e); }
+}
+async function exportPayments(){
+  show('กำลังสร้างไฟล์ Excel การเงิน...');
+  try {
+    const res = await rpc('exportPaymentsToExcel', TOKEN, CID);
+    hide();
+    Swal.fire({title:'สำเร็จ',text:'สร้างไฟล์ Excel การเงินสำเร็จ',icon:'success',confirmButtonText:'ดาวน์โหลด/เปิดไฟล์'}).then(()=>{
       window.open(res.url, '_blank');
     });
   } catch(e) { err(e); }
