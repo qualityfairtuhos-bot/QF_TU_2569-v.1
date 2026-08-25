@@ -35,6 +35,8 @@ const API_ACTIONS = Object.freeze({
   commitImportBatch: commitImportBatch,
   confirmEventScanner: confirmEventScanner,
   emailMyMealPass: emailMyMealPass,
+  exportPaymentsToExcel: exportPaymentsToExcel,
+  exportRegistrationsToExcel: exportRegistrationsToExcel,
   exportWorksToExcel: exportWorksToExcel,
   getAdminSettings: getAdminSettings,
   getEventScannerBootstrap: getEventScannerBootstrap,

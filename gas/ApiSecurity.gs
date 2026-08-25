@@ -58,7 +58,8 @@ function apiAuthorize_(action,args) {
   }
   if (action.indexOf('admin') === 0 || [
     'getAdminSettings','saveAdminSettings','uploadExcelForImport',
-    'commitImportBatch','exportWorksToExcel'
+    'commitImportBatch','exportWorksToExcel','exportRegistrationsToExcel',
+    'exportPaymentsToExcel'
   ].indexOf(action) >= 0) return requireSession_(args[0], API_ADMIN_ROLES, args[1]);
   throw apiError_('FORBIDDEN','ไม่มีสิทธิ์ใช้คำสั่งนี้');
 }

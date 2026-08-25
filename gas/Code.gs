@@ -3142,6 +3142,99 @@ function exportWorksToExcel(token,conferenceId){
     return {url:ss.getUrl(), fileId:ss.getId(), fileName:ss.getName()};
   });
 }
+function exportRegistrationsToExcel(token,conferenceId){
+  return runSafely_('exportRegistrationsToExcel',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','REGISTRATION_STAFF'],conferenceId);
+    var rows=findMany_('Registrations',{ConferenceID:conferenceId});
+    rows.sort(function(a,b){return String(a.RegID||'').localeCompare(String(b.RegID||''));});
+    var headers=[
+      'RegID','ParticipantType','Prefix','FirstName','LastName','FullName',
+      'CID','Position','Profession','OrganizationGroup','OrganizationUnit','Institution',
+      'Phone','Email','FoodType','FoodAllergyDetail',
+      'AttendanceDay1','AttendanceDay2','AttendanceDay3','WantsSubmitWork',
+      'RegistrationStatus','PaymentStatus','DataCompletenessStatus',
+      'ReceiptRequirement','ReceiptName','ReceiptTaxID','ReceiptPhone','ReceiptAddress','ReceiptPostalCode',
+      'CreatedAt'
+    ];
+    var data=rows.map(function(r){
+      return headers.map(function(h){
+        if(h==='AttendanceDay1'||h==='AttendanceDay2'||h==='AttendanceDay3'||h==='WantsSubmitWork'){
+          return bool_(r[h])?'YES':'NO';
+        }
+        if(h==='CreatedAt'){
+          return formatDateTime_(r[h]);
+        }
+        return r[h]!==undefined&&r[h]!==null?String(r[h]):'';
+      });
+    });
+    var ss=SpreadsheetApp.create('Registrations_Export_'+Utilities.formatDate(new Date(),'Asia/Bangkok','yyyyMMdd_HHmm'));
+    var sh=ss.getSheets()[0];
+    sh.setName('Registrations');
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    if(data.length){
+      sh.getRange(2,1,data.length,headers.length).setValues(data);
+    }
+    return {url:ss.getUrl(),fileId:ss.getId(),fileName:ss.getName()};
+  });
+}
+function exportPaymentsToExcel(token,conferenceId){
+  return runSafely_('exportPaymentsToExcel',function(){
+    requireSession_(token,['SUPERADMIN','CONFERENCE_ADMIN','FINANCE_STAFF'],conferenceId);
+    var types={};
+    findMany_('RegistrationTypes',{ConferenceID:conferenceId}).forEach(function(t){types[t.TypeCode]=t;});
+    var paymentByReg={};
+    findMany_('Payments',{ConferenceID:conferenceId}).forEach(function(p){paymentByReg[p.RegID]=p;});
+    var rows=findMany_('Registrations',{ConferenceID:conferenceId}).filter(function(r){
+      var t=types[r.ParticipantType]||{};
+      return bool_(t.PaymentRequired);
+    }).map(function(r){
+      var t=types[r.ParticipantType]||{},p=paymentByReg[r.RegID]||{};
+      return {
+        RegID:r.RegID,
+        FullName:r.FullName||'',
+        ParticipantType:r.ParticipantType||'',
+        Organization:r.Institution||r.OrganizationUnit||'',
+        Phone:r.Phone||'',
+        Email:r.Email||'',
+        RequiredAmount:num_(t.FeeAmount),
+        PaidAmount:p.Amount!==undefined?num_(p.Amount):'',
+        PaymentStatus:r.PaymentStatus||p.Status||'UNPAID',
+        PaymentDate:p.PaymentDate?formatDateTime_(p.PaymentDate):(p.SubmittedAt?formatDateTime_(p.SubmittedAt):''),
+        VerifiedBy:p.VerifiedBy||'',
+        VerifiedAt:p.VerifiedAt?formatDateTime_(p.VerifiedAt):'',
+        ReceiptNo:p.ReceiptNo||'',
+        ReceiptDate:p.ReceiptDate?formatDateTime_(p.ReceiptDate):'',
+        SlipFileUrl:p.SlipFileUrl||'',
+        ReceiptRequirement:r.ReceiptRequirement||'',
+        ReceiptName:r.ReceiptName||'',
+        ReceiptTaxID:r.ReceiptTaxID||r.ReceiptTaxId||'',
+        ReceiptPhone:r.ReceiptPhone||'',
+        ReceiptAddress:r.ReceiptAddress||'',
+        ReceiptPostalCode:r.ReceiptPostalCode||''
+      };
+    });
+    rows.sort(function(a,b){return String(a.RegID||'').localeCompare(String(b.RegID||''));});
+    var headers=[
+      'RegID','FullName','ParticipantType','Organization','Phone','Email',
+      'RequiredAmount','PaidAmount','PaymentStatus','PaymentDate','VerifiedBy','VerifiedAt',
+      'ReceiptNo','ReceiptDate','SlipFileUrl',
+      'ReceiptRequirement','ReceiptName','ReceiptTaxID','ReceiptPhone','ReceiptAddress','ReceiptPostalCode'
+    ];
+    var data=rows.map(function(r){
+      return headers.map(function(h){
+        return r[h]!==undefined&&r[h]!==null?String(r[h]):'';
+      });
+    });
+    var ss=SpreadsheetApp.create('Payments_Export_'+Utilities.formatDate(new Date(),'Asia/Bangkok','yyyyMMdd_HHmm'));
+    var sh=ss.getSheets()[0];
+    sh.setName('Payments');
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    if(data.length){
+      sh.getRange(2,1,data.length,headers.length).setValues(data);
+    }
+    return {url:ss.getUrl(),fileId:ss.getId(),fileName:ss.getName()};
+  });
+}
 function ensureRegFolder_(conferenceId, regId, subFolderType) {
   const ADMIN_UPLOAD_PARENT_ID = '1nwdNRU_0dYcdA6tbEUJdJoT0AAsFz-ze';
   const ADMIN_UPLOAD_PARENT_NAME = 'Author_file_admin_upload';
@@ -3907,6 +4000,8 @@ const API_ACTIONS = Object.freeze({
   commitImportBatch: commitImportBatch,
   confirmEventScanner: confirmEventScanner,
   emailMyMealPass: emailMyMealPass,
+  exportPaymentsToExcel: exportPaymentsToExcel,
+  exportRegistrationsToExcel: exportRegistrationsToExcel,
   exportWorksToExcel: exportWorksToExcel,
   getAdminSettings: getAdminSettings,
   getEventScannerBootstrap: getEventScannerBootstrap,
@@ -4007,7 +4102,8 @@ function apiAuthorize_(action,args) {
   }
   if (action.indexOf('admin') === 0 || [
     'getAdminSettings','saveAdminSettings','uploadExcelForImport',
-    'commitImportBatch','exportWorksToExcel'
+    'commitImportBatch','exportWorksToExcel','exportRegistrationsToExcel',
+    'exportPaymentsToExcel'
   ].indexOf(action) >= 0) return requireSession_(args[0], API_ADMIN_ROLES, args[1]);
   throw apiError_('FORBIDDEN','ไม่มีสิทธิ์ใช้คำสั่งนี้');
 }
